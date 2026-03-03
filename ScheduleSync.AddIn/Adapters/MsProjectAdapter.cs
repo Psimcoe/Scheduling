@@ -14,8 +14,19 @@ namespace ScheduleSync.AddIn.Adapters
     /// All calls go through the active project in the running MS Project instance.
     /// </summary>
     /// <remarks>
-    /// This file will not compile without the MS Project interop assemblies.
-    /// It is provided as the reference implementation for the VSTO add-in.
+    /// <para>This file will not compile without the MS Project interop assemblies.</para>
+    /// <para>
+    /// COM HARDENING NOTES (learned from production debugging):
+    /// <list type="bullet">
+    ///   <item>Set <c>_app.DisplayAlerts = false</c> before batch operations to suppress modal dialogs.</item>
+    ///   <item>After <c>FileNew()</c>, <c>ActiveProject</c> may be null briefly.
+    ///         Fallback: <c>_app.Projects.Item(_app.Projects.Count)</c>.</item>
+    ///   <item>NEVER use <c>OutlineIndent()</c> — it bases indentation on the preceding row.
+    ///         Always set <c>task.OutlineLevel</c> explicitly (1 = root, parent + 1 = child).</item>
+    ///   <item>Set <c>task.Manual = false</c> after <c>Tasks.Add()</c> to force auto-scheduling.</item>
+    ///   <item>MS Project auto-adjusts dates that fall on non-working days. This is expected, not an error.</item>
+    /// </list>
+    /// </para>
     /// </remarks>
     public class MsProjectAdapter : IProjectAdapter
     {
@@ -24,6 +35,8 @@ namespace ScheduleSync.AddIn.Adapters
         // public MsProjectAdapter(MSProject.Application app)
         // {
         //     _app = app ?? throw new ArgumentNullException(nameof(app));
+        //     // Suppress modal dialogs during batch operations
+        //     // _app.DisplayAlerts = false;
         // }
 
         public IEnumerable<TaskSnapshot> GetAllTasks()
@@ -170,18 +183,23 @@ namespace ScheduleSync.AddIn.Adapters
             // var project = _app.ActiveProject;
             // string name = update.Name ?? $"Task-{update.ExternalKey}";
             //
-            // // Add the task. If parentUniqueId is set, indent it under that parent.
             // MSProject.Task newTask = project.Tasks.Add(name);
+            // newTask.Manual = false;  // Force auto-scheduled
             //
+            // // CRITICAL: Always set OutlineLevel explicitly.
+            // // Never use OutlineIndent() — it bases indentation on the preceding row,
+            // // which cascades incorrectly when creating multiple siblings in sequence.
             // if (parentUniqueId.HasValue)
             // {
-            //     // Find the parent's outline level and indent the new task
             //     var parentTask = project.Tasks.UniqueID[parentUniqueId.Value];
-            //     // Move the new task below the parent and indent
-            //     newTask.OutlineIndent();
+            //     newTask.OutlineLevel = (short)(parentTask.OutlineLevel + 1);
+            // }
+            // else
+            // {
+            //     newTask.OutlineLevel = 1;  // Explicit root level
             // }
             //
-            // // Set schedule fields
+            // // Set schedule fields (Project may adjust dates to next working day — expected)
             // if (update.NewStart.HasValue)
             //     newTask.Start = update.NewStart.Value;
             // if (update.NewFinish.HasValue)
@@ -228,9 +246,21 @@ namespace ScheduleSync.AddIn.Adapters
             //
             // // Not found — create it
             // MSProject.Task newTask = project.Tasks.Add(name);
-            // if (parentUniqueId.HasValue)
-            //     newTask.OutlineIndent();
+            // newTask.Manual = false;  // Force auto-scheduled
             //
+            // // CRITICAL: Always set OutlineLevel explicitly.
+            // // Never use OutlineIndent() — it cascades incorrectly.
+            // if (parentUniqueId.HasValue)
+            // {
+            //     var parentTask = project.Tasks.UniqueID[parentUniqueId.Value];
+            //     newTask.OutlineLevel = (short)(parentTask.OutlineLevel + 1);
+            // }
+            // else
+            // {
+            //     newTask.OutlineLevel = 1;  // Top-level summary
+            // }
+            //
+            // // Note: task becomes Summary automatically once children are added beneath it.
             // return MapToSnapshot(newTask);
             throw new NotImplementedException("Requires MS Project interop assemblies.");
         }
@@ -253,14 +283,17 @@ namespace ScheduleSync.AddIn.Adapters
         // {
         //     var update = diff.Update;
         //
+        //     // Set Duration BEFORE Start/Finish to avoid auto-schedule conflicts
+        //     // (Project recalculates Finish from Start+Duration; setting Duration after
+        //     //  Start/Finish may override what you just set.)
+        //     if (update.NewDurationMinutes.HasValue)
+        //         task.Duration = (int)update.NewDurationMinutes.Value;  // Duration is in minutes (480 = 1 day)
+        //
         //     if (update.NewStart.HasValue)
         //         task.Start = update.NewStart.Value;
         //
         //     if (update.NewFinish.HasValue)
         //         task.Finish = update.NewFinish.Value;
-        //
-        //     if (update.NewDurationMinutes.HasValue)
-        //         task.Duration = (int)update.NewDurationMinutes.Value;  // Duration is in minutes
         //
         //     if (update.NewPercentComplete.HasValue)
         //         task.PercentComplete = (short)update.NewPercentComplete.Value;
@@ -280,6 +313,20 @@ namespace ScheduleSync.AddIn.Adapters
         //     // Update external key if provided (for re-sync idempotency)
         //     if (!string.IsNullOrEmpty(update.ExternalKey))
         //         task.SetField(FieldNameToId(options.ExternalKeyFieldName), update.ExternalKey);
+        // }
+
+        // /// <summary>
+        // /// Gets the active project with fallback to Projects collection.
+        // /// ActiveProject may be null briefly after FileNew().
+        // /// </summary>
+        // private MSProject.Project GetActiveProject()
+        // {
+        //     var project = _app.ActiveProject;
+        //     if (project == null && _app.Projects.Count > 0)
+        //         project = _app.Projects.Item(_app.Projects.Count);
+        //     if (project == null)
+        //         throw new InvalidOperationException("No active project. Open or create a project first.");
+        //     return project;
         // }
 
         // private static TaskSnapshot MapToSnapshot(MSProject.Task task)

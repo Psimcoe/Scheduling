@@ -210,15 +210,11 @@ try {
                     # Set Text30 (external key for re-sync)
                     $task.SetField($pjTaskText30, $externalKey)
 
-                    # Start date
-                    $startDate = Parse-Date $row."Prefab Build Start Date"
-                    if ($startDate) { $task.Start = $startDate }
+                    # FIELD ORDER: Duration → Start → Finish
+                    # Project auto-calculates Finish from Start + Duration.
+                    # Setting Duration first avoids it overriding an explicit Finish.
 
-                    # Finish date
-                    $finishDate = Parse-Date $row."Prefab Build Finish Date"
-                    if ($finishDate) { $task.Finish = $finishDate }
-
-                    # Duration from Work Days
+                    # Duration from Work Days (set BEFORE Start/Finish)
                     $workDaysStr = $row."Work Days (Reference)"
                     if ($workDaysStr -and $workDaysStr.Trim() -ne "") {
                         $workDays = 0
@@ -226,6 +222,14 @@ try {
                             $task.Duration = [int]($workDays * 480)  # minutes (8hr day)
                         }
                     }
+
+                    # Start date
+                    $startDate = Parse-Date $row."Prefab Build Start Date"
+                    if ($startDate) { $task.Start = $startDate }
+
+                    # Finish date (overrides auto-calculated value if present)
+                    $finishDate = Parse-Date $row."Prefab Build Finish Date"
+                    if ($finishDate) { $task.Finish = $finishDate }
 
                     # Deadline (Required date)
                     $deadlineDate = Parse-Date $row.Required

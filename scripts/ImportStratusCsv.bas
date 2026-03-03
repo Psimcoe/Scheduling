@@ -297,21 +297,11 @@ Public Sub ImportStratusCsv()
                 End If
                 t.SetField pjTaskText30, extKey
                 
-                ' Start date
-                If colStartDate > 0 And colStartDate <= rowFields.Count Then
-                    Dim startVal As Variant
-                    startVal = SafeParseDate(rowFields(colStartDate))
-                    If Not IsEmpty(startVal) Then t.Start = startVal
-                End If
+                ' FIELD ORDER: Duration → Start → Finish
+                ' Project auto-calculates Finish from Start+Duration.
+                ' Setting Duration first avoids it overriding an explicit Finish.
                 
-                ' Finish date
-                If colFinishDate > 0 And colFinishDate <= rowFields.Count Then
-                    Dim finishVal As Variant
-                    finishVal = SafeParseDate(rowFields(colFinishDate))
-                    If Not IsEmpty(finishVal) Then t.Finish = finishVal
-                End If
-                
-                ' Duration from Work Days
+                ' Duration from Work Days (set BEFORE Start/Finish)
                 If colWorkDays > 0 And colWorkDays <= rowFields.Count Then
                     Dim wdStr As String
                     wdStr = Trim(rowFields(colWorkDays))
@@ -324,6 +314,20 @@ Public Sub ImportStratusCsv()
                         End If
                         On Error GoTo TaskError
                     End If
+                End If
+                
+                ' Start date
+                If colStartDate > 0 And colStartDate <= rowFields.Count Then
+                    Dim startVal As Variant
+                    startVal = SafeParseDate(rowFields(colStartDate))
+                    If Not IsEmpty(startVal) Then t.Start = startVal
+                End If
+                
+                ' Finish date (overrides auto-calculated value if present)
+                If colFinishDate > 0 And colFinishDate <= rowFields.Count Then
+                    Dim finishVal As Variant
+                    finishVal = SafeParseDate(rowFields(colFinishDate))
+                    If Not IsEmpty(finishVal) Then t.Finish = finishVal
                 End If
                 
                 ' Deadline (Required date)
