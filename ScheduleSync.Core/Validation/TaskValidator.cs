@@ -30,11 +30,15 @@ namespace ScheduleSync.Core.Validation
                 return messages;
             }
 
-            // Warn about manually scheduled tasks
+            // Warn about manually scheduled tasks when date changes are requested
             if (snapshot.IsManuallyScheduled)
             {
-                messages.Add(new ValidationMessage(ValidationSeverity.Warning,
-                    "Task is manually scheduled. Date changes will be applied directly without recalculation."));
+                bool dateChanges = update.NewStart.HasValue || update.NewFinish.HasValue || update.NewDurationMinutes.HasValue;
+                if (dateChanges)
+                {
+                    messages.Add(new ValidationMessage(ValidationSeverity.Warning,
+                        "Task is manually scheduled. Date changes will be applied directly without recalculation."));
+                }
             }
 
             // Constraint checks

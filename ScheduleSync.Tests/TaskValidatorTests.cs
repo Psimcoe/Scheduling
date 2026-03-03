@@ -48,6 +48,15 @@ namespace ScheduleSync.Tests
         }
 
         [Fact]
+        public void Validate_ManualTask_NonDateChanges_NoWarning()
+        {
+            var snap = MakeSnapshot(isManual: true);
+            var update = new TaskUpdate { NewPercentComplete = 50 };
+            var msgs = TaskValidator.Validate(snap, update);
+            Assert.DoesNotContain(msgs, m => m.Severity == ValidationSeverity.Warning);
+        }
+
+        [Fact]
         public void Validate_ConstrainedTask_NoOverride_Blocked()
         {
             var snap = MakeSnapshot(constraintType: 1);
