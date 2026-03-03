@@ -85,5 +85,50 @@ namespace ScheduleSync.Core.Validation
 
             return messages;
         }
+
+        /// <summary>
+        /// Validate a new task update (creation scenario — no existing snapshot).
+        /// Checks: date range, percent range, duration positivity.
+        /// </summary>
+        public static List<ValidationMessage> ValidateNew(TaskUpdate update)
+        {
+            var messages = new List<ValidationMessage>();
+
+            // Percent complete range check
+            if (update.NewPercentComplete.HasValue)
+            {
+                if (update.NewPercentComplete.Value < 0 || update.NewPercentComplete.Value > 100)
+                {
+                    messages.Add(new ValidationMessage(ValidationSeverity.Error,
+                        $"PercentComplete must be 0–100, got {update.NewPercentComplete.Value}."));
+                }
+            }
+
+            // Duration must be positive
+            if (update.NewDurationMinutes.HasValue && update.NewDurationMinutes.Value < 0)
+            {
+                messages.Add(new ValidationMessage(ValidationSeverity.Error,
+                    $"Duration cannot be negative, got {update.NewDurationMinutes.Value}."));
+            }
+
+            // Finish must be >= Start
+            if (update.NewStart.HasValue && update.NewFinish.HasValue)
+            {
+                if (update.NewFinish.Value < update.NewStart.Value)
+                {
+                    messages.Add(new ValidationMessage(ValidationSeverity.Error,
+                        "Finish date is earlier than Start date."));
+                }
+            }
+
+            // Name is required for new tasks
+            if (string.IsNullOrWhiteSpace(update.Name))
+            {
+                messages.Add(new ValidationMessage(ValidationSeverity.Warning,
+                    "New task has no name; a default name will be used."));
+            }
+
+            return messages;
+        }
     }
 }

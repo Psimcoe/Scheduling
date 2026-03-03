@@ -22,6 +22,9 @@ namespace ScheduleSync.Core.Models
 
         /// <summary>True if this diff should be skipped (blocked by validation).</summary>
         public bool IsBlocked { get; set; }
+
+        /// <summary>True if this diff represents a new task to be created.</summary>
+        public bool IsNewTask { get; set; }
     }
 
     [Flags]
@@ -34,7 +37,8 @@ namespace ScheduleSync.Core.Models
         PercentComplete = 8,
         ConstraintType = 16,
         ConstraintDate = 32,
-        Notes = 64
+        Notes = 64,
+        Deadline = 128
     }
 
     public class ValidationMessage

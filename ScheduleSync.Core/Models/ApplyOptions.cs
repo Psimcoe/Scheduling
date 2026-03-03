@@ -20,5 +20,11 @@ namespace ScheduleSync.Core.Models
         /// Label for the undo transaction group.
         /// </summary>
         public string UndoTransactionLabel { get; set; } = "Apply Schedule Updates";
+
+        /// <summary>
+        /// When true, unmatched updates may create new tasks in the project.
+        /// When false, unmatched updates are blocked with an error.
+        /// </summary>
+        public bool AllowTaskCreation { get; set; } = true;
     }
 }

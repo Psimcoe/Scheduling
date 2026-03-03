@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace ScheduleSync.Core.Models
 {
@@ -30,6 +31,9 @@ namespace ScheduleSync.Core.Models
 
         public DateTime? NewConstraintDate { get; set; }
 
+        /// <summary>New deadline date (informational constraint that warns but does not restrict scheduling).</summary>
+        public DateTime? NewDeadline { get; set; }
+
         /// <summary>Text to append to the task Notes field.</summary>
         public string NotesAppend { get; set; }
 
@@ -38,5 +42,17 @@ namespace ScheduleSync.Core.Models
         /// When false (default), constrained tasks produce a warning and are skipped.
         /// </summary>
         public bool AllowConstraintOverride { get; set; }
+
+        /// <summary>
+        /// When true, this update represents a new task that should be created
+        /// rather than matched to an existing task.
+        /// </summary>
+        public bool IsNew { get; set; }
+
+        /// <summary>
+        /// Additional metadata used for task creation (hierarchy, categorization, etc.).
+        /// Keys include: ProjectNumber, Location, CategoryType, CostCodeCategory, etc.
+        /// </summary>
+        public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 }

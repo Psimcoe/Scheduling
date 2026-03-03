@@ -30,6 +30,9 @@ namespace ScheduleSync.Core.Models
         /// <summary>True if the task is manually scheduled.</summary>
         public bool IsManuallyScheduled { get; set; }
 
+        /// <summary>Deadline date (if set).</summary>
+        public DateTime? Deadline { get; set; }
+
         public string Notes { get; set; }
     }
 }

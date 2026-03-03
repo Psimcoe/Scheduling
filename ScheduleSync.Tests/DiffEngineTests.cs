@@ -151,5 +151,74 @@ namespace ScheduleSync.Tests
             Assert.True(diff.Changes.HasFlag(ChangeFlags.PercentComplete));
             Assert.True(diff.Changes.HasFlag(ChangeFlags.Notes));
         }
+
+        [Fact]
+        public void ComputeDiff_DeadlineChange_FlagsDeadline()
+        {
+            var snap = MakeSnapshot();
+            snap.Deadline = null;
+            var update = new TaskUpdate { NewDeadline = new DateTime(2026, 4, 1) };
+            var diff = DiffEngine.ComputeDiff(snap, update);
+            Assert.True(diff.Changes.HasFlag(ChangeFlags.Deadline));
+        }
+
+        [Fact]
+        public void ComputeDiff_SameDeadline_NoFlag()
+        {
+            var snap = MakeSnapshot();
+            snap.Deadline = new DateTime(2026, 4, 1);
+            var update = new TaskUpdate { NewDeadline = new DateTime(2026, 4, 1) };
+            var diff = DiffEngine.ComputeDiff(snap, update);
+            Assert.False(diff.Changes.HasFlag(ChangeFlags.Deadline));
+        }
+
+        [Fact]
+        public void ComputeDiffs_AllowCreation_UnmatchedBecomesNewTask()
+        {
+            var updates = new List<TaskUpdate>
+            {
+                new TaskUpdate
+                {
+                    ExternalKey = "NEW-001",
+                    Name = "New Task",
+                    NewStart = new DateTime(2026, 3, 10),
+                    NewFinish = new DateTime(2026, 3, 15)
+                }
+            };
+            var diffs = DiffEngine.ComputeDiffs(updates, _ => null, allowCreation: true);
+            Assert.Single(diffs);
+            Assert.True(diffs[0].IsNewTask);
+            Assert.False(diffs[0].IsBlocked);
+            Assert.Null(diffs[0].Before);
+            Assert.True(diffs[0].Changes.HasFlag(ChangeFlags.Start));
+            Assert.True(diffs[0].Changes.HasFlag(ChangeFlags.Finish));
+        }
+
+        [Fact]
+        public void ComputeDiffs_AllowCreation_MatchedTaskNotMarkedAsNew()
+        {
+            var snap = MakeSnapshot(uniqueId: 1);
+            var updates = new List<TaskUpdate>
+            {
+                new TaskUpdate { UniqueId = 1, NewStart = new DateTime(2026, 3, 10) }
+            };
+            var diffs = DiffEngine.ComputeDiffs(updates, u => snap, allowCreation: true);
+            Assert.Single(diffs);
+            Assert.False(diffs[0].IsNewTask);
+        }
+
+        [Fact]
+        public void ComputeNewTaskDiff_InvalidDates_Blocked()
+        {
+            var update = new TaskUpdate
+            {
+                Name = "Bad Task",
+                NewStart = new DateTime(2026, 4, 1),
+                NewFinish = new DateTime(2026, 3, 1) // Finish before Start
+            };
+            var diff = DiffEngine.ComputeNewTaskDiff(update);
+            Assert.True(diff.IsNewTask);
+            Assert.True(diff.IsBlocked);
+        }
     }
 }

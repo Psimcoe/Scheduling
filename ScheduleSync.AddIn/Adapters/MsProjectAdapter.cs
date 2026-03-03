@@ -46,7 +46,6 @@ namespace ScheduleSync.AddIn.Adapters
             //
             // try
             // {
-            //     // The Tasks collection supports access by UniqueID
             //     MSProject.Task task = project.Tasks.UniqueID[uniqueId];
             //     return task != null ? MapToSnapshot(task) : null;
             // }
@@ -59,7 +58,6 @@ namespace ScheduleSync.AddIn.Adapters
 
         public TaskSnapshot GetTaskByExternalKey(string key, string fieldName)
         {
-            // Iterate all tasks, comparing the custom text field value.
             // var project = _app.ActiveProject;
             // if (project == null) return null;
             //
@@ -98,7 +96,7 @@ namespace ScheduleSync.AddIn.Adapters
             //             continue;
             //         }
             //
-            //         if (diff.Changes == ChangeFlags.None)
+            //         if (diff.Changes == ChangeFlags.None && !diff.IsNewTask)
             //         {
             //             result.Skipped++;
             //             result.Details.Add(new TaskApplyDetail
@@ -113,17 +111,38 @@ namespace ScheduleSync.AddIn.Adapters
             //
             //         try
             //         {
-            //             var task = _app.ActiveProject.Tasks.UniqueID[diff.UniqueId];
-            //             ApplyTaskChanges(task, diff);
-            //             result.Applied++;
-            //             result.Details.Add(new TaskApplyDetail
+            //             if (diff.IsNewTask)
             //             {
-            //                 UniqueId = diff.UniqueId,
-            //                 TaskName = diff.TaskName,
-            //                 Status = TaskApplyStatus.Applied,
-            //                 ChangesApplied = diff.Changes,
-            //                 Message = "Applied successfully."
-            //             });
+            //                 // New task creation is handled by the ImportOrchestrator
+            //                 // which calls CreateTask with the appropriate parent.
+            //                 // If we reach here directly, create at root level.
+            //                 var snapshot = CreateTask(diff.Update, options);
+            //                 result.Applied++;
+            //                 result.Details.Add(new TaskApplyDetail
+            //                 {
+            //                     UniqueId = snapshot.UniqueId,
+            //                     ExternalKey = diff.Update.ExternalKey,
+            //                     TaskName = snapshot.Name,
+            //                     Status = TaskApplyStatus.Applied,
+            //                     ChangesApplied = diff.Changes,
+            //                     Message = "Created new task."
+            //                 });
+            //             }
+            //             else
+            //             {
+            //                 var task = _app.ActiveProject.Tasks.UniqueID[diff.UniqueId];
+            //                 ApplyTaskChanges(task, diff, options);
+            //                 result.Applied++;
+            //                 result.Details.Add(new TaskApplyDetail
+            //                 {
+            //                     UniqueId = diff.UniqueId,
+            //                     ExternalKey = diff.Update.ExternalKey,
+            //                     TaskName = diff.TaskName,
+            //                     Status = TaskApplyStatus.Applied,
+            //                     ChangesApplied = diff.Changes,
+            //                     Message = "Applied successfully."
+            //                 });
+            //             }
             //         }
             //         catch (Exception ex)
             //         {
@@ -146,7 +165,91 @@ namespace ScheduleSync.AddIn.Adapters
             throw new NotImplementedException("Requires MS Project interop assemblies.");
         }
 
-        // private static void ApplyTaskChanges(MSProject.Task task, TaskDiff diff)
+        public TaskSnapshot CreateTask(TaskUpdate update, ApplyOptions options, int? parentUniqueId = null)
+        {
+            // var project = _app.ActiveProject;
+            // string name = update.Name ?? $"Task-{update.ExternalKey}";
+            //
+            // // Add the task. If parentUniqueId is set, indent it under that parent.
+            // MSProject.Task newTask = project.Tasks.Add(name);
+            //
+            // if (parentUniqueId.HasValue)
+            // {
+            //     // Find the parent's outline level and indent the new task
+            //     var parentTask = project.Tasks.UniqueID[parentUniqueId.Value];
+            //     // Move the new task below the parent and indent
+            //     newTask.OutlineIndent();
+            // }
+            //
+            // // Set schedule fields
+            // if (update.NewStart.HasValue)
+            //     newTask.Start = update.NewStart.Value;
+            // if (update.NewFinish.HasValue)
+            //     newTask.Finish = update.NewFinish.Value;
+            // if (update.NewDurationMinutes.HasValue)
+            //     newTask.Duration = (int)update.NewDurationMinutes.Value;
+            // if (update.NewPercentComplete.HasValue)
+            //     newTask.PercentComplete = (short)update.NewPercentComplete.Value;
+            // if (update.NewDeadline.HasValue)
+            //     newTask.Deadline = update.NewDeadline.Value;
+            //
+            // // Set external key in custom text field
+            // if (!string.IsNullOrEmpty(update.ExternalKey))
+            //     newTask.SetField(FieldNameToId(options.ExternalKeyFieldName), update.ExternalKey);
+            //
+            // // Notes
+            // if (!string.IsNullOrEmpty(update.NotesAppend))
+            //     newTask.Notes = update.NotesAppend;
+            //
+            // return MapToSnapshot(newTask);
+            throw new NotImplementedException("Requires MS Project interop assemblies.");
+        }
+
+        public TaskSnapshot FindOrCreateSummaryTask(string name, int? parentUniqueId = null)
+        {
+            // var project = _app.ActiveProject;
+            //
+            // // Search existing tasks for a summary task with the given name at the right level
+            // foreach (MSProject.Task task in project.Tasks)
+            // {
+            //     if (task == null) continue;
+            //     if (task.Summary && string.Equals(task.Name, name, StringComparison.OrdinalIgnoreCase))
+            //     {
+            //         if (parentUniqueId == null && task.OutlineLevel == 1)
+            //             return MapToSnapshot(task);
+            //         if (parentUniqueId.HasValue)
+            //         {
+            //             var parent = project.Tasks.UniqueID[parentUniqueId.Value];
+            //             if (task.OutlineParent?.UniqueID == parent.UniqueID)
+            //                 return MapToSnapshot(task);
+            //         }
+            //     }
+            // }
+            //
+            // // Not found — create it
+            // MSProject.Task newTask = project.Tasks.Add(name);
+            // if (parentUniqueId.HasValue)
+            //     newTask.OutlineIndent();
+            //
+            // return MapToSnapshot(newTask);
+            throw new NotImplementedException("Requires MS Project interop assemblies.");
+        }
+
+        public void SetDeadline(int uniqueId, DateTime deadline)
+        {
+            // var task = _app.ActiveProject.Tasks.UniqueID[uniqueId];
+            // task.Deadline = deadline;
+            throw new NotImplementedException("Requires MS Project interop assemblies.");
+        }
+
+        public void SetCustomTextField(int uniqueId, string fieldName, string value)
+        {
+            // var task = _app.ActiveProject.Tasks.UniqueID[uniqueId];
+            // task.SetField(FieldNameToId(fieldName), value);
+            throw new NotImplementedException("Requires MS Project interop assemblies.");
+        }
+
+        // private static void ApplyTaskChanges(MSProject.Task task, TaskDiff diff, ApplyOptions options)
         // {
         //     var update = diff.Update;
         //
@@ -168,8 +271,15 @@ namespace ScheduleSync.AddIn.Adapters
         //     if (update.NewConstraintDate.HasValue)
         //         task.ConstraintDate = update.NewConstraintDate.Value;
         //
+        //     if (update.NewDeadline.HasValue)
+        //         task.Deadline = update.NewDeadline.Value;
+        //
         //     if (!string.IsNullOrEmpty(update.NotesAppend))
         //         task.Notes = (task.Notes ?? "") + "\n" + update.NotesAppend;
+        //
+        //     // Update external key if provided (for re-sync idempotency)
+        //     if (!string.IsNullOrEmpty(update.ExternalKey))
+        //         task.SetField(FieldNameToId(options.ExternalKeyFieldName), update.ExternalKey);
         // }
 
         // private static TaskSnapshot MapToSnapshot(MSProject.Task task)
@@ -184,6 +294,7 @@ namespace ScheduleSync.AddIn.Adapters
         //         PercentComplete = task.PercentComplete,
         //         ConstraintType = (int)task.ConstraintType,
         //         ConstraintDate = task.ConstraintDate != null ? (DateTime?)task.ConstraintDate : null,
+        //         Deadline = task.Deadline is DateTime d ? d : (DateTime?)null,
         //         IsSummary = task.Summary,
         //         IsManuallyScheduled = task.Manual,
         //         Notes = task.Notes

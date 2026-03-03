@@ -48,6 +48,9 @@ namespace ScheduleSync.Core.Diff
             if (!string.IsNullOrEmpty(update.NotesAppend))
                 diff.Changes |= ChangeFlags.Notes;
 
+            if (update.NewDeadline.HasValue && update.NewDeadline != snapshot.Deadline)
+                diff.Changes |= ChangeFlags.Deadline;
+
             // Run validation
             diff.Warnings = TaskValidator.Validate(snapshot, update);
             diff.IsBlocked = diff.Warnings.Any(w => w.Severity == ValidationSeverity.Error);
@@ -57,11 +60,13 @@ namespace ScheduleSync.Core.Diff
 
         /// <summary>
         /// Compute diffs for a batch of updates matched against project tasks.
-        /// Unmatched updates produce a diff with null Before and IsBlocked = true.
+        /// Unmatched updates are either marked as new (when <paramref name="allowCreation"/> is true)
+        /// or blocked with an error.
         /// </summary>
         public static List<TaskDiff> ComputeDiffs(
             IEnumerable<TaskUpdate> updates,
-            Func<TaskUpdate, TaskSnapshot> taskResolver)
+            Func<TaskUpdate, TaskSnapshot> taskResolver,
+            bool allowCreation = false)
         {
             var diffs = new List<TaskDiff>();
             foreach (var update in updates)
@@ -69,20 +74,28 @@ namespace ScheduleSync.Core.Diff
                 var snapshot = taskResolver(update);
                 if (snapshot == null)
                 {
-                    diffs.Add(new TaskDiff
+                    if (allowCreation)
                     {
-                        UniqueId = update.UniqueId ?? 0,
-                        TaskName = update.Name ?? "(unmatched)",
-                        Before = null,
-                        Update = update,
-                        Changes = ChangeFlags.None,
-                        IsBlocked = true,
-                        Warnings = new List<ValidationMessage>
+                        diffs.Add(ComputeNewTaskDiff(update));
+                    }
+                    else
+                    {
+                        diffs.Add(new TaskDiff
                         {
-                            new ValidationMessage(ValidationSeverity.Error,
-                                $"No matching task found (UniqueId={update.UniqueId}, ExternalKey={update.ExternalKey}).")
-                        }
-                    });
+                            UniqueId = update.UniqueId ?? 0,
+                            TaskName = update.Name ?? "(unmatched)",
+                            Before = null,
+                            Update = update,
+                            Changes = ChangeFlags.None,
+                            IsBlocked = true,
+                            IsNewTask = false,
+                            Warnings = new List<ValidationMessage>
+                            {
+                                new ValidationMessage(ValidationSeverity.Error,
+                                    $"No matching task found (UniqueId={update.UniqueId}, ExternalKey={update.ExternalKey}).")
+                            }
+                        });
+                    }
                 }
                 else
                 {
@@ -90,6 +103,37 @@ namespace ScheduleSync.Core.Diff
                 }
             }
             return diffs;
+        }
+
+        /// <summary>
+        /// Compute a diff for a new task that will be created.
+        /// </summary>
+        internal static TaskDiff ComputeNewTaskDiff(TaskUpdate update)
+        {
+            var changes = ChangeFlags.None;
+
+            if (update.NewStart.HasValue) changes |= ChangeFlags.Start;
+            if (update.NewFinish.HasValue) changes |= ChangeFlags.Finish;
+            if (update.NewDurationMinutes.HasValue) changes |= ChangeFlags.Duration;
+            if (update.NewPercentComplete.HasValue) changes |= ChangeFlags.PercentComplete;
+            if (update.NewConstraintType.HasValue) changes |= ChangeFlags.ConstraintType;
+            if (update.NewConstraintDate.HasValue) changes |= ChangeFlags.ConstraintDate;
+            if (!string.IsNullOrEmpty(update.NotesAppend)) changes |= ChangeFlags.Notes;
+            if (update.NewDeadline.HasValue) changes |= ChangeFlags.Deadline;
+
+            var warnings = TaskValidator.ValidateNew(update);
+
+            return new TaskDiff
+            {
+                UniqueId = 0,
+                TaskName = update.Name ?? "(new task)",
+                Before = null,
+                Update = update,
+                Changes = changes,
+                IsNewTask = true,
+                IsBlocked = warnings.Any(w => w.Severity == ValidationSeverity.Error),
+                Warnings = warnings
+            };
         }
     }
 }

@@ -21,14 +21,14 @@ namespace ScheduleSync.Core.Parsers
                 return result;
             }
 
-            var lines = ReadLines(content);
+            var lines = CsvParserHelper.ReadLines(content);
             if (lines.Count < 2)
             {
                 result.Errors.Add(new ParseError(null, null, "CSV must contain a header row and at least one data row."));
                 return result;
             }
 
-            var headers = ParseCsvLine(lines[0])
+            var headers = CsvParserHelper.ParseCsvLine(lines[0])
                 .Select(h => h.Trim().ToLowerInvariant())
                 .ToList();
 
@@ -37,7 +37,7 @@ namespace ScheduleSync.Core.Parsers
                 if (string.IsNullOrWhiteSpace(lines[i])) continue;
 
                 int rowNumber = i + 1;
-                var fields = ParseCsvLine(lines[i]);
+                var fields = CsvParserHelper.ParseCsvLine(lines[i]);
 
                 if (fields.Count != headers.Count)
                 {
@@ -175,69 +175,7 @@ namespace ScheduleSync.Core.Parsers
             return dict.TryGetValue(key, out value);
         }
 
-        /// <summary>Simple CSV line parser that respects quoted fields.</summary>
-        internal static List<string> ParseCsvLine(string line)
-        {
-            var fields = new List<string>();
-            bool inQuotes = false;
-            var current = new System.Text.StringBuilder();
-
-            for (int i = 0; i < line.Length; i++)
-            {
-                char c = line[i];
-                if (inQuotes)
-                {
-                    if (c == '"')
-                    {
-                        if (i + 1 < line.Length && line[i + 1] == '"')
-                        {
-                            current.Append('"');
-                            i++;
-                        }
-                        else
-                        {
-                            inQuotes = false;
-                        }
-                    }
-                    else
-                    {
-                        current.Append(c);
-                    }
-                }
-                else
-                {
-                    if (c == '"')
-                    {
-                        inQuotes = true;
-                    }
-                    else if (c == ',')
-                    {
-                        fields.Add(current.ToString());
-                        current.Clear();
-                    }
-                    else
-                    {
-                        current.Append(c);
-                    }
-                }
-            }
-
-            fields.Add(current.ToString());
-            return fields;
-        }
-
-        private static List<string> ReadLines(string content)
-        {
-            var lines = new List<string>();
-            using (var reader = new StringReader(content))
-            {
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    lines.Add(line);
-                }
-            }
-            return lines;
-        }
+        /// <summary>Simple CSV line parser that respects quoted fields. Delegates to <see cref="CsvParserHelper"/>.</summary>
+        public static List<string> ParseCsvLine(string line) => CsvParserHelper.ParseCsvLine(line);
     }
 }

@@ -136,5 +136,69 @@ namespace ScheduleSync.Tests
             var msgs = TaskValidator.Validate(snap, update);
             Assert.Empty(msgs);
         }
+
+        // ── ValidateNew tests ──
+
+        [Fact]
+        public void ValidateNew_ValidUpdate_NoErrors()
+        {
+            var update = new TaskUpdate
+            {
+                Name = "New Task",
+                NewStart = new DateTime(2026, 3, 1),
+                NewFinish = new DateTime(2026, 3, 5),
+                NewDurationMinutes = 480,
+                NewPercentComplete = 50
+            };
+            var msgs = TaskValidator.ValidateNew(update);
+            Assert.DoesNotContain(msgs, m => m.Severity == ValidationSeverity.Error);
+        }
+
+        [Fact]
+        public void ValidateNew_NegativeDuration_Error()
+        {
+            var update = new TaskUpdate { Name = "Task", NewDurationMinutes = -100 };
+            var msgs = TaskValidator.ValidateNew(update);
+            Assert.Contains(msgs, m => m.Severity == ValidationSeverity.Error && m.Message.Contains("negative"));
+        }
+
+        [Fact]
+        public void ValidateNew_PercentOutOfRange_Error()
+        {
+            var update = new TaskUpdate { Name = "Task", NewPercentComplete = 150 };
+            var msgs = TaskValidator.ValidateNew(update);
+            Assert.Contains(msgs, m => m.Severity == ValidationSeverity.Error && m.Message.Contains("0–100"));
+        }
+
+        [Fact]
+        public void ValidateNew_FinishBeforeStart_Error()
+        {
+            var update = new TaskUpdate
+            {
+                Name = "Task",
+                NewStart = new DateTime(2026, 4, 1),
+                NewFinish = new DateTime(2026, 3, 1)
+            };
+            var msgs = TaskValidator.ValidateNew(update);
+            Assert.Contains(msgs, m => m.Severity == ValidationSeverity.Error && m.Message.Contains("Finish"));
+        }
+
+        [Fact]
+        public void ValidateNew_NoName_Warning()
+        {
+            var update = new TaskUpdate { NewStart = new DateTime(2026, 3, 1) };
+            var msgs = TaskValidator.ValidateNew(update);
+            Assert.Contains(msgs, m => m.Severity == ValidationSeverity.Warning && m.Message.Contains("name"));
+        }
+
+        [Fact]
+        public void ValidateNew_EmptyUpdate_OnlyNameWarning()
+        {
+            var update = new TaskUpdate();
+            var msgs = TaskValidator.ValidateNew(update);
+            // Only a warning about missing name
+            Assert.DoesNotContain(msgs, m => m.Severity == ValidationSeverity.Error);
+            Assert.Contains(msgs, m => m.Severity == ValidationSeverity.Warning);
+        }
     }
 }
