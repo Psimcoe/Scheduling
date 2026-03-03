@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ribbon XML for the ScheduleSync custom Ribbon tab in Microsoft Project.
+  This file is loaded by the VSTO Ribbon (XML) infrastructure.
+  
+  Buttons:
+    1. Import Updates…   — choose CSV/JSON update file
+    2. Preview Changes   — compute diffs and show preview window
+    3. Apply Changes     — apply updates in a single undo transaction
+    4. Export Apply Log  — save audit log to CSV/JSON
+    5. Settings          — configure external key field, options
+-->
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui"
+          onLoad="Ribbon_Load">
+  <ribbon>
+    <tabs>
+      <tab id="tabScheduleSync" label="ScheduleSync">
+        <group id="grpImport" label="Import">
+          <button id="btnImport"
+                  label="Import Updates…"
+                  size="large"
+                  imageMso="FileOpen"
+                  onAction="BtnImport_Click"
+                  screentip="Import schedule updates from a CSV or JSON file." />
+        </group>
+        <group id="grpReview" label="Review">
+          <button id="btnPreview"
+                  label="Preview Changes"
+                  size="large"
+                  imageMso="ReviewCompareDocuments"
+                  onAction="BtnPreview_Click"
+                  getEnabled="GetPreviewEnabled"
+                  screentip="Preview the diff between current and updated task values." />
+          <button id="btnApply"
+                  label="Apply Changes"
+                  size="large"
+                  imageMso="AcceptInvitation"
+                  onAction="BtnApply_Click"
+                  getEnabled="GetApplyEnabled"
+                  screentip="Apply all previewed changes to the active project." />
+        </group>
+        <group id="grpLog" label="Logging">
+          <button id="btnExportLog"
+                  label="Export Apply Log"
+                  size="normal"
+                  imageMso="ExportSavedExports"
+                  onAction="BtnExportLog_Click"
+                  screentip="Export the last apply result as a CSV or JSON audit log." />
+        </group>
+        <group id="grpSettings" label="Options">
+          <button id="btnSettings"
+                  label="Settings"
+                  size="normal"
+                  imageMso="ControlProperties"
+                  onAction="BtnSettings_Click"
+                  screentip="Configure ScheduleSync options." />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
