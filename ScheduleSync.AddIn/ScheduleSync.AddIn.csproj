@@ -1,0 +1,34 @@
+<!-- 
+  ScheduleSync.AddIn — Microsoft Project VSTO Add-in (C#, .NET Framework 4.8)
+  
+  This project requires Visual Studio with the "Office/SharePoint development" workload
+  and Microsoft Project installed. It cannot be built on Linux/CI.
+  
+  To build: Open ScheduleSync.sln in Visual Studio on Windows and build from the IDE.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ScheduleSync.AddIn</RootNamespace>
+    <AssemblyName>ScheduleSync.AddIn</AssemblyName>
+    <!-- VSTO add-ins normally use the Office project system in Visual Studio.
+         This csproj is a placeholder for source structure; the actual VSTO project
+         should be created via the Visual Studio "Microsoft Project Add-in" template
+         and these source files copied in. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScheduleSync.Core\ScheduleSync.Core.csproj" />
+  </ItemGroup>
+
+  <!-- 
+    In a real VSTO project the following COM references are added by the template:
+    - Microsoft.Office.Interop.MSProject
+    - Microsoft.Office.Tools
+    - Microsoft.Office.Tools.Common
+    - Microsoft.VisualStudio.Tools.Applications.Runtime
+  -->
+
+</Project>

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ScheduleSync.Core/ScheduleSync.Core.csproj" />
+  <Project Path="ScheduleSync.Tests/ScheduleSync.Tests.csproj" />
+</Solution>
