@@ -1,0 +1,377 @@
+/**
+ * Calendar working-time utilities.
+ *
+ * All date/time operations use dayjs in UTC mode.
+ * No hardcoded dates — all calculations are calendar-driven.
+ */
+
+import dayjs, { type Dayjs } from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+import type {
+  Calendar,
+  CalendarException,
+  WorkingHourRange,
+} from '../types.js';
+import { DEFAULT_CALENDAR } from './defaultCalendar.js';
+
+dayjs.extend(utc);
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/** Parse "HH:mm" to { hour, minute }. */
+function parseTime(t: string): { hour: number; minute: number } {
+  const [h, m] = t.split(':').map(Number);
+  return { hour: h, minute: m };
+}
+
+/** Convert a time string to total minutes from midnight. */
+function timeToMinutes(t: string): number {
+  const { hour, minute } = parseTime(t);
+  return hour * 60 + minute;
+}
+
+/** Convert a Dayjs date to minutes from midnight (UTC). */
+function dateToMinuteOfDay(d: Dayjs): number {
+  return d.hour() * 60 + d.minute();
+}
+
+/** Set a Dayjs to a specific time from "HH:mm". */
+function setTime(d: Dayjs, t: string): Dayjs {
+  const { hour, minute } = parseTime(t);
+  return d.hour(hour).minute(minute).second(0).millisecond(0);
+}
+
+/** Get the date portion as YYYY-MM-DD string for comparison. */
+function dateKey(d: Dayjs): string {
+  return d.format('YYYY-MM-DD');
+}
+
+/**
+ * Find a matching calendar exception for a given date.
+ * Returns the *last* matching exception (higher priority).
+ */
+function findException(
+  date: Dayjs,
+  exceptions: CalendarException[],
+): CalendarException | null {
+  const dk = dateKey(date);
+  let match: CalendarException | null = null;
+  for (const ex of exceptions) {
+    if (dk >= ex.startDate && dk <= ex.endDate) {
+      match = ex;
+    }
+  }
+  return match;
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a given date falls on a working day according to the calendar.
+ * Takes into account both the weekly pattern and exceptions.
+ */
+export function isWorkingDay(date: Dayjs, calendar?: Calendar): boolean {
+  const cal = calendar ?? DEFAULT_CALENDAR;
+  const ex = findException(date, cal.exceptions);
+  if (ex) return ex.isWorking;
+  return cal.workingDaysOfWeek[date.day()] ?? false;
+}
+
+/**
+ * Get the working hour ranges for a specific date, respecting exceptions.
+ * Returns empty array for non-working days.
+ */
+export function getWorkingHours(
+  date: Dayjs,
+  calendar?: Calendar,
+): WorkingHourRange[] {
+  const cal = calendar ?? DEFAULT_CALENDAR;
+  const ex = findException(date, cal.exceptions);
+
+  if (ex) {
+    if (!ex.isWorking) return [];
+    if (ex.workingHours && ex.workingHours.length > 0) return ex.workingHours;
+    return cal.defaultWorkingHours;
+  }
+
+  if (!cal.workingDaysOfWeek[date.day()]) return [];
+  return cal.defaultWorkingHours;
+}
+
+/**
+ * Get total working minutes available in a given date.
+ */
+export function getWorkingMinutesInDay(
+  date: Dayjs,
+  calendar?: Calendar,
+): number {
+  const hours = getWorkingHours(date, calendar);
+  let total = 0;
+  for (const range of hours) {
+    total += timeToMinutes(range.endTime) - timeToMinutes(range.startTime);
+  }
+  return total;
+}
+
+/**
+ * Snap a date/time forward to the next working period start.
+ * If already within a working period, returns the input unchanged.
+ * If on a non-working day or past all working hours, moves to next working day first period.
+ */
+export function getNextWorkingStart(date: Dayjs, calendar?: Calendar): Dayjs {
+  const cal = calendar ?? DEFAULT_CALENDAR;
+  let d = date.utc();
+  const MAX_DAYS = 3650; // 10-year safety limit
+
+  for (let i = 0; i < MAX_DAYS; i++) {
+    const hours = getWorkingHours(d, cal);
+    if (hours.length === 0) {
+      // Non-working day — advance to start of next day
+      d = d.add(1, 'day').startOf('day');
+      continue;
+    }
+
+    const minuteOfDay = dateToMinuteOfDay(d);
+
+    for (const range of hours) {
+      const rangeStart = timeToMinutes(range.startTime);
+      const rangeEnd = timeToMinutes(range.endTime);
+
+      if (minuteOfDay < rangeStart) {
+        // Before this working range — snap to its start
+        return setTime(d, range.startTime);
+      }
+      if (minuteOfDay < rangeEnd) {
+        // Within this working range — return as-is
+        return d;
+      }
+    }
+
+    // Past all working hours today — advance to next day
+    d = d.add(1, 'day').startOf('day');
+  }
+
+  return d; // fallback
+}
+
+/**
+ * Snap a date/time backward to the previous working period end.
+ * If already within a working period, returns the input unchanged.
+ * If before all working hours or on a non-working day, moves to previous working day last period end.
+ */
+export function getPrevWorkingEnd(date: Dayjs, calendar?: Calendar): Dayjs {
+  const cal = calendar ?? DEFAULT_CALENDAR;
+  let d = date.utc();
+  const MAX_DAYS = 3650;
+
+  for (let i = 0; i < MAX_DAYS; i++) {
+    const hours = getWorkingHours(d, cal);
+    if (hours.length === 0) {
+      // Non-working day — go to end of previous day
+      d = d.subtract(1, 'day').endOf('day').startOf('minute');
+      continue;
+    }
+
+    const minuteOfDay = dateToMinuteOfDay(d);
+
+    // Walk ranges in reverse to find the right position
+    for (let r = hours.length - 1; r >= 0; r--) {
+      const range = hours[r];
+      const rangeStart = timeToMinutes(range.startTime);
+      const rangeEnd = timeToMinutes(range.endTime);
+
+      if (minuteOfDay > rangeEnd) {
+        // After this range — snap to its end
+        return setTime(d, range.endTime);
+      }
+      if (minuteOfDay > rangeStart) {
+        // Within this working range — return as-is
+        return d;
+      }
+    }
+
+    // Before all working hours today — go to previous day
+    d = d.subtract(1, 'day').endOf('day').startOf('minute');
+  }
+
+  return d; // fallback
+}
+
+/**
+ * Add working minutes to a start date/time, advancing through the calendar.
+ * Returns the resulting date/time at the end of the elapsed working time.
+ *
+ * If `minutes` is 0, returns the start snapped to the next working start.
+ */
+export function addWorkingMinutes(
+  startDate: Dayjs,
+  minutes: number,
+  calendar?: Calendar,
+): Dayjs {
+  const cal = calendar ?? DEFAULT_CALENDAR;
+
+  if (minutes < 0) {
+    return subtractWorkingMinutes(startDate, -minutes, cal);
+  }
+
+  // Snap to next working start
+  let d = getNextWorkingStart(startDate.utc(), cal);
+  let remaining = minutes;
+
+  if (remaining === 0) return d;
+
+  const MAX_DAYS = 3650;
+  for (let i = 0; i < MAX_DAYS && remaining > 0; i++) {
+    const hours = getWorkingHours(d, cal);
+    if (hours.length === 0) {
+      d = d.add(1, 'day').startOf('day');
+      continue;
+    }
+
+    const minuteOfDay = dateToMinuteOfDay(d);
+
+    for (const range of hours) {
+      const rangeStart = timeToMinutes(range.startTime);
+      const rangeEnd = timeToMinutes(range.endTime);
+
+      // Skip ranges we're past
+      if (minuteOfDay >= rangeEnd) continue;
+
+      const effectiveStart = Math.max(minuteOfDay, rangeStart);
+      const availableInRange = rangeEnd - effectiveStart;
+
+      if (remaining <= availableInRange) {
+        // Finish within this range
+        return setTime(d, range.startTime).add(
+          effectiveStart - rangeStart + remaining,
+          'minute',
+        );
+      }
+
+      remaining -= availableInRange;
+    }
+
+    // Move to next day
+    d = d.add(1, 'day').startOf('day');
+  }
+
+  return d; // fallback
+}
+
+/**
+ * Subtract working minutes from an end date/time, going backward through the calendar.
+ * Returns the resulting date/time at the beginning of the elapsed working time.
+ */
+export function subtractWorkingMinutes(
+  endDate: Dayjs,
+  minutes: number,
+  calendar?: Calendar,
+): Dayjs {
+  const cal = calendar ?? DEFAULT_CALENDAR;
+
+  if (minutes < 0) {
+    return addWorkingMinutes(endDate, -minutes, cal);
+  }
+
+  // Snap to previous working end
+  let d = getPrevWorkingEnd(endDate.utc(), cal);
+  let remaining = minutes;
+
+  if (remaining === 0) return d;
+
+  const MAX_DAYS = 3650;
+  for (let i = 0; i < MAX_DAYS && remaining > 0; i++) {
+    const hours = getWorkingHours(d, cal);
+    if (hours.length === 0) {
+      d = d.subtract(1, 'day').endOf('day').startOf('minute');
+      continue;
+    }
+
+    const minuteOfDay = dateToMinuteOfDay(d);
+
+    // Walk ranges in reverse
+    for (let r = hours.length - 1; r >= 0; r--) {
+      const range = hours[r];
+      const rangeStart = timeToMinutes(range.startTime);
+      const rangeEnd = timeToMinutes(range.endTime);
+
+      // Skip ranges we're before
+      if (minuteOfDay <= rangeStart) continue;
+
+      const effectiveEnd = Math.min(minuteOfDay, rangeEnd);
+      const availableInRange = effectiveEnd - rangeStart;
+
+      if (remaining <= availableInRange) {
+        // Finish within this range
+        return setTime(d, range.startTime).add(
+          availableInRange - remaining,
+          'minute',
+        );
+      }
+
+      remaining -= availableInRange;
+    }
+
+    // Move to previous day
+    d = d.subtract(1, 'day').endOf('day').startOf('minute');
+  }
+
+  return d; // fallback
+}
+
+/**
+ * Calculate working minutes between two date/times on the calendar.
+ * The start is inclusive, the end is exclusive (like a half-open interval).
+ * If start >= end, returns 0.
+ */
+export function getWorkingMinutesBetween(
+  start: Dayjs,
+  end: Dayjs,
+  calendar?: Calendar,
+): number {
+  const cal = calendar ?? DEFAULT_CALENDAR;
+
+  let s = start.utc();
+  const e = end.utc();
+
+  if (s.isSame(e) || s.isAfter(e)) return 0;
+
+  let total = 0;
+  const MAX_DAYS = 3650;
+
+  for (let i = 0; i < MAX_DAYS; i++) {
+    if (s.isAfter(e) || s.isSame(e)) break;
+
+    const hours = getWorkingHours(s, cal);
+    if (hours.length === 0) {
+      s = s.add(1, 'day').startOf('day');
+      continue;
+    }
+
+    const startMinute = dateToMinuteOfDay(s);
+    // End minute: if end is on the same day, use its time; otherwise use end of day
+    const sameDay = dateKey(s) === dateKey(e);
+    const endMinute = sameDay ? dateToMinuteOfDay(e) : 24 * 60;
+
+    for (const range of hours) {
+      const rangeStart = timeToMinutes(range.startTime);
+      const rangeEnd = timeToMinutes(range.endTime);
+
+      const overlapStart = Math.max(startMinute, rangeStart);
+      const overlapEnd = Math.min(endMinute, rangeEnd);
+
+      if (overlapStart < overlapEnd) {
+        total += overlapEnd - overlapStart;
+      }
+    }
+
+    if (sameDay) break;
+    s = s.add(1, 'day').startOf('day');
+  }
+
+  return total;
+}
