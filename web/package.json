@@ -1,0 +1,20 @@
+{
+  "name": "@schedulesync/root",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @schedulesync/backend dev & pnpm --filter @schedulesync/frontend dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @schedulesync/frontend test:e2e",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"packages/*/src/**/*.{ts,tsx}\""
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "prettier": "^3.4.0",
+    "eslint": "^9.15.0"
+  }
+}
