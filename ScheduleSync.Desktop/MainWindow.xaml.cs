@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -18,11 +19,91 @@ namespace ScheduleSync.Desktop
         private List<CrewRule> _rules = new();
         private List<CrewGroup> _crewGroups = new();
         private List<PrefabTask> _unassigned = new();
+        private AppSettings _settings;
+        private bool _apiKeyPlaceholder = true;
 
         public MainWindow()
         {
             InitializeComponent();
+            _settings = SettingsManager.Load();
+            RestoreSettings();
         }
+
+        // ── Settings ────────────────────────────────────────────────────────
+
+        private void RestoreSettings()
+        {
+            if (!string.IsNullOrEmpty(_settings.OpenAiApiKey))
+            {
+                ApiKeyBox.Text = new string('*', 12);
+                ApiKeyBox.Foreground = (Brush)FindResource("TextPrimaryBrush");
+                ApiKeyBox.Tag = _settings.OpenAiApiKey; // store real key in Tag
+                _apiKeyPlaceholder = false;
+                UpdateAiStatus(true);
+            }
+
+            // Restore model selection
+            for (int i = 0; i < ModelCombo.Items.Count; i++)
+            {
+                if (((ComboBoxItem)ModelCombo.Items[i]).Content.ToString() == _settings.Model)
+                {
+                    ModelCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        private void UpdateAiStatus(bool configured)
+        {
+            AiStatusDot.Fill = configured
+                ? new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50))   // green
+                : new SolidColorBrush(Color.FromRgb(0xBD, 0xBD, 0xBD));  // gray
+            AiStatusDot.ToolTip = configured ? "AI ready" : "AI not configured";
+        }
+
+        private void ApiKeyBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (_apiKeyPlaceholder || ApiKeyBox.Text.All(c => c == '*'))
+            {
+                ApiKeyBox.Text = "";
+                ApiKeyBox.Foreground = (Brush)FindResource("TextPrimaryBrush");
+                _apiKeyPlaceholder = false;
+            }
+        }
+
+        private void ApiKeyBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var text = ApiKeyBox.Text.Trim();
+            if (string.IsNullOrEmpty(text))
+            {
+                ApiKeyBox.Text = "Enter OpenAI API key...";
+                ApiKeyBox.Foreground = (Brush)FindResource("TextSecondaryBrush");
+                _apiKeyPlaceholder = true;
+                ApiKeyBox.Tag = null;
+                UpdateAiStatus(false);
+                return;
+            }
+
+            // If user typed a real key (not all asterisks), save it
+            if (!text.All(c => c == '*'))
+            {
+                ApiKeyBox.Tag = text;
+                _settings.OpenAiApiKey = text;
+                _settings.Model = ((ComboBoxItem)ModelCombo.SelectedItem).Content.ToString() ?? "gpt-4o-mini";
+                SettingsManager.Save(_settings);
+                UpdateAiStatus(true);
+
+                // Mask the display
+                ApiKeyBox.Text = new string('*', 12);
+            }
+        }
+
+        private string? GetApiKey() => ApiKeyBox.Tag as string;
+
+        private string GetModel() =>
+            ((ComboBoxItem)ModelCombo.SelectedItem).Content.ToString() ?? "gpt-4o-mini";
+
+        private bool IsAiAvailable() => !string.IsNullOrEmpty(GetApiKey());
 
         // ── CSV Browse ──────────────────────────────────────────────────────
         private void BrowseCsv_Click(object sender, RoutedEventArgs e)
@@ -54,7 +135,7 @@ namespace ScheduleSync.Desktop
         }
 
         // ── Parse Email ─────────────────────────────────────────────────────
-        private void ParseEmail_Click(object sender, RoutedEventArgs e)
+        private async void ParseEmail_Click(object sender, RoutedEventArgs e)
         {
             var text = EmailBox.Text;
             if (string.IsNullOrWhiteSpace(text))
@@ -64,24 +145,68 @@ namespace ScheduleSync.Desktop
                 return;
             }
 
-            _rules = EmailParser.Parse(text);
-
-            RulesListBox.Items.Clear();
-            foreach (var rule in _rules)
+            if (IsAiAvailable())
             {
-                var cat = string.IsNullOrEmpty(rule.CategoryType) ? "*" : rule.CategoryType;
-                var proj = string.IsNullOrEmpty(rule.ProjectNumber) ? "(no project)" : rule.ProjectNumber;
-                RulesListBox.Items.Add($"{rule.Crew}  ->  {proj} / {cat}");
+                await ParseEmailWithAi(text);
+            }
+            else
+            {
+                // Fallback: regex-based parser
+                _rules = EmailParser.Parse(text);
+                PopulateRulesList("(regex)");
             }
 
             StatusBar.Text = $"Parsed {_rules.Count} crew rules from email.";
             UpdateMatchButtonState();
         }
 
+        private async Task ParseEmailWithAi(string emailText)
+        {
+            ParseButton.IsEnabled = false;
+            StatusBar.Text = "AI is parsing email...";
+
+            try
+            {
+                var ai = new AiService(GetApiKey()!, GetModel());
+
+                // Feed the AI the known values from the CSV so it can map to them
+                var knownProjects = _tasks.Select(t => t.ProjectNumber).Where(s => !string.IsNullOrEmpty(s)).Distinct();
+                var knownCategories = _tasks.Select(t => t.CategoryType).Where(s => !string.IsNullOrEmpty(s)).Distinct();
+
+                _rules = await ai.ParseEmailAsync(emailText, knownProjects, knownCategories);
+                PopulateRulesList("(AI)");
+            }
+            catch (Exception ex)
+            {
+                // Fall back to regex parser
+                _rules = EmailParser.Parse(emailText);
+                PopulateRulesList("(regex fallback)");
+                StatusBar.Text = $"AI parse failed, used regex fallback: {ex.Message}";
+            }
+            finally
+            {
+                ParseButton.IsEnabled = true;
+            }
+        }
+
+        private void PopulateRulesList(string source)
+        {
+            RulesListBox.Items.Clear();
+            RulesListBox.Items.Add($"── {_rules.Count} rules {source} ──");
+            foreach (var rule in _rules)
+            {
+                var cat = string.IsNullOrEmpty(rule.CategoryType) ? "*" : rule.CategoryType;
+                var proj = string.IsNullOrEmpty(rule.ProjectNumber) ? "(no project)" : rule.ProjectNumber;
+                RulesListBox.Items.Add($"{rule.Crew}  ->  {proj} / {cat}");
+            }
+        }
+
         // ── Match Crews ─────────────────────────────────────────────────────
-        private void MatchCrews_Click(object sender, RoutedEventArgs e)
+        private async void MatchCrews_Click(object sender, RoutedEventArgs e)
         {
             if (_tasks.Count == 0 || _rules.Count == 0) return;
+
+            MatchButton.IsEnabled = false;
 
             // Reset previous assignments
             foreach (var t in _tasks)
@@ -90,16 +215,74 @@ namespace ScheduleSync.Desktop
                 t.CrewNotes = string.Empty;
             }
 
+            // Phase 1: Deterministic exact matching
+            StatusBar.Text = "Matching by ProjectNumber + CategoryType...";
             var (assigned, unassigned) = CrewMatcher.Match(_tasks, _rules);
+
+            // Phase 2: AI fuzzy matching for remaining unassigned tasks
+            int aiFuzzyCount = 0;
+            if (IsAiAvailable() && unassigned.Count > 0)
+            {
+                StatusBar.Text = $"AI fuzzy-matching {unassigned.Count} unassigned tasks...";
+                try
+                {
+                    var ai = new AiService(GetApiKey()!, GetModel());
+                    var fuzzyMatches = await ai.FuzzyMatchAsync(unassigned, _rules);
+
+                    foreach (var fm in fuzzyMatches.Where(m => m.Confidence >= 0.5))
+                    {
+                        var task = unassigned.FirstOrDefault(t => t.Id == fm.TaskId);
+                        if (task != null)
+                        {
+                            task.CrewAssignment = fm.Crew;
+                            task.CrewNotes = $"[AI {fm.Confidence:P0}] {fm.Reason}";
+                            aiFuzzyCount++;
+                        }
+                    }
+
+                    // Re-partition after AI matching
+                    (assigned, unassigned) = RepartitionResults(_tasks);
+                }
+                catch (Exception ex)
+                {
+                    StatusBar.Text = $"AI fuzzy match failed: {ex.Message}";
+                }
+            }
+
             _crewGroups = assigned;
             _unassigned = unassigned;
 
             int assignedCount = assigned.Sum(g => g.Tasks.Count);
-            SummaryText.Text = $"{assignedCount} assigned, {unassigned.Count} unassigned of {_tasks.Count} total";
+            var aiNote = aiFuzzyCount > 0 ? $" ({aiFuzzyCount} via AI)" : "";
+            SummaryText.Text = $"{assignedCount} assigned{aiNote}, {unassigned.Count} unassigned of {_tasks.Count} total";
             StatusBar.Text = "Matching complete.";
             ExportButton.IsEnabled = true;
+            PushButton.IsEnabled = true;
+            MatchButton.IsEnabled = true;
 
             BuildResultsTree(assigned, unassigned);
+        }
+
+        private static (List<CrewGroup> Assigned, List<PrefabTask> Unassigned) RepartitionResults(List<PrefabTask> tasks)
+        {
+            var assigned = tasks
+                .Where(t => !string.IsNullOrEmpty(t.CrewAssignment))
+                .GroupBy(t => t.CrewAssignment)
+                .Select(g => new CrewGroup
+                {
+                    Crew = g.Key,
+                    Notes = g.First().CrewNotes,
+                    Tasks = g.OrderBy(t => t.StartDate).ToList()
+                })
+                .OrderBy(g => g.Crew)
+                .ToList();
+
+            var unassigned = tasks
+                .Where(t => string.IsNullOrEmpty(t.CrewAssignment))
+                .OrderBy(t => t.Id)
+                .ToList();
+
+            return (assigned, unassigned);
         }
 
         // ── Build TreeView ──────────────────────────────────────────────────
@@ -252,6 +435,79 @@ namespace ScheduleSync.Desktop
                     MessageBox.Show($"Error saving CSV:\n{ex.Message}", "Error",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        // ── Browse MPP ──────────────────────────────────────────────────
+        private void BrowseMpp_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Filter = "MS Project files (*.mpp)|*.mpp|All files (*.*)|*.*",
+                Title = "Select MS Project File (optional)"
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                MppPathBox.Text = dlg.FileName;
+                MppPathBox.Foreground = (Brush)FindResource("TextPrimaryBrush");
+            }
+        }
+
+        // ── Push to MS Project ──────────────────────────────────────────────
+        private void PushToProject_Click(object sender, RoutedEventArgs e)
+        {
+            var assigned = _tasks.Where(t => !string.IsNullOrEmpty(t.CrewAssignment)).ToList();
+            if (assigned.Count == 0)
+            {
+                MessageBox.Show("No crew assignments to push. Run Match Crews first.",
+                    "Nothing to Push", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // Determine MPP path (empty = use active project)
+            string? mppPath = null;
+            var mppText = MppPathBox.Text;
+            if (!string.IsNullOrWhiteSpace(mppText) && !mppText.StartsWith("("))
+                mppPath = mppText;
+
+            var confirm = MessageBox.Show(
+                $"This will set Resource Names on {assigned.Count} tasks in MS Project.\n\n" +
+                (mppPath != null
+                    ? $"File: {mppPath}"
+                    : "Target: currently active project") +
+                "\n\nChanges are undoable via Edit > Undo.\nContinue?",
+                "Push to MS Project",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            StatusBar.Text = "Pushing to MS Project...";
+            PushButton.IsEnabled = false;
+
+            try
+            {
+                var result = MsProjectPusher.Push(_tasks, mppPath);
+
+                StatusBar.Text = $"Push complete: {result.Updated} updated, {result.Skipped} skipped.";
+
+                var details = string.Join("\n", result.Log);
+                MessageBox.Show(
+                    $"Updated: {result.Updated}\nSkipped: {result.Skipped}\n" +
+                    $"Not in schedule: {result.NotFound}\n\n" +
+                    "Changes are undoable in MS Project via Edit > Undo.\n\n" +
+                    $"Log:\n{details}",
+                    "Push Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                StatusBar.Text = "Push failed.";
+                MessageBox.Show($"Error pushing to MS Project:\n\n{ex.Message}",
+                    "Push Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                PushButton.IsEnabled = true;
             }
         }
 

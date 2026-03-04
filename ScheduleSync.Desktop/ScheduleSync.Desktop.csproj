@@ -12,4 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="..\ScheduleSync.Core\ScheduleSync.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenAI" Version="2.9.1" />
+    <PackageReference Include="System.Text.Json" Version="10.0.3" />
+  </ItemGroup>
 </Project>

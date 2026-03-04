@@ -15,12 +15,46 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="ScheduleSync" FontSize="22" FontWeight="Bold"
-                       Foreground="{StaticResource PrimaryBrush}"/>
-            <TextBlock Text="Paste a foreman email, load your Prefab Packages CSV, and assign crews to tasks."
-                       Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="0,2,0,0"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel>
+                <TextBlock Text="ScheduleSync" FontSize="22" FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrush}"/>
+                <TextBlock Text="Paste a foreman email, load your Prefab Packages CSV, and assign crews to tasks."
+                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <!-- AI Settings (right side of header) -->
+            <Border Grid.Column="1" Background="#F5F5F5" CornerRadius="6" Padding="12,8"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="AI" FontSize="11" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox x:Name="ApiKeyBox" Width="200" FontSize="11" Padding="4,3"
+                             MaxLength="200"
+                             GotFocus="ApiKeyBox_GotFocus"
+                             LostFocus="ApiKeyBox_LostFocus"
+                             Text="Enter OpenAI API key..."
+                             Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <ComboBox x:Name="ModelCombo" Width="130" FontSize="11" Margin="6,0,0,0"
+                              SelectedIndex="0">
+                        <ComboBoxItem Content="codex-5.3"/>
+                        <ComboBoxItem Content="gpt-4.1"/>
+                        <ComboBoxItem Content="gpt-4.1-mini"/>
+                        <ComboBoxItem Content="gpt-4o"/>
+                        <ComboBoxItem Content="gpt-4o-mini"/>
+                    </ComboBox>
+                    <Ellipse x:Name="AiStatusDot" Width="8" Height="8" Margin="8,0,0,0"
+                             Fill="#BDBDBD" VerticalAlignment="Center"
+                             ToolTip="AI not configured"/>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <!-- Main Content -->
         <Grid Grid.Row="1">
@@ -90,7 +124,7 @@
 
                 <!-- Action Buttons -->
                 <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Parse Email" Style="{StaticResource SecondaryButton}"
+                    <Button x:Name="ParseButton" Content="Parse Email" Style="{StaticResource SecondaryButton}"
                             Click="ParseEmail_Click" Margin="0,0,8,0"/>
                     <Button x:Name="MatchButton" Content="Match Crews"
                             Style="{StaticResource PrimaryButton}"
@@ -115,11 +149,42 @@
                             <TextBlock x:Name="SummaryText" FontSize="12" Margin="0,2,0,0"
                                        Foreground="{StaticResource TextPrimaryBrush}"/>
                         </StackPanel>
-                        <Button Grid.Column="1" Content="Export CSV"
-                                Style="{StaticResource SecondaryButton}"
-                                x:Name="ExportButton"
-                                Click="ExportCsv_Click" IsEnabled="False"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="Push to Project"
+                                    Style="{StaticResource PrimaryButton}"
+                                    x:Name="PushButton"
+                                    Click="PushToProject_Click" IsEnabled="False"
+                                    Margin="0,0,8,0"/>
+                            <Button Content="Export CSV"
+                                    Style="{StaticResource SecondaryButton}"
+                                    x:Name="ExportButton"
+                                    Click="ExportCsv_Click" IsEnabled="False"/>
+                        </StackPanel>
                     </Grid>
+
+                    <!-- MPP File Picker (optional, for Push to Project) -->
+                    <Border DockPanel.Dock="Top" Margin="0,0,0,8" Padding="8,6"
+                            Background="#F5F5F5" CornerRadius="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="MPP:" FontSize="11" FontWeight="Bold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox x:Name="MppPathBox" Grid.Column="1" IsReadOnly="True"
+                                     Padding="4,2" FontSize="11"
+                                     Text="(optional) browse or leave blank to use active project"
+                                     Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <Button Grid.Column="2" Content="Browse"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Padding="10,4" FontSize="11"
+                                    Margin="6,0,0,0"
+                                    Click="BrowseMpp_Click"/>
+                        </Grid>
+                    </Border>
 
                     <!-- Results TreeView -->
                     <TreeView x:Name="ResultsTree" BorderThickness="0"
