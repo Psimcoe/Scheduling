@@ -72,26 +72,42 @@ namespace ScheduleSync.Desktop.Services
         public static (List<CrewGroup> Assigned, List<PrefabTask> Unassigned) Match(
             List<PrefabTask> tasks, List<CrewRule> rules)
         {
+            // Build lookup dictionaries for O(1) matching instead of O(rules) per task
+            // Key: "PROJECT|CATEGORY" or "PROJECT|" for rules without category
+            var exactLookup = new Dictionary<string, CrewRule>(StringComparer.OrdinalIgnoreCase);
+            var projectOnlyLookup = new Dictionary<string, CrewRule>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var rule in rules)
+            {
+                if (string.IsNullOrEmpty(rule.ProjectNumber)) continue;
+
+                if (!string.IsNullOrEmpty(rule.CategoryType))
+                {
+                    var key = $"{rule.ProjectNumber}|{rule.CategoryType}";
+                    exactLookup.TryAdd(key, rule); // first rule wins
+                }
+                else
+                {
+                    projectOnlyLookup.TryAdd(rule.ProjectNumber, rule);
+                }
+            }
+
             foreach (var task in tasks)
             {
-                foreach (var rule in rules)
+                // Try exact match first (project + category)
+                var exactKey = $"{task.ProjectNumber}|{task.CategoryType}";
+                if (exactLookup.TryGetValue(exactKey, out var rule))
                 {
-                    if (string.IsNullOrEmpty(rule.ProjectNumber)) continue;
-
-                    bool projMatch = string.Equals(task.ProjectNumber, rule.ProjectNumber,
-                        StringComparison.OrdinalIgnoreCase);
-                    if (!projMatch) continue;
-
-                    if (!string.IsNullOrEmpty(rule.CategoryType))
-                    {
-                        if (!string.Equals(task.CategoryType, rule.CategoryType,
-                            StringComparison.OrdinalIgnoreCase))
-                            continue;
-                    }
-
                     task.CrewAssignment = rule.Crew;
                     task.CrewNotes = rule.Notes;
-                    break; // first match wins
+                    continue;
+                }
+
+                // Fall back to project-only match
+                if (projectOnlyLookup.TryGetValue(task.ProjectNumber, out rule))
+                {
+                    task.CrewAssignment = rule.Crew;
+                    task.CrewNotes = rule.Notes;
                 }
             }
 
@@ -120,7 +136,7 @@ namespace ScheduleSync.Desktop.Services
         /// </summary>
         public static string ExportCsv(List<PrefabTask> allTasks)
         {
-            var sb = new StringBuilder();
+            var sb = new StringBuilder(allTasks.Count * 120);
             sb.AppendLine("ID,Task_Name,Start_Date,Finish_Date,Packages_CategoryType_,Packages_ProjectNumber_,Packages_Location_,Packages_Status__,Crew_Assignment,Crew_Notes");
 
             foreach (var t in allTasks.OrderBy(t => t.Id))

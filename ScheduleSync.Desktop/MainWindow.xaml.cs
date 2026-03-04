@@ -21,6 +21,13 @@ namespace ScheduleSync.Desktop
         private List<PrefabTask> _unassigned = new();
         private AppSettings _settings;
         private bool _apiKeyPlaceholder = true;
+        private AiService? _ai;
+
+        // Cached brushes (frozen = thread-safe, no per-call allocation)
+        private static readonly Brush AiReadyBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)));
+        private static readonly Brush AiOffBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xBD, 0xBD, 0xBD)));
+
+        private static Brush Freeze(SolidColorBrush b) { b.Freeze(); return b; }
 
         public MainWindow()
         {
@@ -55,9 +62,7 @@ namespace ScheduleSync.Desktop
 
         private void UpdateAiStatus(bool configured)
         {
-            AiStatusDot.Fill = configured
-                ? new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50))   // green
-                : new SolidColorBrush(Color.FromRgb(0xBD, 0xBD, 0xBD));  // gray
+            AiStatusDot.Fill = configured ? AiReadyBrush : AiOffBrush;
             AiStatusDot.ToolTip = configured ? "AI ready" : "AI not configured";
         }
 
@@ -89,8 +94,9 @@ namespace ScheduleSync.Desktop
             {
                 ApiKeyBox.Tag = text;
                 _settings.OpenAiApiKey = text;
-                _settings.Model = ((ComboBoxItem)ModelCombo.SelectedItem).Content.ToString() ?? "gpt-4o-mini";
+                _settings.Model = GetModel();
                 SettingsManager.Save(_settings);
+                _ai = null; // force re-creation with new key
                 UpdateAiStatus(true);
 
                 // Mask the display
@@ -101,11 +107,27 @@ namespace ScheduleSync.Desktop
         private string? GetApiKey() => ApiKeyBox.Tag as string;
 
         private string GetModel() =>
-            ((ComboBoxItem)ModelCombo.SelectedItem).Content.ToString() ?? "gpt-4o-mini";
+            ((ComboBoxItem)ModelCombo.SelectedItem).Content.ToString() ?? "codex-5.3";
 
         private bool IsAiAvailable() => !string.IsNullOrEmpty(GetApiKey());
 
+        private AiService GetOrCreateAi()
+        {
+            var key = GetApiKey()!;
+            var model = GetModel();
+            if (_ai == null || _ai.CurrentModel != model)
+                _ai = new AiService(key, model);
+            return _ai;
+        }
+
         // ── CSV Browse ──────────────────────────────────────────────────────
+
+        private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Guard against firing during InitializeComponent
+            if (!IsInitialized) return;
+            SaveModelSetting();
+        }
         private void BrowseCsv_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new OpenFileDialog
@@ -167,7 +189,7 @@ namespace ScheduleSync.Desktop
 
             try
             {
-                var ai = new AiService(GetApiKey()!, GetModel());
+                var ai = GetOrCreateAi();
 
                 // Feed the AI the known values from the CSV so it can map to them
                 var knownProjects = _tasks.Select(t => t.ProjectNumber).Where(s => !string.IsNullOrEmpty(s)).Distinct();
@@ -226,7 +248,7 @@ namespace ScheduleSync.Desktop
                 StatusBar.Text = $"AI fuzzy-matching {unassigned.Count} unassigned tasks...";
                 try
                 {
-                    var ai = new AiService(GetApiKey()!, GetModel());
+                    var ai = GetOrCreateAi();
                     var fuzzyMatches = await ai.FuzzyMatchAsync(unassigned, _rules);
 
                     foreach (var fm in fuzzyMatches.Where(m => m.Confidence >= 0.5))
@@ -455,7 +477,7 @@ namespace ScheduleSync.Desktop
         }
 
         // ── Push to MS Project ──────────────────────────────────────────────
-        private void PushToProject_Click(object sender, RoutedEventArgs e)
+        private async void PushToProject_Click(object sender, RoutedEventArgs e)
         {
             var assigned = _tasks.Where(t => !string.IsNullOrEmpty(t.CrewAssignment)).ToList();
             if (assigned.Count == 0)
@@ -487,7 +509,9 @@ namespace ScheduleSync.Desktop
 
             try
             {
-                var result = MsProjectPusher.Push(_tasks, mppPath);
+                // Run COM interop off the UI thread to prevent freeze
+                var tasksCopy = _tasks;
+                var result = await System.Threading.Tasks.Task.Run(() => MsProjectPusher.Push(tasksCopy, mppPath));
 
                 StatusBar.Text = $"Push complete: {result.Updated} updated, {result.Skipped} skipped.";
 
@@ -515,6 +539,16 @@ namespace ScheduleSync.Desktop
         private void UpdateMatchButtonState()
         {
             MatchButton.IsEnabled = _tasks.Count > 0 && _rules.Count > 0;
+        }
+
+        private void SaveModelSetting()
+        {
+            if (!string.IsNullOrEmpty(_settings.OpenAiApiKey))
+            {
+                _settings.Model = GetModel();
+                SettingsManager.Save(_settings);
+                _ai = null; // force re-creation on next use
+            }
         }
     }
 }

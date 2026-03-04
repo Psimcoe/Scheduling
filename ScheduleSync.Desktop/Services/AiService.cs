@@ -18,8 +18,11 @@ namespace ScheduleSync.Desktop.Services
     {
         private readonly ChatClient _chat;
 
-        public AiService(string apiKey, string model = "gpt-4o-mini")
+        public string CurrentModel { get; }
+
+        public AiService(string apiKey, string model = "codex-5.3")
         {
+            CurrentModel = model;
             var client = new OpenAIClient(apiKey);
             _chat = client.GetChatClient(model);
         }
@@ -107,16 +110,21 @@ Parse this email and return the JSON array of crew assignments.";
                     $"Category={r.CategoryType ?? "(any)"}, Notes={r.Notes}");
             }
 
-            // Limit to first 80 unmatched tasks to stay within token limits
-            var batch = unmatchedTasks.Take(80).ToList();
-            var taskLines = new StringBuilder();
-            foreach (var t in batch)
+            // Process in batches of 80 to stay within token limits
+            const int batchSize = 80;
+            var allMatches = new List<AiFuzzyMatch>();
+
+            for (int offset = 0; offset < unmatchedTasks.Count; offset += batchSize)
             {
-                taskLines.AppendLine($"  ID={t.Id}, Name=\"{t.TaskName}\", " +
-                    $"Project={t.ProjectNumber}, Category={t.CategoryType}, " +
-                    $"Location={t.Location}, Status={t.Status}, " +
-                    $"Description={t.Description}");
-            }
+                var batch = unmatchedTasks.Skip(offset).Take(batchSize).ToList();
+                var taskLines = new StringBuilder(batch.Count * 120);
+                foreach (var t in batch)
+                {
+                    taskLines.AppendLine($"  ID={t.Id}, Name=\"{t.TaskName}\", " +
+                        $"Project={t.ProjectNumber}, Category={t.CategoryType}, " +
+                        $"Location={t.Location}, Status={t.Status}, " +
+                        $"Description={t.Description}");
+                }
 
             var systemPrompt = @"You are a construction schedule assistant. 
 You have a set of crew assignment rules and a list of unmatched tasks.
@@ -141,20 +149,23 @@ Unmatched tasks:
 
 Suggest crew assignments for these tasks.";
 
-            var response = await _chat.CompleteChatAsync(
-                new List<ChatMessage>
-                {
-                    ChatMessage.CreateSystemMessage(systemPrompt),
-                    ChatMessage.CreateUserMessage(userPrompt)
-                },
-                new ChatCompletionOptions
-                {
-                    Temperature = 0.1f,
-                    MaxOutputTokenCount = 4000
-                });
+                var response = await _chat.CompleteChatAsync(
+                    new List<ChatMessage>
+                    {
+                        ChatMessage.CreateSystemMessage(systemPrompt),
+                        ChatMessage.CreateUserMessage(userPrompt)
+                    },
+                    new ChatCompletionOptions
+                    {
+                        Temperature = 0.1f,
+                        MaxOutputTokenCount = 4000
+                    });
 
-            var content = response.Value.Content[0].Text.Trim();
-            return DeserializeFuzzyMatches(content);
+                var content = response.Value.Content[0].Text.Trim();
+                allMatches.AddRange(DeserializeFuzzyMatches(content));
+            }
+
+            return allMatches;
         }
 
         // ── JSON Deserialization ────────────────────────────────────────────

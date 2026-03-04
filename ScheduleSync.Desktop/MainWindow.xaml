@@ -42,7 +42,7 @@
                              Text="Enter OpenAI API key..."
                              Foreground="{StaticResource TextSecondaryBrush}"/>
                     <ComboBox x:Name="ModelCombo" Width="130" FontSize="11" Margin="6,0,0,0"
-                              SelectedIndex="0">
+                              SelectedIndex="0" SelectionChanged="ModelCombo_SelectionChanged">
                         <ComboBoxItem Content="codex-5.3"/>
                         <ComboBoxItem Content="gpt-4.1"/>
                         <ComboBoxItem Content="gpt-4.1-mini"/>
@@ -188,7 +188,9 @@
 
                     <!-- Results TreeView -->
                     <TreeView x:Name="ResultsTree" BorderThickness="0"
-                              FontSize="12">
+                              FontSize="12"
+                              VirtualizingStackPanel.IsVirtualizing="True"
+                              VirtualizingStackPanel.VirtualizationMode="Recycling">
                         <TreeView.Resources>
                             <Style TargetType="TreeViewItem">
                                 <Setter Property="Padding" Value="2"/>
