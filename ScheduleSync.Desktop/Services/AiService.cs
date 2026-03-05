@@ -13,18 +13,28 @@ namespace ScheduleSync.Desktop.Services
     /// <summary>
     /// LLM-powered email parsing and fuzzy task matching via OpenAI.
     /// Falls back gracefully if the API key is missing or the call fails.
+    /// Injects learned patterns from <see cref="PatternMemory"/> to improve over time.
     /// </summary>
     public class AiService
     {
         private readonly ChatClient _chat;
+        private readonly PatternStore _memory;
+        private readonly string _memoryContext;
 
         public string CurrentModel { get; }
 
         public AiService(string apiKey, string model = "codex-5.3")
+            : this(apiKey, model, PatternMemory.Load())
+        {
+        }
+
+        public AiService(string apiKey, string model, PatternStore memory)
         {
             CurrentModel = model;
             var client = new OpenAIClient(apiKey);
             _chat = client.GetChatClient(model);
+            _memory = memory;
+            _memoryContext = PatternMemory.BuildPromptContext(_memory);
         }
 
         // ── AI Email Parsing ────────────────────────────────────────────────
@@ -46,13 +56,19 @@ Your job is to parse foreman emails that assign crew members to work packages.
 
 Each crew member is assigned to tasks identified by:
 - ProjectNumber: a job/project code (e.g., ""680122SCC"", ""10CAMPCN"", ""9055471B"")
-- CategoryType: a 2-4 letter work type code (e.g., ""LGT"", ""DE"", ""HGR"", ""EMB"", ""MIS"")
+- CategoryType: a 2-4 letter work type code (e.g., ""LGT"", ""DE"", ""HGR"", ""EMB"", ""MIS"", ""CND"", ""BRS"", ""IW"")
 
 The email may use various formats — structured tags, plain English, shorthand, etc.
 Extract ALL crew-to-project/category assignments you can find.
 
-IMPORTANT: Match project numbers and category types to the known values from the schedule when possible.
-If a value in the email is close but not exact, map it to the nearest known value.
+IMPORTANT MATCHING HEURISTICS — apply these domain-specific rules:
+1. A crew member can have MULTIPLE assignments (different projects or different category types on the same project). Create a separate entry for EACH unique combination.
+2. If a crew member is mentioned for a project with NO specific category type, they cover ALL categories on that project. In the output, set categoryType to null for these — they are ""project-only"" matchers.
+3. Sometimes one person does one category type and that same person + a partner do a different category under the same project. Create separate rules for each combination (e.g., 'Glenn/Ali -> 680122SCC/LGT' AND 'Glenn -> 680122SCC/DE').
+4. A single crew member can be assigned to the SAME category type across MULTIPLE projects (e.g., 'Mike M. -> 200020TUR/BRS' AND 'Mike M. -> 120048TUR/BRS'). Create one entry per project.
+5. Watch for contextual notes that imply priority or urgency (""HOT"", ""cannot stop"", ""finishing up"", ""starting next week""). Capture these in the notes field.
+6. If two crew members are paired (""Dan/Jon"", ""Shubert/Noah""), keep the compound name as-is.
+7. Match project numbers and category types to the KNOWN values from the schedule whenever possible. If a value in the email is close but not exact, map it to the nearest known value.
 
 Return ONLY a JSON array, no markdown fences, no explanation:
 [{""crew"": ""Name"", ""projectNumber"": ""XXX"", ""categoryType"": ""YY"", ""notes"": ""any context""}]
@@ -64,8 +80,15 @@ Rules:
 - ""notes"" should capture any relevant context from the email (e.g., ""starting next week"", ""finishing up"").
 - Keep crew names exactly as written in the email.";
 
+            // Inject learned patterns if available
+            var memoryBlock = string.IsNullOrEmpty(_memoryContext) ? "" :
+                $"\n\n{_memoryContext}\n\nThe above patterns were confirmed in previous sessions. " +
+                "Use them as strong priors when interpreting ambiguous assignments. " +
+                "If the email contradicts a learned pattern (e.g., a crew moved to a new project), follow the email.";
+
             var userPrompt = $@"Known ProjectNumbers in the schedule: {projects}
 Known CategoryTypes in the schedule: {categories}
+{memoryBlock}
 
 Foreman email:
 ---
@@ -126,7 +149,7 @@ Parse this email and return the JSON array of crew assignments.";
                         $"Description={t.Description}");
                 }
 
-            var systemPrompt = @"You are a construction schedule assistant. 
+            var systemPrompt = @"You are a construction schedule assistant for a prefab/steel erection company.
 You have a set of crew assignment rules and a list of unmatched tasks.
 Suggest the best crew for each task based on project numbers, category types, 
 task descriptions, locations, and any contextual clues.
@@ -134,16 +157,22 @@ task descriptions, locations, and any contextual clues.
 Return ONLY a JSON array, no markdown fences:
 [{""taskId"": 123, ""crew"": ""Name"", ""confidence"": 0.85, ""reason"": ""short explanation""}]
 
-Rules:
-- Only include matches where you have reasonable confidence (>= 0.5).
-- confidence is 0.0 to 1.0.
-- If a task's project number partially matches a rule's project number, that's a strong signal.
-- If a task's category type matches a rule's category type AND the project is similar, that's very strong.
-- Be conservative — it's better to leave a task unassigned than assign it to the wrong crew.";
+MATCHING HEURISTICS:
+- If a task's projectNumber exactly matches a rule's projectNumber AND the rule has no categoryType (project-only rule), that crew covers ALL categories on that project. Confidence >= 0.9.
+- If a task's projectNumber AND categoryType both match, that's an exact hit. Confidence >= 0.95.
+- If only the projectNumber matches but category differs, the crew MAY still be relevant if they are the only crew on that project. Confidence ~0.6-0.7.
+- Partial projectNumber matches (e.g., '320001' appearing inside '320001TUR') are a strong signal.
+- Pay attention to Location and Description fields — they may disambiguate similar projects.
+- Some crews handle the same categoryType across multiple projects (e.g., BRS, LGT). If a rule lists a crew for categoryType X on one project, they may also handle X on a related project.
+- Be conservative — it's better to leave a task unassigned than assign it to the wrong crew. Only include matches with confidence >= 0.5.";
 
-            var userPrompt = $@"Crew rules:
+            // Inject learned patterns into fuzzy matching context
+            var memoryBlock = string.IsNullOrEmpty(_memoryContext) ? "" :
+                $"\n\nHistorical patterns (confirmed in previous sessions — use as strong priors):\n{_memoryContext}\n";
+
+            var userPrompt = $@"Crew rules (from current email):
 {rulesSummary}
-
+{memoryBlock}
 Unmatched tasks:
 {taskLines}
 

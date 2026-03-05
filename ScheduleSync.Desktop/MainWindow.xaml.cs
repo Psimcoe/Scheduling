@@ -22,6 +22,7 @@ namespace ScheduleSync.Desktop
         private AppSettings _settings;
         private bool _apiKeyPlaceholder = true;
         private AiService? _ai;
+        private PatternStore _patternStore;
 
         // Cached brushes (frozen = thread-safe, no per-call allocation)
         private static readonly Brush AiReadyBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)));
@@ -33,6 +34,7 @@ namespace ScheduleSync.Desktop
         {
             InitializeComponent();
             _settings = SettingsManager.Load();
+            _patternStore = PatternMemory.Load();
             RestoreSettings();
         }
 
@@ -116,7 +118,7 @@ namespace ScheduleSync.Desktop
             var key = GetApiKey()!;
             var model = GetModel();
             if (_ai == null || _ai.CurrentModel != model)
-                _ai = new AiService(key, model);
+                _ai = new AiService(key, model, _patternStore);
             return _ai;
         }
 
@@ -448,6 +450,7 @@ namespace ScheduleSync.Desktop
                 {
                     var csv = CrewMatcher.ExportCsv(_tasks);
                     File.WriteAllText(dlg.FileName, csv);
+                    RecordLearnedPatterns();
                     StatusBar.Text = $"Exported to {dlg.FileName}";
                     MessageBox.Show($"Saved {_tasks.Count} tasks to:\n{dlg.FileName}",
                         "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -513,6 +516,7 @@ namespace ScheduleSync.Desktop
                 var tasksCopy = _tasks;
                 var result = await System.Threading.Tasks.Task.Run(() => MsProjectPusher.Push(tasksCopy, mppPath));
 
+                RecordLearnedPatterns();
                 StatusBar.Text = $"Push complete: {result.Updated} updated, {result.Skipped} skipped.";
 
                 var details = string.Join("\n", result.Log);
@@ -539,6 +543,26 @@ namespace ScheduleSync.Desktop
         private void UpdateMatchButtonState()
         {
             MatchButton.IsEnabled = _tasks.Count > 0 && _rules.Count > 0;
+        }
+
+        /// <summary>
+        /// Records all confirmed crew assignments into PatternMemory so future
+        /// AI calls benefit from historically successful matches.
+        /// </summary>
+        private void RecordLearnedPatterns()
+        {
+            var confirmed = _tasks
+                .Where(t => !string.IsNullOrEmpty(t.CrewAssignment))
+                .Select(t => new ConfirmedAssignment
+                {
+                    Crew = t.CrewAssignment,
+                    ProjectNumber = t.ProjectNumber,
+                    CategoryType = t.CategoryType,
+                    Notes = t.CrewNotes
+                });
+
+            PatternMemory.RecordConfirmedRules(_patternStore, confirmed);
+            _ai = null; // force re-creation so next run picks up new memory
         }
 
         private void SaveModelSetting()
