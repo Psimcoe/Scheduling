@@ -510,6 +510,40 @@ namespace ScheduleSync.Desktop
         }
 
         // ── Export CSV ──────────────────────────────────────────────────────
+        private void ImportAssignedCsv_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+                Title = "Import Pre-Assigned CSV (with Crew_Assignment column)"
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    var content = File.ReadAllText(dlg.FileName);
+                    _tasks = CrewMatcher.LoadAssignedCsv(content);
+
+                    var (assigned, unassigned) = RepartitionResults(_tasks);
+                    _crewGroups = assigned;
+                    _unassigned = unassigned;
+
+                    int assignedCount = assigned.Sum(g => g.Tasks.Count);
+                    SummaryText.Text = $"{assignedCount} assigned, {unassigned.Count} unassigned of {_tasks.Count} total (imported)";
+                    StatusBar.Text = $"Imported {_tasks.Count} tasks from {System.IO.Path.GetFileName(dlg.FileName)}";
+
+                    BuildResultsTree(assigned, unassigned);
+                    ExportButton.IsEnabled = true;
+                    PushButton.IsEnabled = assignedCount > 0;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error importing CSV:\n{ex.Message}", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
         private void ExportCsv_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new SaveFileDialog

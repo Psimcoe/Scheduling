@@ -155,6 +155,11 @@
                                        Foreground="{StaticResource TextPrimaryBrush}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="Import Assigned CSV"
+                                    Style="{StaticResource SecondaryButton}"
+                                    x:Name="ImportAssignedButton"
+                                    Click="ImportAssignedCsv_Click"
+                                    Margin="0,0,8,0" FontSize="11"/>
                             <Button Content="Push to Project"
                                     Style="{StaticResource PrimaryButton}"
                                     x:Name="PushButton"

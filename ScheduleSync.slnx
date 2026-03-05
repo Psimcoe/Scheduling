@@ -2,8 +2,5 @@
   <Project Path="ScheduleSync.Core/ScheduleSync.Core.csproj" />
   <Project Path="ScheduleSync.Desktop/ScheduleSync.Desktop.csproj" />
   <Project Path="ScheduleSync.Tests/ScheduleSync.Tests.csproj" />
-  <!-- ScheduleSync.AddIn is excluded from the cross-platform solution because it
-       targets .NET Framework 4.8 and requires Visual Studio with the VSTO/Office
-       development workload on Windows. To build the add-in, create a VSTO project
-       in Visual Studio and reference ScheduleSync.Core. See README.md for details. -->
+  <Project Path="ScheduleSync.AddIn/ScheduleSync.AddIn.csproj" />
 </Solution>

@@ -1,24 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using ScheduleSync.Core.Parsers;
+using ScheduleSync.AddIn.Models;
 
-namespace ScheduleSync.Desktop.Services
+namespace ScheduleSync.AddIn.Services
 {
-    using Models;
-
-    /// <summary>
-    /// Loads Prefab Packages CSV (MS Project export format) and matches tasks to crew rules.
-    /// </summary>
     public static class CrewMatcher
     {
-        /// <summary>
-        /// Parses the MS Project-exported Prefab Packages CSV into PrefabTask objects.
-        /// Reuses CsvParserHelper from ScheduleSync.Core for robust CSV field splitting.
-        /// </summary>
         public static List<PrefabTask> LoadCsv(string csvContent)
         {
             var tasks = new List<PrefabTask>();
@@ -29,7 +20,6 @@ namespace ScheduleSync.Desktop.Services
                 .Select(h => h.Trim())
                 .ToList();
 
-            // Build header index map
             var idx = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < headers.Count; i++)
                 idx[headers[i]] = i;
@@ -61,15 +51,9 @@ namespace ScheduleSync.Desktop.Services
                 };
                 tasks.Add(t);
             }
-
             return tasks;
         }
 
-        /// <summary>
-        /// Loads a previously exported CSV that already contains Crew_Assignment
-        /// and Crew_Notes columns. Skips the email-parsing + matching flow entirely.
-        /// Falls back to <see cref="LoadCsv"/> columns if the assignment columns are missing.
-        /// </summary>
         public static List<PrefabTask> LoadAssignedCsv(string csvContent)
         {
             var tasks = new List<PrefabTask>();
@@ -113,19 +97,12 @@ namespace ScheduleSync.Desktop.Services
                 };
                 tasks.Add(t);
             }
-
             return tasks;
         }
 
-        /// <summary>
-        /// Applies crew rules to tasks. Each task is matched by ProjectNumber + CategoryType.
-        /// If a rule has no CategoryType, it matches by ProjectNumber alone.
-        /// </summary>
         public static (List<CrewGroup> Assigned, List<PrefabTask> Unassigned) Match(
             List<PrefabTask> tasks, List<CrewRule> rules)
         {
-            // Build lookup dictionaries for O(1) matching instead of O(rules) per task
-            // Key: "PROJECT|CATEGORY" or "PROJECT|" for rules without category
             var exactLookup = new Dictionary<string, CrewRule>(StringComparer.OrdinalIgnoreCase);
             var projectOnlyLookup = new Dictionary<string, CrewRule>(StringComparer.OrdinalIgnoreCase);
 
@@ -136,26 +113,26 @@ namespace ScheduleSync.Desktop.Services
                 if (!string.IsNullOrEmpty(rule.CategoryType))
                 {
                     var key = $"{rule.ProjectNumber}|{rule.CategoryType}";
-                    exactLookup.TryAdd(key, rule); // first rule wins
+                    if (!exactLookup.ContainsKey(key))
+                        exactLookup[key] = rule;
                 }
                 else
                 {
-                    projectOnlyLookup.TryAdd(rule.ProjectNumber, rule);
+                    if (!projectOnlyLookup.ContainsKey(rule.ProjectNumber))
+                        projectOnlyLookup[rule.ProjectNumber] = rule;
                 }
             }
 
             foreach (var task in tasks)
             {
-                // Try exact match first (project + category)
                 var exactKey = $"{task.ProjectNumber}|{task.CategoryType}";
-                if (exactLookup.TryGetValue(exactKey, out var rule))
+                CrewRule rule;
+                if (exactLookup.TryGetValue(exactKey, out rule))
                 {
                     task.CrewAssignment = rule.Crew;
                     task.CrewNotes = rule.Notes;
                     continue;
                 }
-
-                // Fall back to project-only match
                 if (projectOnlyLookup.TryGetValue(task.ProjectNumber, out rule))
                 {
                     task.CrewAssignment = rule.Crew;
@@ -183,9 +160,6 @@ namespace ScheduleSync.Desktop.Services
             return (assigned, unassigned);
         }
 
-        /// <summary>
-        /// Exports the crew-assigned tasks to a new CSV with Crew_Assignment and Crew_Notes columns.
-        /// </summary>
         public static string ExportCsv(List<PrefabTask> allTasks)
         {
             var sb = new StringBuilder(allTasks.Count * 120);
@@ -205,21 +179,21 @@ namespace ScheduleSync.Desktop.Services
                     Escape(t.CrewAssignment),
                     Escape(t.CrewNotes)));
             }
-
             return sb.ToString();
         }
 
         private static string Escape(string value)
         {
             if (string.IsNullOrEmpty(value)) return "";
-            if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
                 return "\"" + value.Replace("\"", "\"\"") + "\"";
             return value;
         }
 
         private static string Get(List<string> fields, Dictionary<string, int> idx, string col)
         {
-            if (idx.TryGetValue(col, out int i) && i < fields.Count)
+            int i;
+            if (idx.TryGetValue(col, out i) && i < fields.Count)
                 return fields[i].Trim();
             return string.Empty;
         }
@@ -227,7 +201,8 @@ namespace ScheduleSync.Desktop.Services
         private static int GetInt(List<string> fields, Dictionary<string, int> idx, string col)
         {
             var s = Get(fields, idx, col);
-            return int.TryParse(s, out int v) ? v : 0;
+            int v;
+            return int.TryParse(s, out v) ? v : 0;
         }
     }
 }

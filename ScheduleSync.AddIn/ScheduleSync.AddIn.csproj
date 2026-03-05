@@ -13,22 +13,29 @@
     <OutputType>Library</OutputType>
     <RootNamespace>ScheduleSync.AddIn</RootNamespace>
     <AssemblyName>ScheduleSync.AddIn</AssemblyName>
-    <!-- VSTO add-ins normally use the Office project system in Visual Studio.
-         This csproj is a placeholder for source structure; the actual VSTO project
-         should be created via the Visual Studio "Microsoft Project Add-in" template
-         and these source files copied in. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- COM visibility for MS Project to load this as a COM add-in -->
+    <ComVisible>true</ComVisible>
+    <!-- RegisterForComInterop requires VS MSBuild; use Register-AddIn.ps1 instead -->
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ScheduleSync.Core\ScheduleSync.Core.csproj" />
   </ItemGroup>
 
-  <!-- 
-    In a real VSTO project the following COM references are added by the template:
-    - Microsoft.Office.Interop.MSProject
-    - Microsoft.Office.Tools
-    - Microsoft.Office.Tools.Common
-    - Microsoft.VisualStudio.Tools.Applications.Runtime
-  -->
+  <ItemGroup>
+    <PackageReference Include="OpenAI" Version="2.9.1" />
+    <PackageReference Include="System.Text.Json" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Ribbon\ScheduleSyncRibbon.xml" />
+  </ItemGroup>
 
 </Project>
