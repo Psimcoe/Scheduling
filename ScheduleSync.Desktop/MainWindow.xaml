@@ -35,13 +35,18 @@
                     <TextBlock Text="AI" FontSize="11" FontWeight="Bold"
                                Foreground="{StaticResource PrimaryBrush}"
                                VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox x:Name="ApiKeyBox" Width="200" FontSize="11" Padding="4,3"
+                    <ComboBox x:Name="ProviderCombo" Width="85" FontSize="11" Margin="0,0,6,0"
+                              SelectedIndex="0" SelectionChanged="ProviderCombo_SelectionChanged">
+                        <ComboBoxItem Content="OpenAI"/>
+                        <ComboBoxItem Content="Gemini"/>
+                    </ComboBox>
+                    <TextBox x:Name="ApiKeyBox" Width="180" FontSize="11" Padding="4,3"
                              MaxLength="200"
                              GotFocus="ApiKeyBox_GotFocus"
                              LostFocus="ApiKeyBox_LostFocus"
-                             Text="Enter OpenAI API key..."
+                             Text="Enter API key..."
                              Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <ComboBox x:Name="ModelCombo" Width="130" FontSize="11" Margin="6,0,0,0"
+                    <ComboBox x:Name="ModelCombo" Width="140" FontSize="11" Margin="6,0,0,0"
                               SelectedIndex="0" SelectionChanged="ModelCombo_SelectionChanged">
                         <ComboBoxItem Content="codex-5.3"/>
                         <ComboBoxItem Content="gpt-4.1"/>

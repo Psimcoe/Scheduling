@@ -42,11 +42,18 @@ namespace ScheduleSync.Desktop
 
         private void RestoreSettings()
         {
-            if (!string.IsNullOrEmpty(_settings.OpenAiApiKey))
+            // Restore provider selection
+            var providerIndex = _settings.Provider == "Gemini" ? 1 : 0;
+            ProviderCombo.SelectedIndex = providerIndex;
+            PopulateModelCombo(GetSelectedProvider());
+
+            // Restore API key for the active provider
+            var savedKey = GetSavedKeyForProvider(GetSelectedProvider());
+            if (!string.IsNullOrEmpty(savedKey))
             {
                 ApiKeyBox.Text = new string('*', 12);
                 ApiKeyBox.Foreground = (Brush)FindResource("TextPrimaryBrush");
-                ApiKeyBox.Tag = _settings.OpenAiApiKey; // store real key in Tag
+                ApiKeyBox.Tag = savedKey;
                 _apiKeyPlaceholder = false;
                 UpdateAiStatus(true);
             }
@@ -60,6 +67,65 @@ namespace ScheduleSync.Desktop
                     break;
                 }
             }
+        }
+
+        private AiProvider GetSelectedProvider() =>
+            ProviderCombo.SelectedIndex == 1 ? AiProvider.Gemini : AiProvider.OpenAI;
+
+        private string? GetSavedKeyForProvider(AiProvider provider) =>
+            provider == AiProvider.Gemini ? _settings.GeminiApiKey : _settings.OpenAiApiKey;
+
+        private void PopulateModelCombo(AiProvider provider)
+        {
+            ModelCombo.Items.Clear();
+            if (provider == AiProvider.Gemini)
+            {
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gemini-2.5-pro" });
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gemini-2.5-flash" });
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gemini-2.0-flash" });
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gemini-1.5-pro" });
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gemini-1.5-flash" });
+            }
+            else
+            {
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "codex-5.3" });
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gpt-4.1" });
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gpt-4.1-mini" });
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gpt-4o" });
+                ModelCombo.Items.Add(new ComboBoxItem { Content = "gpt-4o-mini" });
+            }
+            ModelCombo.SelectedIndex = 0;
+        }
+
+        private void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsInitialized) return;
+
+            var provider = GetSelectedProvider();
+            PopulateModelCombo(provider);
+
+            // Swap displayed API key to the one stored for this provider
+            var savedKey = GetSavedKeyForProvider(provider);
+            if (!string.IsNullOrEmpty(savedKey))
+            {
+                ApiKeyBox.Text = new string('*', 12);
+                ApiKeyBox.Foreground = (Brush)FindResource("TextPrimaryBrush");
+                ApiKeyBox.Tag = savedKey;
+                _apiKeyPlaceholder = false;
+                UpdateAiStatus(true);
+            }
+            else
+            {
+                ApiKeyBox.Text = "Enter API key...";
+                ApiKeyBox.Foreground = (Brush)FindResource("TextSecondaryBrush");
+                ApiKeyBox.Tag = null;
+                _apiKeyPlaceholder = true;
+                UpdateAiStatus(false);
+            }
+
+            _settings.Provider = provider.ToString();
+            _ai = null;
+            SettingsManager.Save(_settings);
         }
 
         private void UpdateAiStatus(bool configured)
@@ -83,7 +149,7 @@ namespace ScheduleSync.Desktop
             var text = ApiKeyBox.Text.Trim();
             if (string.IsNullOrEmpty(text))
             {
-                ApiKeyBox.Text = "Enter OpenAI API key...";
+                ApiKeyBox.Text = "Enter API key...";
                 ApiKeyBox.Foreground = (Brush)FindResource("TextSecondaryBrush");
                 _apiKeyPlaceholder = true;
                 ApiKeyBox.Tag = null;
@@ -95,7 +161,15 @@ namespace ScheduleSync.Desktop
             if (!text.All(c => c == '*'))
             {
                 ApiKeyBox.Tag = text;
-                _settings.OpenAiApiKey = text;
+
+                // Save to the correct provider slot
+                var provider = GetSelectedProvider();
+                if (provider == AiProvider.Gemini)
+                    _settings.GeminiApiKey = text;
+                else
+                    _settings.OpenAiApiKey = text;
+
+                _settings.Provider = provider.ToString();
                 _settings.Model = GetModel();
                 SettingsManager.Save(_settings);
                 _ai = null; // force re-creation with new key
@@ -117,8 +191,9 @@ namespace ScheduleSync.Desktop
         {
             var key = GetApiKey()!;
             var model = GetModel();
-            if (_ai == null || _ai.CurrentModel != model)
-                _ai = new AiService(key, model, _patternStore);
+            var provider = GetSelectedProvider();
+            if (_ai == null || _ai.CurrentModel != model || _ai.Provider != provider)
+                _ai = new AiService(key, model, provider, _patternStore);
             return _ai;
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.ClientModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,27 +12,53 @@ using ScheduleSync.Desktop.Models;
 namespace ScheduleSync.Desktop.Services
 {
     /// <summary>
-    /// LLM-powered email parsing and fuzzy task matching via OpenAI.
+    /// Supported AI providers.
+    /// </summary>
+    public enum AiProvider
+    {
+        OpenAI,
+        Gemini
+    }
+
+    /// <summary>
+    /// LLM-powered email parsing and fuzzy task matching via OpenAI or Google Gemini.
     /// Falls back gracefully if the API key is missing or the call fails.
     /// Injects learned patterns from <see cref="PatternMemory"/> to improve over time.
     /// </summary>
     public class AiService
     {
+        private static readonly Uri GeminiEndpoint =
+            new Uri("https://generativelanguage.googleapis.com/v1beta/openai/");
+
         private readonly ChatClient _chat;
         private readonly PatternStore _memory;
         private readonly string _memoryContext;
 
         public string CurrentModel { get; }
+        public AiProvider Provider { get; }
 
-        public AiService(string apiKey, string model = "codex-5.3")
-            : this(apiKey, model, PatternMemory.Load())
+        public AiService(string apiKey, string model = "codex-5.3",
+            AiProvider provider = AiProvider.OpenAI)
+            : this(apiKey, model, provider, PatternMemory.Load())
         {
         }
 
-        public AiService(string apiKey, string model, PatternStore memory)
+        public AiService(string apiKey, string model, AiProvider provider, PatternStore memory)
         {
             CurrentModel = model;
-            var client = new OpenAIClient(apiKey);
+            Provider = provider;
+
+            OpenAIClient client;
+            if (provider == AiProvider.Gemini)
+            {
+                var options = new OpenAIClientOptions { Endpoint = GeminiEndpoint };
+                client = new OpenAIClient(new ApiKeyCredential(apiKey), options);
+            }
+            else
+            {
+                client = new OpenAIClient(apiKey);
+            }
+
             _chat = client.GetChatClient(model);
             _memory = memory;
             _memoryContext = PatternMemory.BuildPromptContext(_memory);

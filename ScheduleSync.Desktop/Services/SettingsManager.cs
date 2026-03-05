@@ -42,6 +42,8 @@ namespace ScheduleSync.Desktop.Services
     public class AppSettings
     {
         public string OpenAiApiKey { get; set; } = string.Empty;
+        public string GeminiApiKey { get; set; } = string.Empty;
+        public string Provider { get; set; } = "OpenAI";
         public string Model { get; set; } = "codex-5.3";
     }
 }
