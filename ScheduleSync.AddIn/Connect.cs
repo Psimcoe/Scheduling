@@ -1,8 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using ScheduleSync.AddIn.Adapters;
 using ScheduleSync.AddIn.Interop;
 using ScheduleSync.AddIn.UI;
+using ScheduleSync.Core;
+using ScheduleSync.Core.Interfaces;
+using ScheduleSync.Core.Logging;
+using ScheduleSync.Core.Models;
+using ScheduleSync.Core.Parsers;
 
 namespace ScheduleSync.AddIn
 {
@@ -104,6 +111,106 @@ namespace ScheduleSync.AddIn
             }
         }
 
+        /// <summary>Import schedule updates from CSV, preview diffs, and apply.</summary>
+        public void BtnImportCsv_Click(object control)
+        {
+            RunImportWorkflow("CSV files (*.csv)|*.csv|All files (*.*)|*.*", "Select Schedule Update CSV",
+                filePath =>
+                {
+                    var content = File.ReadAllText(filePath);
+                    IUpdateSource source;
+                    // Auto-detect Stratus CSV (has "Project Number" column)
+                    if (content.IndexOf("Project Number", StringComparison.OrdinalIgnoreCase) >= 0)
+                        source = new StratusCsvUpdateSource();
+                    else
+                        source = new CsvUpdateSource();
+                    return source.Parse(content);
+                });
+        }
+
+        /// <summary>Import schedule updates from JSON, preview diffs, and apply.</summary>
+        public void BtnImportJson_Click(object control)
+        {
+            RunImportWorkflow("JSON files (*.json)|*.json|All files (*.*)|*.*", "Select Schedule Update JSON",
+                filePath =>
+                {
+                    var content = File.ReadAllText(filePath);
+                    var source = new JsonUpdateSource();
+                    return source.Parse(content);
+                });
+        }
+
+        /// <summary>
+        /// Shared import workflow: open file dialog, parse, compute diffs, preview, apply.
+        /// </summary>
+        private void RunImportWorkflow(string filter, string title, Func<string, ParseResult> parseFunc)
+        {
+            try
+            {
+                string filePath;
+                using (var dlg = new System.Windows.Forms.OpenFileDialog())
+                {
+                    dlg.Filter = filter;
+                    dlg.Title = title;
+                    if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+                    filePath = dlg.FileName;
+                }
+
+                var parseResult = parseFunc(filePath);
+
+                if (parseResult.Errors.Count > 0)
+                {
+                    var errorMessages = new List<string>();
+                    foreach (var err in parseResult.Errors)
+                        errorMessages.Add(string.Format("Row {0}: {1} - {2}",
+                            err.RowNumber?.ToString() ?? "?", err.FieldName ?? "", err.Message));
+
+                    System.Windows.Forms.MessageBox.Show(
+                        "Parse errors:\n" + string.Join("\n", errorMessages),
+                        "Parse Errors", System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Warning);
+                    if (parseResult.Updates.Count == 0) return;
+                }
+
+                var adapter = new MsProjectAdapter();
+                var options = new ApplyOptions();
+                var orchestrator = new ImportOrchestrator(adapter, options);
+                var diffs = orchestrator.ComputeDiffs(parseResult.Updates);
+
+                var preview = new PreviewWindow(diffs, applicable =>
+                {
+                    var result = orchestrator.Apply(applicable);
+
+                    // Write audit log
+                    try
+                    {
+                        var logDir = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                            "ScheduleSync", "Logs");
+                        Directory.CreateDirectory(logDir);
+                        var logPath = Path.Combine(logDir,
+                            "apply_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".csv");
+                        File.WriteAllText(logPath, ApplyLogExporter.ToCsv(result));
+                    }
+                    catch { /* Non-critical: don't let logging failure block success */ }
+
+                    System.Windows.Forms.MessageBox.Show(
+                        string.Format("Applied: {0}\nSkipped: {1}\nFailed: {2}\n\nChanges are undoable via Edit > Undo.",
+                            result.Applied, result.Skipped, result.Failed),
+                        "Import Complete", System.Windows.Forms.MessageBoxButtons.OK,
+                        System.Windows.Forms.MessageBoxIcon.Information);
+                });
+                preview.Show(); // Modeless
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show(
+                    "Error during import:\n" + ex.Message,
+                    "ScheduleSync", System.Windows.Forms.MessageBoxButtons.OK,
+                    System.Windows.Forms.MessageBoxIcon.Error);
+            }
+        }
+
         // ── Fallback Ribbon XML ─────────────────────────────────────────────
 
         private static string FallbackRibbonXml()
@@ -113,6 +220,20 @@ namespace ScheduleSync.AddIn
   <ribbon>
     <tabs>
       <tab id=""tabScheduleSync"" label=""ScheduleSync"">
+        <group id=""grpImport"" label=""Schedule Import"">
+          <button id=""btnImportCsv""
+                  label=""Import CSV""
+                  size=""large""
+                  imageMso=""ImportTextFile""
+                  onAction=""BtnImportCsv_Click""
+                  screentip=""Import schedule updates from a CSV file."" />
+          <button id=""btnImportJson""
+                  label=""Import JSON""
+                  size=""large""
+                  imageMso=""ImportXMLFile""
+                  onAction=""BtnImportJson_Click""
+                  screentip=""Import schedule updates from a JSON file."" />
+        </group>
         <group id=""grpCrew"" label=""Crew Assignment"">
           <button id=""btnCrewAssignment""
                   label=""Crew Assignment""

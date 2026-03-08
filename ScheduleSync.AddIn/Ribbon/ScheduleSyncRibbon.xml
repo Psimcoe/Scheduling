@@ -4,6 +4,20 @@
   <ribbon>
     <tabs>
       <tab id="tabScheduleSync" label="ScheduleSync">
+        <group id="grpImport" label="Schedule Import">
+          <button id="btnImportCsv"
+                  label="Import CSV"
+                  size="large"
+                  imageMso="ImportTextFile"
+                  onAction="BtnImportCsv_Click"
+                  screentip="Import schedule updates from a CSV file, preview diffs, and apply to the active project." />
+          <button id="btnImportJson"
+                  label="Import JSON"
+                  size="large"
+                  imageMso="ImportXMLFile"
+                  onAction="BtnImportJson_Click"
+                  screentip="Import schedule updates from a JSON file, preview diffs, and apply to the active project." />
+        </group>
         <group id="grpCrew" label="Crew Assignment">
           <button id="btnCrewAssignment"
                   label="Crew Assignment"
