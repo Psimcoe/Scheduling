@@ -1,0 +1,87 @@
+/**
+ * Graphical Indicators — evaluate indicator rules for custom fields.
+ *
+ * Each custom field can have a set of rules that map field values
+ * to colored icons (traffic lights, etc.). Rules are evaluated in
+ * order; the first match wins.
+ */
+
+import type { GraphicalIndicatorConfig, IndicatorRule } from '../types.js';
+
+export interface IndicatorResult {
+  matched: boolean;
+  color: string;
+  icon: string;
+}
+
+const NO_MATCH: IndicatorResult = { matched: false, color: '', icon: '' };
+
+function matchesRule(value: unknown, rule: IndicatorRule): boolean {
+  const numVal = typeof value === 'number' ? value : parseFloat(String(value));
+  const strVal = String(value);
+
+  switch (rule.operator) {
+    case 'eq':
+      return value === rule.values[0] || strVal === String(rule.values[0]);
+    case 'ne':
+      return value !== rule.values[0] && strVal !== String(rule.values[0]);
+    case 'gt':
+      return !isNaN(numVal) && numVal > Number(rule.values[0]);
+    case 'gte':
+      return !isNaN(numVal) && numVal >= Number(rule.values[0]);
+    case 'lt':
+      return !isNaN(numVal) && numVal < Number(rule.values[0]);
+    case 'lte':
+      return !isNaN(numVal) && numVal <= Number(rule.values[0]);
+    case 'between':
+      return !isNaN(numVal) && numVal >= Number(rule.values[0]) && numVal <= Number(rule.values[1]);
+    case 'contains':
+      return strVal.toLowerCase().includes(String(rule.values[0]).toLowerCase());
+    default:
+      return false;
+  }
+}
+
+/**
+ * Evaluate graphical indicator rules for a given field value.
+ * Returns the first matching rule's color and icon, or NO_MATCH.
+ */
+export function evaluateIndicator(
+  value: unknown,
+  config: GraphicalIndicatorConfig,
+  isSummary = false,
+  isProjectSummary = false,
+): IndicatorResult {
+  if (isSummary && !config.showForSummary) return NO_MATCH;
+  if (isProjectSummary && !config.showForProject) return NO_MATCH;
+
+  for (const rule of config.rules) {
+    if (matchesRule(value, rule)) {
+      return { matched: true, color: rule.color, icon: rule.icon };
+    }
+  }
+  return NO_MATCH;
+}
+
+/**
+ * Pre-defined indicator icon names → emoji/unicode for rendering.
+ */
+export const INDICATOR_ICONS: Record<string, string> = {
+  greenCircle: '🟢',
+  yellowCircle: '🟡',
+  redCircle: '🔴',
+  blueCircle: '🔵',
+  greenDiamond: '💚',
+  yellowDiamond: '💛',
+  redDiamond: '❤️',
+  greenCheckmark: '✅',
+  yellowExclamation: '⚠️',
+  redX: '❌',
+  blackCircle: '⚫',
+  whiteCircle: '⚪',
+  upArrow: '⬆️',
+  downArrow: '⬇️',
+  rightArrow: '➡️',
+  flag: '🚩',
+  star: '⭐',
+};
