@@ -140,6 +140,34 @@ function Remove-SourceMaps {
         }
 }
 
+function Sync-PrismaClientRuntime {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourceNodeModules,
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationNodeModules
+    )
+
+    $sourcePnpmRoot = Join-Path $SourceNodeModules '.pnpm'
+    $destinationPnpmRoot = Join-Path $DestinationNodeModules '.pnpm'
+
+    if (-not (Test-Path $sourcePnpmRoot) -or -not (Test-Path $destinationPnpmRoot)) {
+        return
+    }
+
+    Get-ChildItem $sourcePnpmRoot -Directory |
+        Where-Object { $_.Name -like '@prisma+client@*' } |
+        ForEach-Object {
+            $sourcePrismaDir = Join-Path $_.FullName 'node_modules\.prisma'
+            $destinationClientRoot = Join-Path $destinationPnpmRoot $_.Name
+
+            if ((Test-Path $sourcePrismaDir) -and (Test-Path $destinationClientRoot)) {
+                $destinationPrismaDir = Join-Path $destinationClientRoot 'node_modules\.prisma'
+                Copy-DirectoryTree -Source $sourcePrismaDir -Destination $destinationPrismaDir
+            }
+        }
+}
+
 function Assert-NoRunningBackendFromRepo {
     param(
         [Parameter(Mandatory = $true)]
@@ -169,7 +197,6 @@ $artifactsRoot = Join-Path $repoRoot 'artifacts\desktop'
 $workingRoot = Join-Path $env:SystemDrive 'ssdesk'
 $publishRoot = Join-Path $workingRoot 'publish'
 $runtimeRoot = Join-Path $publishRoot 'runtime'
-$backendDeployStagingRoot = Join-Path $workingRoot 'backend-deploy'
 $backendRuntimeRoot = Join-Path $runtimeRoot 'backend'
 $frontendRuntimeRoot = Join-Path $runtimeRoot 'frontend'
 $nodeRuntimeRoot = Join-Path $runtimeRoot 'node'
@@ -187,7 +214,6 @@ Write-Host 'Preparing artifact directories...'
 Ensure-EmptyDirectory $artifactsRoot
 Ensure-EmptyDirectory $workingRoot
 Ensure-EmptyDirectory $publishRoot
-Ensure-EmptyDirectory $backendDeployStagingRoot
 Ensure-EmptyDirectory $backendRuntimeRoot
 Ensure-EmptyDirectory $frontendRuntimeRoot
 Ensure-EmptyDirectory $nodeRuntimeRoot
@@ -206,34 +232,32 @@ Invoke-External -FilePath $pnpm -Arguments @('--filter', '@schedulesync/backend'
 Invoke-External -FilePath $pnpm -Arguments @('--filter', '@schedulesync/frontend', 'build') -WorkingDirectory $webRoot
 
 Write-Host 'Creating deployable backend runtime...'
-Invoke-External -FilePath $pnpm -Arguments @('--filter', '@schedulesync/backend', 'deploy', '--legacy', '--prod', $backendDeployStagingRoot) -WorkingDirectory $webRoot
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'src')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'data')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'prisma\dev.db')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot '.env')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'ai-config.json')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'tsconfig.json')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'vitest.config.ts')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'node_modules\@schedulesync\backend\data')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'node_modules\@schedulesync\backend\.env')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'node_modules\@schedulesync\backend\ai-config.json')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\data')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\.env')
-Remove-PathIfExists (Join-Path $backendDeployStagingRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\ai-config.json')
+Invoke-External -FilePath $pnpm -Arguments @('--filter', '@schedulesync/backend', 'deploy', '--legacy', '--prod', $backendRuntimeRoot) -WorkingDirectory $webRoot
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'src')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'data')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot '.env')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'ai-config.json')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'tsconfig.json')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'vitest.config.ts')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\@schedulesync\backend\data')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\@schedulesync\backend\.env')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\@schedulesync\backend\ai-config.json')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\data')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\.env')
+Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\ai-config.json')
 
-Get-ChildItem $backendDeployStagingRoot -Recurse -Force -File |
+Sync-PrismaClientRuntime -SourceNodeModules (Join-Path $webRoot 'node_modules') -DestinationNodeModules (Join-Path $backendRuntimeRoot 'node_modules')
+
+Get-ChildItem $backendRuntimeRoot -Recurse -Force -File |
     Where-Object { $_.Extension -eq '.gguf' -or $_.Name -in @('.env', 'ai-config.json') } |
     Remove-Item -Force
 
-Get-ChildItem $backendDeployStagingRoot -Recurse -Force -Directory |
+Get-ChildItem $backendRuntimeRoot -Recurse -Force -Directory |
     Where-Object {
         $_.Name -eq 'data' -and $_.FullName -like '*@schedulesync*backend*'
     } |
     Remove-Item -Recurse -Force
 
-Remove-SourceMaps $backendDeployStagingRoot
-
-Copy-DirectoryTree -Source $backendDeployStagingRoot -Destination $backendRuntimeRoot
 Remove-SourceMaps $backendRuntimeRoot
 
 Write-Host 'Copying frontend assets...'
@@ -271,7 +295,7 @@ if (-not $SkipInstaller) {
 }
 
 $finalPublishRoot = Join-Path $artifactsRoot 'publish'
-Copy-DirectoryTree -Source $publishRoot -Destination $finalPublishRoot
+New-Item -ItemType Junction -Path $finalPublishRoot -Target $publishRoot | Out-Null
 
 if (-not $SkipInstaller) {
     $finalInstallerRoot = Join-Path $artifactsRoot 'installer'

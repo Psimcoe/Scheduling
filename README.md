@@ -2,6 +2,19 @@
 
 A Microsoft Project Desktop VSTO Add-in (C#) that imports schedule updates from CSV/JSON files, previews changes as a diff, and applies them directly to the active `.mpp` plan via the Project object model.
 
+## Desktop Web Shell
+
+The repo also includes `ScheduleSync.Desktop`, a Windows `win-x64` WPF shell that hosts the React/Fastify app in WebView2. The desktop build packages:
+
+- the published WPF shell,
+- the production frontend assets,
+- the local Fastify backend,
+- a bundled `node.exe`,
+- Prisma runtime assets,
+- an MSI installer.
+
+Mutable desktop data lives under `%LocalAppData%\ScheduleSync\Desktop`. The packaged backend serves both the SPA and `/api` on the same localhost origin.
+
 ## Solution Structure
 
 ```
@@ -95,6 +108,24 @@ dotnet test  ScheduleSync.Tests/ScheduleSync.Tests.csproj
 4. Set `ScheduleSync.AddIn` as the startup project.
 5. Press **F5** — Visual Studio will launch Microsoft Project with the add-in loaded.
 6. Look for the **ScheduleSync** tab on the Project Ribbon.
+
+### Desktop app package (Windows)
+
+From the repo root:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Build-DesktopApp.ps1
+```
+
+Optional flags:
+
+- `-SkipWebViewBootstrapper` skips downloading the WebView2 bootstrapper into the publish output.
+- `-SkipInstaller` builds only the publish output and skips MSI generation.
+
+Outputs:
+
+- `artifacts\desktop\publish` - runnable desktop publish output. This is a junction to the short-path staging folder at `C:\ssdesk\publish` so the pnpm runtime links remain valid.
+- `artifacts\desktop\installer\ScheduleSync.Desktop.msi` - Windows installer.
 
 ### Debugging
 
