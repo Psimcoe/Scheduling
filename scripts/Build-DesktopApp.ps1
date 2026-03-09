@@ -80,6 +80,248 @@ function Copy-DirectoryTree {
     }
 }
 
+function Get-NodeModulesPackages {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$NodeModulesPath
+    )
+
+    $packages = New-Object System.Collections.Generic.List[object]
+    if (-not (Test-Path $NodeModulesPath)) {
+        return $packages
+    }
+
+    Get-ChildItem $NodeModulesPath -Force |
+        Where-Object { $_.PSIsContainer -and $_.Name -ne '.bin' } |
+        ForEach-Object {
+            if ($_.Name.StartsWith('@', [StringComparison]::Ordinal)) {
+                Get-ChildItem $_.FullName -Force |
+                    Where-Object { $_.PSIsContainer } |
+                    ForEach-Object {
+                        $packages.Add([pscustomobject]@{
+                            Name = "$($_.Parent.Name)/$($_.Name)"
+                            FullName = $_.FullName
+                        })
+                    }
+            }
+            else {
+                $packages.Add([pscustomobject]@{
+                    Name = $_.Name
+                    FullName = $_.FullName
+                })
+            }
+        }
+
+    return $packages
+}
+
+function Get-PackageInstallPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$NodeModulesRoot,
+        [Parameter(Mandatory = $true)]
+        [string]$PackageName
+    )
+
+    if ($PackageName.StartsWith('@', [StringComparison]::Ordinal)) {
+        $segments = $PackageName.Split('/', 2)
+        return Join-Path (Join-Path $NodeModulesRoot $segments[0]) $segments[1]
+    }
+
+    return Join-Path $NodeModulesRoot $PackageName
+}
+
+function Get-PnpmPackageContexts {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$NodeModulesRoot
+    )
+
+    $contexts = New-Object System.Collections.Generic.List[object]
+    $pnpmRoot = Join-Path $NodeModulesRoot '.pnpm'
+    if (-not (Test-Path $pnpmRoot)) {
+        return $contexts
+    }
+
+    Get-ChildItem $pnpmRoot -Directory |
+        ForEach-Object {
+            $pnpmPackageRoot = $_
+            $packageNodeModules = Join-Path $pnpmPackageRoot.FullName 'node_modules'
+            $packages = @(Get-NodeModulesPackages -NodeModulesPath $packageNodeModules)
+            if ($packages.Count -eq 0) {
+                return
+            }
+
+            $primaryPackage = $packages |
+                Where-Object {
+                    $encodedName = $_.Name.Replace('/', '+')
+                    $pnpmPackageRoot.Name.StartsWith("$encodedName@", [StringComparison]::Ordinal)
+                } |
+                Select-Object -First 1
+
+            if (-not $primaryPackage) {
+                return
+            }
+
+            $packageJsonPath = Join-Path $primaryPackage.FullName 'package.json'
+            if (-not (Test-Path $packageJsonPath)) {
+                return
+            }
+
+            $packageJson = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
+            $packageMap = @{}
+            foreach ($package in $packages) {
+                $packageMap[$package.Name] = $package.FullName
+            }
+
+            $contexts.Add([pscustomobject]@{
+                Name = [string]$packageJson.name
+                Version = [string]$packageJson.version
+                PackageJson = $packageJson
+                Packages = $packageMap
+            })
+        }
+
+    return $contexts
+}
+
+function Get-PackageDependencyNames {
+    param(
+        [Parameter(Mandatory = $true)]
+        [psobject]$PackageJson
+    )
+
+    $dependencyNames = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::Ordinal)
+    foreach ($sectionName in @('dependencies', 'optionalDependencies', 'peerDependencies')) {
+        $dependencyProperty = $PackageJson.PSObject.Properties[$sectionName]
+        if ($null -eq $dependencyProperty) {
+            continue
+        }
+
+        foreach ($property in $dependencyProperty.Value.PSObject.Properties) {
+            [void]$dependencyNames.Add($property.Name)
+        }
+    }
+
+    return $dependencyNames
+}
+
+function Get-PackageVersion {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackagePath
+    )
+
+    $packageJsonPath = Join-Path $PackagePath 'package.json'
+    if (-not (Test-Path $packageJsonPath)) {
+        return $null
+    }
+
+    $packageJson = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
+    return [string]$packageJson.version
+}
+
+function Resolve-InstalledDependencyPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallPath,
+        [Parameter(Mandatory = $true)]
+        [string]$PackageName
+    )
+
+    $currentPath = $InstallPath
+    while ($true) {
+        $candidatePath = Get-PackageInstallPath -NodeModulesRoot (Join-Path $currentPath 'node_modules') -PackageName $PackageName
+        if (Test-Path $candidatePath) {
+            return $candidatePath
+        }
+
+        $parentPath = Split-Path $currentPath -Parent
+        if (-not $parentPath -or $parentPath -eq $currentPath) {
+            return $null
+        }
+
+        $currentPath = $parentPath
+    }
+}
+
+function Materialize-PnpmPackageInstallPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallPath,
+        [Parameter(Mandatory = $true)]
+        [object[]]$Contexts,
+        [AllowEmptyCollection()]
+        [Parameter(Mandatory = $true)]
+        [System.Collections.Generic.HashSet[string]]$Visited
+    )
+
+    $packageJsonPath = Join-Path $InstallPath 'package.json'
+    if (-not (Test-Path $packageJsonPath)) {
+        return
+    }
+
+    $packageJson = Get-Content $packageJsonPath -Raw | ConvertFrom-Json
+    $visitKey = "$($packageJson.name)|$($packageJson.version)|$InstallPath"
+    if ($Visited.Contains($visitKey)) {
+        return
+    }
+
+    [void]$Visited.Add($visitKey)
+
+    $context = $Contexts |
+        Where-Object { $_.Name -eq $packageJson.name -and $_.Version -eq $packageJson.version } |
+        Select-Object -First 1
+
+    if (-not $context) {
+        return
+    }
+
+    $packageLocalNodeModules = Join-Path $InstallPath 'node_modules'
+    foreach ($dependencyName in Get-PackageDependencyNames -PackageJson $context.PackageJson) {
+        if (-not $context.Packages.ContainsKey($dependencyName)) {
+            continue
+        }
+
+        $dependencySourcePath = $context.Packages[$dependencyName]
+        $sourceVersion = Get-PackageVersion -PackagePath $dependencySourcePath
+        $resolvedDependencyPath = Resolve-InstalledDependencyPath -InstallPath $InstallPath -PackageName $dependencyName
+        $resolvedVersion = if ($resolvedDependencyPath) { Get-PackageVersion -PackagePath $resolvedDependencyPath } else { $null }
+
+        if ($resolvedDependencyPath -and $resolvedVersion -eq $sourceVersion) {
+            continue
+        }
+
+        $dependencyDestination = Get-PackageInstallPath -NodeModulesRoot $packageLocalNodeModules -PackageName $dependencyName
+        if (-not (Test-Path $dependencyDestination)) {
+            Copy-DirectoryTree -Source $dependencySourcePath -Destination $dependencyDestination
+        }
+
+        Materialize-PnpmPackageInstallPath -InstallPath $dependencyDestination -Contexts $Contexts -Visited $Visited
+    }
+}
+
+function Materialize-PnpmPackageDependencies {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$NodeModulesRoot
+    )
+
+    $contexts = @(Get-PnpmPackageContexts -NodeModulesRoot $NodeModulesRoot)
+    if ($contexts.Count -eq 0) {
+        return
+    }
+
+    $visited = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($rootPackage in Get-NodeModulesPackages -NodeModulesPath $NodeModulesRoot) {
+        if ($rootPackage.Name -eq '@schedulesync/backend' -or $rootPackage.Name -eq '@schedulesync/engine' -or $rootPackage.Name -eq '@schedulesync/mspdi') {
+            continue
+        }
+
+        Materialize-PnpmPackageInstallPath -InstallPath $rootPackage.FullName -Contexts $contexts -Visited $visited
+    }
+}
+
 function Remove-PathIfExists {
     param(
         [Parameter(Mandatory = $true)]
@@ -168,6 +410,34 @@ function Sync-PrismaClientRuntime {
         }
 }
 
+function Hoist-PnpmDependencies {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$NodeModulesRoot
+    )
+
+    $pnpmRoot = Join-Path $NodeModulesRoot '.pnpm'
+    if (-not (Test-Path $pnpmRoot)) {
+        return
+    }
+
+    Get-ChildItem $pnpmRoot -Directory |
+        ForEach-Object {
+            $packageNodeModules = Join-Path $_.FullName 'node_modules'
+            if (Test-Path $packageNodeModules) {
+                Get-NodeModulesPackages -NodeModulesPath $packageNodeModules |
+                    ForEach-Object {
+                        if ($_.Name -ne '@schedulesync/backend' -and $_.Name -ne '@schedulesync/engine' -and $_.Name -ne '@schedulesync/mspdi') {
+                            $destinationPath = Get-PackageInstallPath -NodeModulesRoot $NodeModulesRoot -PackageName $_.Name
+                            if (-not (Test-Path $destinationPath)) {
+                                Copy-DirectoryTree -Source $_.FullName -Destination $destinationPath
+                            }
+                        }
+                    }
+            }
+        }
+}
+
 function Assert-NoRunningBackendFromRepo {
     param(
         [Parameter(Mandatory = $true)]
@@ -247,6 +517,8 @@ Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\.pnpm\node_modu
 Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\ai-config.json')
 
 Sync-PrismaClientRuntime -SourceNodeModules (Join-Path $webRoot 'node_modules') -DestinationNodeModules (Join-Path $backendRuntimeRoot 'node_modules')
+Hoist-PnpmDependencies -NodeModulesRoot (Join-Path $backendRuntimeRoot 'node_modules')
+Materialize-PnpmPackageDependencies -NodeModulesRoot (Join-Path $backendRuntimeRoot 'node_modules')
 
 Get-ChildItem $backendRuntimeRoot -Recurse -Force -File |
     Where-Object { $_.Extension -eq '.gguf' -or $_.Name -in @('.env', 'ai-config.json') } |
