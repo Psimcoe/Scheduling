@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="ScheduleSync.Core/ScheduleSync.Core.csproj" />
   <Project Path="ScheduleSync.Desktop/ScheduleSync.Desktop.csproj" />
+  <Project Path="installer/ScheduleSync.Desktop.Installer.wixproj" />
   <Project Path="ScheduleSync.Tests/ScheduleSync.Tests.csproj" />
   <Project Path="ScheduleSync.AddIn/ScheduleSync.AddIn.csproj" />
 </Solution>

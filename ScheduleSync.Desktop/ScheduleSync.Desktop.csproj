@@ -4,16 +4,14 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>ScheduleSync.Desktop</RootNamespace>
     <AssemblyName>ScheduleSync.Desktop</AssemblyName>
-    <ApplicationIcon />
+    <Platforms>x64</Platforms>
+    <Version>0.1.0</Version>
     <StartupObject>ScheduleSync.Desktop.App</StartupObject>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ScheduleSync.Core\ScheduleSync.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="OpenAI" Version="2.9.1" />
-    <PackageReference Include="System.Text.Json" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3800.47" />
   </ItemGroup>
 </Project>
