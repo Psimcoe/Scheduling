@@ -23,6 +23,7 @@
       "@prisma/client",
       "@prisma/engines",
       "esbuild",
+      "node-llama-cpp",
       "prisma"
     ]
   }

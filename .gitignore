@@ -36,3 +36,12 @@ coverage/
 ## OS
 .DS_Store
 Thumbs.db
+
+## Node / pnpm
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+
+## Local model files (multi-GB)
+web/packages/backend/data/models/
