@@ -1,0 +1,400 @@
+/**
+ * Project store — manages the main project state (tasks, deps, etc.).
+ *
+ * Zustand store with async actions that call the backend API
+ * and keep local state in sync.
+ */
+
+import { create } from 'zustand';
+import {
+  projectsApi,
+  tasksApi,
+  dependenciesApi,
+  resourcesApi,
+  assignmentsApi,
+  calendarsApi,
+  baselinesApi,
+} from '../api';
+
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  startDate: string;
+  finishDate: string | null;
+  projectType: string | null;
+  sector: string | null;
+  region: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskRow {
+  id: string;
+  projectId: string;
+  wbsCode: string;
+  outlineLevel: number;
+  parentId: string | null;
+  name: string;
+  type: string;
+  durationMinutes: number;
+  start: string;
+  finish: string;
+  constraintType: number;
+  constraintDate: string | null;
+  calendarId: string | null;
+  percentComplete: number;
+  isManuallyScheduled: boolean;
+  isCritical: boolean;
+  totalSlackMinutes: number;
+  freeSlackMinutes: number;
+  earlyStart: string | null;
+  earlyFinish: string | null;
+  lateStart: string | null;
+  lateFinish: string | null;
+  deadline: string | null;
+  notes: string | null;
+  externalKey: string | null;
+  sortOrder: number;
+  // Cost fields
+  fixedCost: number | null;
+  fixedCostAccrual: string | null;
+  cost: number | null;
+  actualCost: number | null;
+  remainingCost: number | null;
+  // Work/actuals
+  work: number | null;
+  actualWork: number | null;
+  remainingWork: number | null;
+  actualStart: string | null;
+  actualFinish: string | null;
+  actualDurationMinutes: number | null;
+  remainingDuration: number | null;
+  // Earned value
+  bcws: number | null;
+  bcwp: number | null;
+  acwp: number | null;
+}
+
+export interface DependencyRow {
+  id: string;
+  projectId: string;
+  fromTaskId: string;
+  toTaskId: string;
+  type: string;
+  lagMinutes: number;
+}
+
+export interface ResourceRow {
+  id: string;
+  projectId: string;
+  name: string;
+  type: string;
+  maxUnits: number;
+  calendarId: string | null;
+  standardRate: number | null;
+  overtimeRate: number | null;
+  costPerUse: number | null;
+  accrueAt: string | null;
+  budgetCost: number | null;
+  budgetWork: number | null;
+  isBudget: boolean;
+  isGeneric: boolean;
+}
+
+export interface AssignmentRow {
+  id: string;
+  taskId: string;
+  resourceId: string;
+  units: number;
+  workMinutes: number;
+  actualWork: number | null;
+  actualCost: number | null;
+  remainingWork: number | null;
+  remainingCost: number | null;
+  task?: { id: string; name: string };
+  resource?: { id: string; name: string };
+}
+
+interface ProjectState {
+  // Project list
+  projects: ProjectSummary[];
+  loadingProjects: boolean;
+
+  // Active project
+  activeProjectId: string | null;
+  activeProject: any | null;
+
+  // Data for active project
+  tasks: TaskRow[];
+  dependencies: DependencyRow[];
+  resources: ResourceRow[];
+  assignments: AssignmentRow[];
+  loading: boolean;
+  error: string | null;
+
+  // Selection
+  selectedTaskIds: Set<string>;
+
+  // Actions — projects
+  fetchProjects: () => Promise<void>;
+  createProject: (name: string, startDate: string) => Promise<string>;
+  setActiveProject: (id: string) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+
+  // Actions — tasks
+  fetchTasks: () => Promise<void>;
+  createTask: (data: Record<string, unknown>) => Promise<TaskRow>;
+  updateTask: (taskId: string, data: Record<string, unknown>) => Promise<void>;
+  batchUpdateTasks: (
+    updates: { id: string; data: Record<string, unknown> }[],
+  ) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  recalculate: () => Promise<void>;
+
+  // Actions — dependencies
+  fetchDependencies: () => Promise<void>;
+  createDependency: (data: Record<string, unknown>) => Promise<void>;
+  updateDependency: (depId: string, data: Record<string, unknown>) => Promise<void>;
+  deleteDependency: (depId: string) => Promise<void>;
+
+  // Actions — resources
+  fetchResources: () => Promise<void>;
+  createResource: (data: Record<string, unknown>) => Promise<void>;
+  updateResource: (resId: string, data: Record<string, unknown>) => Promise<void>;
+  deleteResource: (resId: string) => Promise<void>;
+
+  // Actions — assignments
+  fetchAssignments: () => Promise<void>;
+  createAssignment: (data: Record<string, unknown>) => Promise<void>;
+  deleteAssignment: (assignId: string) => Promise<void>;
+
+  // Selection
+  selectTask: (id: string, multi?: boolean) => void;
+  clearSelection: () => void;
+}
+
+export const useProjectStore = create<ProjectState>((set, get) => ({
+  projects: [],
+  loadingProjects: false,
+  activeProjectId: null,
+  activeProject: null,
+  tasks: [],
+  dependencies: [],
+  resources: [],
+  assignments: [],
+  loading: false,
+  error: null,
+  selectedTaskIds: new Set(),
+
+  // ---------- Projects ----------
+
+  fetchProjects: async () => {
+    set({ loadingProjects: true });
+    try {
+      const projects = await projectsApi.list();
+      set({ projects, loadingProjects: false });
+    } catch (e: any) {
+      set({ loadingProjects: false, error: e.message });
+    }
+  },
+
+  createProject: async (name, startDate) => {
+    const project = await projectsApi.create({ name, startDate });
+    await get().fetchProjects();
+    return project.id;
+  },
+
+  setActiveProject: async (id) => {
+    set({ activeProjectId: id, loading: true, error: null });
+    try {
+      const [project, tasks, dependencies, resources, assignments] =
+        await Promise.all([
+          projectsApi.get(id),
+          tasksApi.list(id),
+          dependenciesApi.list(id),
+          resourcesApi.list(id),
+          assignmentsApi.list(id),
+        ]);
+      // Guard against stale results from a superseded request
+      if (get().activeProjectId !== id) return;
+      set({
+        activeProject: project,
+        tasks,
+        dependencies,
+        resources,
+        assignments,
+        loading: false,
+      });
+    } catch (e: unknown) {
+      if (get().activeProjectId !== id) return;
+      set({ loading: false, error: e instanceof Error ? e.message : 'Failed to load project' });
+    }
+  },
+
+  deleteProject: async (id) => {
+    await projectsApi.delete(id);
+    const state = get();
+    if (state.activeProjectId === id) {
+      set({
+        activeProjectId: null,
+        activeProject: null,
+        tasks: [],
+        dependencies: [],
+        resources: [],
+        assignments: [],
+      });
+    }
+    await get().fetchProjects();
+  },
+
+  // ---------- Tasks ----------
+
+  fetchTasks: async () => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    const tasks = await tasksApi.list(pid);
+    if (get().activeProjectId !== pid) return;
+    set({ tasks });
+  },
+
+  createTask: async (data) => {
+    const pid = get().activeProjectId;
+    if (!pid) throw new Error('No active project');
+    const task = await tasksApi.create(pid, data);
+    await get().fetchTasks();
+    // Also refetch deps (recalculation may change tasks)
+    await get().fetchDependencies();
+    return task;
+  },
+
+  updateTask: async (taskId, data) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await tasksApi.update(pid, taskId, data);
+    await get().fetchTasks();
+  },
+
+  batchUpdateTasks: async (updates) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await tasksApi.batchUpdate(pid, updates);
+    await get().fetchTasks();
+  },
+
+  deleteTask: async (taskId) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await tasksApi.delete(pid, taskId);
+    const selected = new Set(get().selectedTaskIds);
+    selected.delete(taskId);
+    set({ selectedTaskIds: selected });
+    await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+  },
+
+  recalculate: async () => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await tasksApi.recalculate(pid);
+    await get().fetchTasks();
+  },
+
+  // ---------- Dependencies ----------
+
+  fetchDependencies: async () => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    const dependencies = await dependenciesApi.list(pid);
+    if (get().activeProjectId !== pid) return;
+    set({ dependencies });
+  },
+
+  createDependency: async (data) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await dependenciesApi.create(pid, data);
+    await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+  },
+
+  updateDependency: async (depId, data) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await dependenciesApi.update(pid, depId, data);
+    await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+  },
+
+  deleteDependency: async (depId) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await dependenciesApi.delete(pid, depId);
+    await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+  },
+
+  // ---------- Resources ----------
+
+  fetchResources: async () => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    const resources = await resourcesApi.list(pid);
+    if (get().activeProjectId !== pid) return;
+    set({ resources });
+  },
+
+  createResource: async (data) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await resourcesApi.create(pid, data);
+    await get().fetchResources();
+  },
+
+  updateResource: async (resId, data) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await resourcesApi.update(pid, resId, data);
+    await get().fetchResources();
+  },
+
+  deleteResource: async (resId) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await resourcesApi.delete(pid, resId);
+    await Promise.all([get().fetchResources(), get().fetchAssignments()]);
+  },
+
+  // ---------- Assignments ----------
+
+  fetchAssignments: async () => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    const assignments = await assignmentsApi.list(pid);
+    if (get().activeProjectId !== pid) return;
+    set({ assignments });
+  },
+
+  createAssignment: async (data) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await assignmentsApi.create(pid, data);
+    await get().fetchAssignments();
+  },
+
+  deleteAssignment: async (assignId) => {
+    const pid = get().activeProjectId;
+    if (!pid) return;
+    await assignmentsApi.delete(pid, assignId);
+    await get().fetchAssignments();
+  },
+
+  // ---------- Selection ----------
+
+  selectTask: (id, multi = false) => {
+    const selected = multi ? new Set(get().selectedTaskIds) : new Set<string>();
+    if (selected.has(id)) {
+      selected.delete(id);
+    } else {
+      selected.add(id);
+    }
+    set({ selectedTaskIds: selected });
+  },
+
+  clearSelection: () => set({ selectedTaskIds: new Set() }),
+}));

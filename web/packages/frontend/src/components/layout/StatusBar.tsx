@@ -1,0 +1,116 @@
+/**
+ * StatusBar — MS Project-style status bar at the bottom of the app.
+ * Shows: current view name, task count, selected count, project dates, zoom slider.
+ */
+
+import React from 'react';
+import { Box, Typography, Slider, Tooltip } from '@mui/material';
+
+import { useProjectStore, useUIStore, type ViewType, type GanttZoom } from '../../stores';
+import { shortDate } from '../../utils/format';
+
+const VIEW_LABELS: Record<ViewType, string> = {
+  gantt: 'Gantt Chart',
+  networkDiagram: 'Network Diagram',
+  resourceSheet: 'Resource Sheet',
+  resourceUsage: 'Resource Usage',
+  taskUsage: 'Task Usage',
+  calendar: 'Calendar',
+  trackingGantt: 'Tracking Gantt',
+  reporting: 'Reports',
+  taskSheet: 'Task Sheet',
+  resourceGraph: 'Resource Graph',
+  teamPlanner: 'Team Planner',
+  timeline: 'Timeline',
+};
+
+const ZOOM_LEVELS: GanttZoom[] = ['year', 'quarter', 'month', 'week', 'day'];
+const ZOOM_MARKS = ZOOM_LEVELS.map((_, i) => ({ value: i }));
+
+const StatusBar: React.FC = () => {
+  const activeView = useUIStore((s) => s.activeView);
+  const ganttZoom = useUIStore((s) => s.ganttZoom);
+  const setGanttZoom = useUIStore((s) => s.setGanttZoom);
+  const tasks = useProjectStore((s) => s.tasks);
+  const selectedTaskIds = useProjectStore((s) => s.selectedTaskIds);
+  const activeProject = useProjectStore((s) => s.activeProject);
+
+  const zoomIndex = ZOOM_LEVELS.indexOf(ganttZoom);
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        px: 1.5,
+        py: 0.25,
+        bgcolor: '#1B6B3A',
+        color: '#fff',
+        minHeight: 22,
+        fontSize: '0.7rem',
+        borderTop: '1px solid #0D4D2B',
+      }}
+    >
+      {/* View name */}
+      <Typography sx={{ fontSize: '0.7rem', fontWeight: 600 }}>
+        {VIEW_LABELS[activeView]}
+      </Typography>
+
+      <Box sx={{ width: 1, height: 14, bgcolor: 'rgba(255,255,255,0.3)' }} />
+
+      {/* Task stats */}
+      <Typography sx={{ fontSize: '0.65rem' }}>
+        {tasks.length} task{tasks.length !== 1 ? 's' : ''}
+      </Typography>
+
+      {selectedTaskIds.size > 0 && (
+        <Typography sx={{ fontSize: '0.65rem' }}>
+          {selectedTaskIds.size} selected
+        </Typography>
+      )}
+
+      {/* Project dates */}
+      {activeProject && (
+        <>
+          <Box sx={{ width: 1, height: 14, bgcolor: 'rgba(255,255,255,0.3)' }} />
+          <Typography sx={{ fontSize: '0.65rem' }}>
+            Start: {shortDate(activeProject.startDate)}
+          </Typography>
+          {activeProject.finishDate && (
+            <Typography sx={{ fontSize: '0.65rem' }}>
+              Finish: {shortDate(activeProject.finishDate)}
+            </Typography>
+          )}
+        </>
+      )}
+
+      <Box sx={{ flex: 1 }} />
+
+      {/* Zoom slider (only for Gantt views) */}
+      {(activeView === 'gantt' || activeView === 'trackingGantt') && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 140 }}>
+          <Typography sx={{ fontSize: '0.6rem' }}>-</Typography>
+          <Slider
+            value={zoomIndex}
+            min={0}
+            max={ZOOM_LEVELS.length - 1}
+            step={1}
+            marks={ZOOM_MARKS}
+            onChange={(_, v) => setGanttZoom(ZOOM_LEVELS[v as number])}
+            sx={{
+              color: '#fff',
+              height: 3,
+              padding: '4px 0',
+              '& .MuiSlider-thumb': { width: 10, height: 10 },
+              '& .MuiSlider-mark': { bgcolor: 'rgba(255,255,255,0.4)' },
+            }}
+          />
+          <Typography sx={{ fontSize: '0.6rem' }}>+</Typography>
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+export default StatusBar;

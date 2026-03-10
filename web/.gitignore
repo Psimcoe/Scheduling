@@ -1,8 +1,8 @@
-# web dependencies
-web/node_modules/
-web/packages/*/node_modules/
-web/packages/*/dist/
-web/packages/backend/prisma/*.db
-web/packages/backend/prisma/*.db-journal
-web/packages/frontend/playwright-report/
-web/packages/frontend/test-results/
+# workspace dependencies
+node_modules/
+packages/*/node_modules/
+packages/*/dist/
+packages/backend/prisma/*.db
+packages/backend/prisma/*.db-journal
+packages/frontend/playwright-report/
+packages/frontend/test-results/

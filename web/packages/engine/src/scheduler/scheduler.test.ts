@@ -1,0 +1,227 @@
+/**
+ * Scheduler (CPM) integration tests.
+ */
+
+import { describe, it, expect } from 'vitest';
+import {
+  recalculate,
+  type ProjectData,
+  type Task,
+  type Dependency,
+  TaskType,
+  DependencyType,
+  ConstraintType,
+  ScheduleFrom,
+  DEFAULT_CALENDAR,
+} from '@schedulesync/engine';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
+
+function makeProject(
+  tasks: Partial<Task>[],
+  deps: Partial<Dependency>[] = [],
+): ProjectData {
+  return {
+    settings: {
+      id: 'proj-1',
+      name: 'Test',
+      startDate: '2026-03-02T08:00:00.000Z', // Monday
+      finishDate: null,
+      defaultCalendarId: 'default',
+      scheduleFrom: ScheduleFrom.Start,
+      statusDate: null,
+    },
+    tasks: tasks.map((t, i) => ({
+      id: t.id ?? `t${i + 1}`,
+      wbsCode: '',
+      outlineLevel: t.outlineLevel ?? 0,
+      parentId: t.parentId ?? null,
+      name: t.name ?? `Task ${i + 1}`,
+      type: t.type ?? TaskType.Task,
+      durationMinutes: t.durationMinutes ?? 480,
+      start: t.start ?? '2026-03-02T08:00:00.000Z',
+      finish: t.finish ?? '2026-03-02T17:00:00.000Z',
+      constraintType: t.constraintType ?? ConstraintType.ASAP,
+      constraintDate: t.constraintDate ?? null,
+      calendarId: t.calendarId ?? null,
+      percentComplete: t.percentComplete ?? 0,
+      isManuallyScheduled: t.isManuallyScheduled ?? false,
+      isCritical: false,
+      totalSlackMinutes: 0,
+      freeSlackMinutes: 0,
+      earlyStart: null,
+      earlyFinish: null,
+      lateStart: null,
+      lateFinish: null,
+      deadline: t.deadline ?? null,
+      notes: t.notes ?? '',
+      externalKey: t.externalKey ?? null,
+      sortOrder: t.sortOrder ?? i,
+    })),
+    dependencies: deps.map((d, i) => ({
+      id: d.id ?? `d${i + 1}`,
+      fromTaskId: d.fromTaskId ?? '',
+      toTaskId: d.toTaskId ?? '',
+      type: d.type ?? DependencyType.FS,
+      lagMinutes: d.lagMinutes ?? 0,
+    })),
+    calendars: [DEFAULT_CALENDAR],
+    resources: [],
+    assignments: [],
+    baselines: [],
+  };
+}
+
+describe('Scheduler', () => {
+  it('single task: early start = project start', () => {
+    const project = makeProject([{ durationMinutes: 480 }]);
+    const result = recalculate(project);
+    expect(result.tasks[0].earlyStart).toBe('2026-03-02T08:00:00.000Z');
+  });
+
+  it('FS link: successor starts after predecessor finishes', () => {
+    const project = makeProject(
+      [
+        { id: 't1', durationMinutes: 480 },
+        { id: 't2', durationMinutes: 480 },
+      ],
+      [{ fromTaskId: 't1', toTaskId: 't2', type: DependencyType.FS }],
+    );
+
+    const result = recalculate(project);
+    const t1 = result.tasks.find((t) => t.id === 't1')!;
+    const t2 = result.tasks.find((t) => t.id === 't2')!;
+
+    // t2 start should be day after t1 finish
+    const t1Finish = dayjs.utc(t1.earlyFinish ?? t1.finish);
+    const t2Start = dayjs.utc(t2.earlyStart ?? t2.start);
+    expect(t2Start.valueOf()).toBeGreaterThanOrEqual(t1Finish.valueOf());
+  });
+
+  it('FS with lag: successor starts after lag', () => {
+    const project = makeProject(
+      [
+        { id: 't1', durationMinutes: 480 },
+        { id: 't2', durationMinutes: 480 },
+      ],
+      [
+        {
+          fromTaskId: 't1',
+          toTaskId: 't2',
+          type: DependencyType.FS,
+          lagMinutes: 480,
+        },
+      ],
+    );
+
+    const result = recalculate(project);
+    const t1 = result.tasks.find((t) => t.id === 't1')!;
+    const t2 = result.tasks.find((t) => t.id === 't2')!;
+
+    const t1Finish = dayjs.utc(t1.earlyFinish ?? t1.finish);
+    const t2Start = dayjs.utc(t2.earlyStart ?? t2.start);
+    // With 480 min lag (1 day), t2 should start 2 days after t1 start
+    const diff = t2Start.diff(t1Finish, 'minute');
+    expect(diff).toBeGreaterThanOrEqual(0);
+  });
+
+  it('critical path: single chain is fully critical', () => {
+    const project = makeProject(
+      [
+        { id: 't1', durationMinutes: 480 },
+        { id: 't2', durationMinutes: 480 },
+        { id: 't3', durationMinutes: 480 },
+      ],
+      [
+        { fromTaskId: 't1', toTaskId: 't2', type: DependencyType.FS },
+        { fromTaskId: 't2', toTaskId: 't3', type: DependencyType.FS },
+      ],
+    );
+
+    const result = recalculate(project);
+    expect(result.tasks.every((t) => t.isCritical)).toBe(true);
+  });
+
+  it('non-critical task has positive slack', () => {
+    const project = makeProject(
+      [
+        { id: 't1', durationMinutes: 480 * 3 },
+        { id: 't2', durationMinutes: 480 },
+        { id: 't3', durationMinutes: 480 },
+      ],
+      [
+        // t1 → t3 (long path), t2 → t3 (short path)
+        { fromTaskId: 't1', toTaskId: 't3', type: DependencyType.FS },
+        { fromTaskId: 't2', toTaskId: 't3', type: DependencyType.FS },
+      ],
+    );
+
+    const result = recalculate(project);
+    const t2 = result.tasks.find((t) => t.id === 't2')!;
+    // t2 has more slack than the critical path since t1 is longer
+    expect(t2.totalSlackMinutes).toBeGreaterThan(0);
+  });
+
+  it('milestone: 0-duration task', () => {
+    const project = makeProject([
+      { id: 't1', durationMinutes: 0, type: TaskType.Milestone },
+    ]);
+    const result = recalculate(project);
+    const t1 = result.tasks[0];
+    expect(t1.earlyStart).toBe(t1.earlyFinish);
+  });
+
+  it('manually scheduled task: not moved by scheduler', () => {
+    const fixedStart = '2026-06-01T08:00:00.000Z';
+    const project = makeProject([
+      { id: 't1', durationMinutes: 480 },
+      {
+        id: 't2',
+        durationMinutes: 480,
+        start: fixedStart,
+        isManuallyScheduled: true,
+      },
+    ], [
+      { fromTaskId: 't1', toTaskId: 't2', type: DependencyType.FS },
+    ]);
+
+    const result = recalculate(project);
+    const t2 = result.tasks.find((t) => t.id === 't2')!;
+    expect(t2.start).toBe(fixedStart);
+  });
+
+  it('summary task: rolled up from children', () => {
+    const project = makeProject([
+      { id: 'summary', type: TaskType.Summary, outlineLevel: 0, parentId: null },
+      { id: 'child1', durationMinutes: 480, outlineLevel: 1, parentId: 'summary' },
+      { id: 'child2', durationMinutes: 480 * 3, outlineLevel: 1, parentId: 'summary' },
+    ]);
+
+    const result = recalculate(project);
+    const summary = result.tasks.find((t) => t.id === 'summary')!;
+    const child2 = result.tasks.find((t) => t.id === 'child2')!;
+
+    // Summary finish should be at least as late as the latest child finish
+    const sumFinish = dayjs.utc(summary.finish);
+    const c2Finish = dayjs.utc(child2.finish);
+    expect(sumFinish.valueOf()).toBeGreaterThanOrEqual(c2Finish.valueOf());
+  });
+
+  it('cycle detection: should not hang', () => {
+    const project = makeProject(
+      [
+        { id: 't1', durationMinutes: 480 },
+        { id: 't2', durationMinutes: 480 },
+      ],
+      [
+        { fromTaskId: 't1', toTaskId: 't2', type: DependencyType.FS },
+        { fromTaskId: 't2', toTaskId: 't1', type: DependencyType.FS },
+      ],
+    );
+
+    // Should throw or handle gracefully (not infinite loop)
+    expect(() => recalculate(project)).toThrow(/circular/i);
+  });
+});

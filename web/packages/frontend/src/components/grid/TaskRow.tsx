@@ -1,0 +1,591 @@
+/**
+ * TaskRow — a single row in the task grid.
+ *
+ * Renders columns dynamically based on the visible column definitions.
+ * Supports inline editing for Name, Duration, Start, Finish, % Complete.
+ * Shows indentation via outlineLevel and summary/milestone icons.
+ */
+
+import React, { useState, useCallback, useMemo, memo } from 'react';
+import {
+  TableRow,
+  TableCell,
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import DiamondIcon from '@mui/icons-material/Diamond';
+import InfoIcon from '@mui/icons-material/Info';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import FormatIndentIncreaseIcon from '@mui/icons-material/FormatIndentIncrease';
+import FormatIndentDecreaseIcon from '@mui/icons-material/FormatIndentDecrease';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+
+import InlineEditor from './InlineEditor';
+import {
+  useProjectStore,
+  useUIStore,
+  ROW_HEIGHT,
+  type TaskRow as TaskRowType,
+  type ColumnDef,
+} from '../../stores';
+import {
+  shortDate,
+  isoDate,
+  durationDays,
+  parseDuration,
+  pctLabel,
+  constraintLabel,
+  depTypeLabel,
+  currency,
+} from '../../utils/format';
+
+interface TaskRowProps {
+  task: TaskRowType;
+  index: number;
+  isSelected: boolean;
+  isExpanded: boolean;
+  hasChildren: boolean;
+  onToggleExpand: (taskId: string) => void;
+  visibleColumns: ColumnDef[];
+}
+
+type EditingField = 'name' | 'duration' | 'start' | 'finish' | 'pct' | 'cost' | 'fixedCost' | 'work' | 'deadline' | null;
+
+const TaskRowComponent: React.FC<TaskRowProps> = ({
+  task,
+  index,
+  isSelected,
+  isExpanded,
+  hasChildren,
+  onToggleExpand,
+  visibleColumns,
+}) => {
+  const updateTask = useProjectStore((s) => s.updateTask);
+  const selectTask = useProjectStore((s) => s.selectTask);
+  const deleteTask = useProjectStore((s) => s.deleteTask);
+  const createTask = useProjectStore((s) => s.createTask);
+  const dependencies = useProjectStore((s) => s.dependencies);
+  const assignments = useProjectStore((s) => s.assignments);
+  const resources = useProjectStore((s) => s.resources);
+  const tasks = useProjectStore((s) => s.tasks);
+  const showCriticalPath = useUIStore((s) => s.showCriticalPath);
+  const openDialogWith = useUIStore((s) => s.openDialogWith);
+  const [editing, setEditing] = useState<EditingField>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const isSummary = task.type === 'summary';
+  const isMilestone = task.type === 'milestone' || task.durationMinutes === 0;
+
+  // Predecessors string (e.g. "3FS, 5SS+2d")
+  const predecessorsStr = useMemo(() => {
+    const preds = dependencies.filter((d) => d.toTaskId === task.id);
+    if (preds.length === 0) return '';
+    return preds
+      .map((d) => {
+        const fromIdx = tasks.findIndex((t) => t.id === d.fromTaskId);
+        const lag = d.lagMinutes ? `+${durationDays(d.lagMinutes)}` : '';
+        return `${fromIdx + 1}${depTypeLabel(d.type)}${lag}`;
+      })
+      .join(', ');
+  }, [dependencies, task.id, tasks]);
+
+  // Resource names string
+  const resourceNamesStr = useMemo(() => {
+    const taskAssigns = assignments.filter((a) => a.taskId === task.id);
+    return taskAssigns
+      .map((a) => {
+        const res = resources.find((r) => r.id === a.resourceId);
+        return res?.name ?? '';
+      })
+      .filter(Boolean)
+      .join(', ');
+  }, [assignments, task.id, resources]);
+
+  const handleDoubleClick = useCallback(
+    (field: EditingField) => {
+      if (isSummary && field !== 'name') return;
+      setEditing(field);
+    },
+    [isSummary],
+  );
+
+  const commitEdit = useCallback(
+    async (field: string, rawValue: string) => {
+      setEditing(null);
+      const data: Record<string, unknown> = {};
+
+      switch (field) {
+        case 'name':
+          if (rawValue.trim() && rawValue !== task.name) {
+            data.name = rawValue.trim();
+          }
+          break;
+        case 'duration': {
+          const mins = parseDuration(rawValue);
+          if (mins !== null && mins !== task.durationMinutes) {
+            data.durationMinutes = mins;
+          }
+          break;
+        }
+        case 'start':
+          if (rawValue && rawValue !== isoDate(task.start)) {
+            data.start = new Date(rawValue).toISOString();
+          }
+          break;
+        case 'finish':
+          if (rawValue && rawValue !== isoDate(task.finish)) {
+            data.finish = new Date(rawValue).toISOString();
+          }
+          break;
+        case 'pct': {
+          const pct = parseFloat(rawValue);
+          if (!isNaN(pct) && pct >= 0 && pct <= 100 && pct !== task.percentComplete) {
+            data.percentComplete = pct;
+          }
+          break;
+        }
+        case 'cost': {
+          const v = parseFloat(rawValue.replace(/[$,]/g, ''));
+          if (!isNaN(v) && v !== task.cost) data.cost = v;
+          break;
+        }
+        case 'fixedCost': {
+          const v = parseFloat(rawValue.replace(/[$,]/g, ''));
+          if (!isNaN(v) && v !== task.fixedCost) data.fixedCost = v;
+          break;
+        }
+        case 'work': {
+          const mins = parseDuration(rawValue);
+          if (mins !== null && mins !== task.work) data.work = mins;
+          break;
+        }
+        case 'deadline':
+          if (rawValue && rawValue !== isoDate(task.deadline)) {
+            data.deadline = new Date(rawValue).toISOString();
+          } else if (!rawValue && task.deadline) {
+            data.deadline = null;
+          }
+          break;
+      }
+
+      if (Object.keys(data).length > 0) {
+        await updateTask(task.id, data);
+      }
+    },
+    [task, updateTask],
+  );
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      selectTask(task.id, false);
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    },
+    [task.id, selectTask],
+  );
+
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+  const handleInsertTaskAbove = useCallback(async () => {
+    closeContextMenu();
+    await createTask({ name: 'New Task', sortOrder: task.sortOrder });
+  }, [closeContextMenu, createTask, task.sortOrder]);
+
+  const handleInsertTaskBelow = useCallback(async () => {
+    closeContextMenu();
+    await createTask({ name: 'New Task', sortOrder: task.sortOrder + 1 });
+  }, [closeContextMenu, createTask, task.sortOrder]);
+
+  const handleDeleteTask = useCallback(async () => {
+    closeContextMenu();
+    await deleteTask(task.id);
+  }, [closeContextMenu, deleteTask, task.id]);
+
+  const handleTaskInfo = useCallback(() => {
+    closeContextMenu();
+    openDialogWith('taskInfo', task);
+  }, [closeContextMenu, openDialogWith, task]);
+
+  const handleMarkComplete = useCallback(async () => {
+    closeContextMenu();
+    await updateTask(task.id, { percentComplete: 100 });
+  }, [closeContextMenu, updateTask, task.id]);
+
+  const handleIndent = useCallback(async () => {
+    closeContextMenu();
+    await updateTask(task.id, { outlineLevel: task.outlineLevel + 1 });
+  }, [closeContextMenu, updateTask, task.id, task.outlineLevel]);
+
+  const handleOutdent = useCallback(async () => {
+    closeContextMenu();
+    if (task.outlineLevel > 0) {
+      await updateTask(task.id, { outlineLevel: task.outlineLevel - 1 });
+    }
+  }, [closeContextMenu, updateTask, task.id, task.outlineLevel]);
+
+  const indentPx = task.outlineLevel * 20;
+  const criticalColor =
+    showCriticalPath && task.isCritical ? '#D32F2F' : undefined;
+
+  const renderCell = (col: ColumnDef) => {
+    switch (col.id) {
+      case 'rowNum':
+        return (
+          <TableCell key={col.id} align="center" sx={{ width: col.width }}>
+            {index + 1}
+          </TableCell>
+        );
+      case 'name':
+        return (
+          <TableCell
+            key={col.id}
+            onDoubleClick={() => handleDoubleClick('name')}
+            sx={{ minWidth: col.width }}
+          >
+            {editing === 'name' ? (
+              <InlineEditor
+                value={task.name}
+                onCommit={(v) => commitEdit('name', v)}
+                onCancel={() => setEditing(null)}
+              />
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', pl: `${indentPx}px` }}>
+                {hasChildren && (
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleExpand(task.id);
+                    }}
+                    sx={{ p: 0, mr: 0.5 }}
+                  >
+                    {isExpanded ? (
+                      <ExpandMoreIcon fontSize="small" />
+                    ) : (
+                      <ChevronRightIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                )}
+                {isMilestone && !isSummary && (
+                  <DiamondIcon sx={{ fontSize: 14, mr: 0.5, color: '#333' }} />
+                )}
+                <span>{task.name}</span>
+              </Box>
+            )}
+          </TableCell>
+        );
+      case 'duration':
+        return (
+          <TableCell
+            key={col.id}
+            align="right"
+            onDoubleClick={() => handleDoubleClick('duration')}
+            sx={{ width: col.width }}
+          >
+            {editing === 'duration' ? (
+              <InlineEditor
+                value={durationDays(task.durationMinutes)}
+                onCommit={(v) => commitEdit('duration', v)}
+                onCancel={() => setEditing(null)}
+                type="duration"
+              />
+            ) : (
+              durationDays(task.durationMinutes)
+            )}
+          </TableCell>
+        );
+      case 'start':
+        return (
+          <TableCell
+            key={col.id}
+            onDoubleClick={() => handleDoubleClick('start')}
+            sx={{ width: col.width }}
+          >
+            {editing === 'start' ? (
+              <InlineEditor
+                value={isoDate(task.start)}
+                onCommit={(v) => commitEdit('start', v)}
+                onCancel={() => setEditing(null)}
+                type="date"
+              />
+            ) : (
+              shortDate(task.start)
+            )}
+          </TableCell>
+        );
+      case 'finish':
+        return (
+          <TableCell
+            key={col.id}
+            onDoubleClick={() => handleDoubleClick('finish')}
+            sx={{ width: col.width }}
+          >
+            {editing === 'finish' ? (
+              <InlineEditor
+                value={isoDate(task.finish)}
+                onCommit={(v) => commitEdit('finish', v)}
+                onCancel={() => setEditing(null)}
+                type="date"
+              />
+            ) : (
+              shortDate(task.finish)
+            )}
+          </TableCell>
+        );
+      case 'percentComplete':
+        return (
+          <TableCell
+            key={col.id}
+            align="right"
+            onDoubleClick={() => handleDoubleClick('pct')}
+            sx={{ width: col.width }}
+          >
+            {editing === 'pct' ? (
+              <InlineEditor
+                value={String(task.percentComplete)}
+                onCommit={(v) => commitEdit('pct', v)}
+                onCancel={() => setEditing(null)}
+                type="number"
+              />
+            ) : (
+              pctLabel(task.percentComplete)
+            )}
+          </TableCell>
+        );
+      case 'predecessors':
+        return (
+          <TableCell key={col.id} sx={{ width: col.width }}>
+            {predecessorsStr}
+          </TableCell>
+        );
+      case 'resourceNames':
+        return (
+          <TableCell key={col.id} sx={{ width: col.width }}>
+            {resourceNamesStr}
+          </TableCell>
+        );
+      case 'cost':
+        return (
+          <TableCell
+            key={col.id}
+            align="right"
+            onDoubleClick={() => handleDoubleClick('cost')}
+            sx={{ width: col.width }}
+          >
+            {editing === 'cost' ? (
+              <InlineEditor
+                value={String(task.cost ?? 0)}
+                onCommit={(v) => commitEdit('cost', v)}
+                onCancel={() => setEditing(null)}
+                type="number"
+              />
+            ) : (
+              currency(task.cost)
+            )}
+          </TableCell>
+        );
+      case 'fixedCost':
+        return (
+          <TableCell
+            key={col.id}
+            align="right"
+            onDoubleClick={() => handleDoubleClick('fixedCost')}
+            sx={{ width: col.width }}
+          >
+            {editing === 'fixedCost' ? (
+              <InlineEditor
+                value={String(task.fixedCost ?? 0)}
+                onCommit={(v) => commitEdit('fixedCost', v)}
+                onCancel={() => setEditing(null)}
+                type="number"
+              />
+            ) : (
+              currency(task.fixedCost)
+            )}
+          </TableCell>
+        );
+      case 'actualCost':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {currency(task.actualCost)}
+          </TableCell>
+        );
+      case 'remainingCost':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {currency(task.remainingCost)}
+          </TableCell>
+        );
+      case 'work':
+        return (
+          <TableCell
+            key={col.id}
+            align="right"
+            onDoubleClick={() => handleDoubleClick('work')}
+            sx={{ width: col.width }}
+          >
+            {editing === 'work' ? (
+              <InlineEditor
+                value={task.work != null ? durationDays(task.work) : '0d'}
+                onCommit={(v) => commitEdit('work', v)}
+                onCancel={() => setEditing(null)}
+                type="duration"
+              />
+            ) : (
+              task.work != null ? durationDays(task.work) : ''
+            )}
+          </TableCell>
+        );
+      case 'actualWork':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {task.actualWork != null ? durationDays(task.actualWork) : ''}
+          </TableCell>
+        );
+      case 'remainingWork':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {task.remainingWork != null ? durationDays(task.remainingWork) : ''}
+          </TableCell>
+        );
+      case 'bcws':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {currency(task.bcws)}
+          </TableCell>
+        );
+      case 'bcwp':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {currency(task.bcwp)}
+          </TableCell>
+        );
+      case 'acwp':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {currency(task.acwp)}
+          </TableCell>
+        );
+      case 'totalSlack':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {durationDays(task.totalSlackMinutes)}
+          </TableCell>
+        );
+      case 'freeSlack':
+        return (
+          <TableCell key={col.id} align="right" sx={{ width: col.width }}>
+            {durationDays(task.freeSlackMinutes)}
+          </TableCell>
+        );
+      case 'deadline':
+        return (
+          <TableCell
+            key={col.id}
+            onDoubleClick={() => handleDoubleClick('deadline')}
+            sx={{ width: col.width }}
+          >
+            {editing === 'deadline' ? (
+              <InlineEditor
+                value={isoDate(task.deadline) ?? ''}
+                onCommit={(v) => commitEdit('deadline', v)}
+                onCancel={() => setEditing(null)}
+                type="date"
+              />
+            ) : (
+              shortDate(task.deadline)
+            )}
+          </TableCell>
+        );
+      case 'constraintType':
+        return (
+          <TableCell key={col.id} sx={{ width: col.width }}>
+            {constraintLabel(task.constraintType)}
+          </TableCell>
+        );
+      case 'wbsCode':
+        return (
+          <TableCell key={col.id} sx={{ width: col.width }}>
+            {task.wbsCode}
+          </TableCell>
+        );
+      default:
+        return <TableCell key={col.id} />;
+    }
+  };
+
+  return (
+    <>
+    <TableRow
+      hover
+      selected={isSelected}
+      onClick={(e) => selectTask(task.id, e.ctrlKey || e.metaKey)}
+      onContextMenu={handleContextMenu}
+      sx={{
+        cursor: 'pointer',
+        height: ROW_HEIGHT,
+        '& td': {
+          color: criticalColor,
+          fontWeight: isSummary ? 700 : 400,
+          py: 0,
+          height: ROW_HEIGHT,
+          lineHeight: `${ROW_HEIGHT}px`,
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+        },
+      }}
+    >
+      {visibleColumns.map(renderCell)}
+    </TableRow>
+
+    {/* Context menu */}
+    <Menu
+      open={contextMenu !== null}
+      onClose={closeContextMenu}
+      anchorReference="anchorPosition"
+      anchorPosition={contextMenu ? { top: contextMenu.y, left: contextMenu.x } : undefined}
+    >
+      <MenuItem onClick={handleTaskInfo}>
+        <ListItemIcon><InfoIcon fontSize="small" /></ListItemIcon>
+        <ListItemText>Task Information...</ListItemText>
+      </MenuItem>
+      <MenuItem onClick={handleInsertTaskAbove}>
+        <ListItemIcon><AddIcon fontSize="small" /></ListItemIcon>
+        <ListItemText>Insert Task Above</ListItemText>
+      </MenuItem>
+      <MenuItem onClick={handleInsertTaskBelow}>
+        <ListItemIcon><AddIcon fontSize="small" /></ListItemIcon>
+        <ListItemText>Insert Task Below</ListItemText>
+      </MenuItem>
+      <MenuItem onClick={handleDeleteTask}>
+        <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>
+        <ListItemText>Delete Task</ListItemText>
+      </MenuItem>
+      <MenuItem divider />
+      <MenuItem onClick={handleIndent}>
+        <ListItemIcon><FormatIndentIncreaseIcon fontSize="small" /></ListItemIcon>
+        <ListItemText>Indent</ListItemText>
+      </MenuItem>
+      <MenuItem onClick={handleOutdent} disabled={task.outlineLevel === 0}>
+        <ListItemIcon><FormatIndentDecreaseIcon fontSize="small" /></ListItemIcon>
+        <ListItemText>Outdent</ListItemText>
+      </MenuItem>
+      <MenuItem divider />
+      <MenuItem onClick={handleMarkComplete}>
+        <ListItemIcon><CheckCircleOutlineIcon fontSize="small" /></ListItemIcon>
+        <ListItemText>Mark 100% Complete</ListItemText>
+      </MenuItem>
+    </Menu>
+    </>
+  );
+};
+
+export default memo(TaskRowComponent);

@@ -1,0 +1,66 @@
+/**
+ * MSPDI field mapping tests.
+ */
+
+import { describe, it, expect } from 'vitest';
+import { DependencyType, ConstraintType, ResourceType, TaskType } from '@schedulesync/engine';
+import {
+  mspdiDependencyType,
+  dependencyTypeToMspdi,
+  mspdiConstraintType,
+  constraintTypeToMspdi,
+  mspdiResourceType,
+  resourceTypeToMspdi,
+  determineTaskType,
+  mspdiDayOfWeek,
+  dayOfWeekToMspdi,
+} from './fieldMapping.js';
+
+describe('fieldMapping', () => {
+  describe('dependency type', () => {
+    it('MSPDI 0 → FF', () => expect(mspdiDependencyType(0)).toBe(DependencyType.FF));
+    it('MSPDI 1 → FS', () => expect(mspdiDependencyType(1)).toBe(DependencyType.FS));
+    it('MSPDI 2 → SF', () => expect(mspdiDependencyType(2)).toBe(DependencyType.SF));
+    it('MSPDI 3 → SS', () => expect(mspdiDependencyType(3)).toBe(DependencyType.SS));
+    it('unknown → FS', () => expect(mspdiDependencyType(99)).toBe(DependencyType.FS));
+
+    it('round-trip FS', () => {
+      expect(mspdiDependencyType(dependencyTypeToMspdi(DependencyType.FS))).toBe(DependencyType.FS);
+    });
+    it('round-trip FF', () => {
+      expect(mspdiDependencyType(dependencyTypeToMspdi(DependencyType.FF))).toBe(DependencyType.FF);
+    });
+  });
+
+  describe('constraint type', () => {
+    it('0 → ASAP', () => expect(mspdiConstraintType(0)).toBe(ConstraintType.ASAP));
+    it('7 → FinishNoLaterThan', () => expect(mspdiConstraintType(7)).toBe(ConstraintType.FinishNoLaterThan));
+    it('invalid → ASAP', () => expect(mspdiConstraintType(99)).toBe(ConstraintType.ASAP));
+
+    it('round-trip ALAP', () => {
+      expect(mspdiConstraintType(constraintTypeToMspdi(ConstraintType.ALAP))).toBe(ConstraintType.ALAP);
+    });
+  });
+
+  describe('resource type', () => {
+    it('0 → Material', () => expect(mspdiResourceType(0)).toBe(ResourceType.Material));
+    it('1 → Work', () => expect(mspdiResourceType(1)).toBe(ResourceType.Work));
+    it('round-trip', () => {
+      expect(mspdiResourceType(resourceTypeToMspdi(ResourceType.Work))).toBe(ResourceType.Work);
+    });
+  });
+
+  describe('determineTaskType', () => {
+    it('summary=true → Summary', () => expect(determineTaskType(true, false)).toBe(TaskType.Summary));
+    it('milestone=true → Milestone', () => expect(determineTaskType(false, true)).toBe(TaskType.Milestone));
+    it('neither → Task', () => expect(determineTaskType(false, false)).toBe(TaskType.Task));
+    it('both → Summary (summary takes precedence)', () => expect(determineTaskType(true, true)).toBe(TaskType.Summary));
+  });
+
+  describe('day of week', () => {
+    it('MSPDI 1 → 0 (Sunday)', () => expect(mspdiDayOfWeek(1)).toBe(0));
+    it('MSPDI 2 → 1 (Monday)', () => expect(mspdiDayOfWeek(2)).toBe(1));
+    it('MSPDI 7 → 6 (Saturday)', () => expect(mspdiDayOfWeek(7)).toBe(6));
+    it('round-trip Monday', () => expect(mspdiDayOfWeek(dayOfWeekToMspdi(1))).toBe(1));
+  });
+});

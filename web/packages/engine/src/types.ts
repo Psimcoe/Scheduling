@@ -1,0 +1,658 @@
+/**
+ * @schedulesync/engine — Type definitions
+ *
+ * Core data model for the scheduling engine, porting and extending
+ * the C# ScheduleSync.Core models with full CPM scheduling support.
+ */
+
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+/** Task type — determines rendering and scheduling behaviour. */
+export enum TaskType {
+  Task = 'task',
+  Summary = 'summary',
+  Milestone = 'milestone',
+}
+
+/** Dependency link type — matches MS Project's four relationship types. */
+export enum DependencyType {
+  /** Finish-to-Start (default) */
+  FS = 'FS',
+  /** Start-to-Start */
+  SS = 'SS',
+  /** Finish-to-Finish */
+  FF = 'FF',
+  /** Start-to-Finish */
+  SF = 'SF',
+}
+
+/**
+ * Constraint type — mirrors the PjConstraint enum values from MS Project.
+ * Integer values match the COM enum for MSPDI compatibility.
+ */
+export enum ConstraintType {
+  /** As Soon As Possible (default, forward scheduled) */
+  ASAP = 0,
+  /** As Late As Possible */
+  ALAP = 1,
+  /** Must Start On */
+  MustStartOn = 2,
+  /** Must Finish On */
+  MustFinishOn = 3,
+  /** Start No Earlier Than */
+  StartNoEarlierThan = 4,
+  /** Start No Later Than */
+  StartNoLaterThan = 5,
+  /** Finish No Earlier Than */
+  FinishNoEarlierThan = 6,
+  /** Finish No Later Than */
+  FinishNoLaterThan = 7,
+}
+
+/** Resource type. */
+export enum ResourceType {
+  Work = 'work',
+  Material = 'material',
+  Cost = 'cost',
+}
+
+/** Task scheduling mode — controls which variable adjusts when assignments change. */
+export enum TaskMode {
+  FixedDuration = 'fixedDuration',
+  FixedWork = 'fixedWork',
+  FixedUnits = 'fixedUnits',
+}
+
+/** Cost accrual method. */
+export enum AccrueAt {
+  Start = 'start',
+  End = 'end',
+  Prorated = 'prorated',
+}
+
+/** Work contour profile for resource assignments. */
+export enum WorkContour {
+  Flat = 'flat',
+  BackLoaded = 'backLoaded',
+  FrontLoaded = 'frontLoaded',
+  Bell = 'bell',
+  Turtle = 'turtle',
+  EarlyPeak = 'earlyPeak',
+  LatePeak = 'latePeak',
+  DoublePeak = 'doublePeak',
+}
+
+/** Direction the project is scheduled from. */
+export enum ScheduleFrom {
+  Start = 'start',
+  Finish = 'finish',
+}
+
+/**
+ * Change flags — bitwise flags indicating which fields changed.
+ * Ported from C# ScheduleSync.Core.Models.ChangeFlags.
+ */
+export enum ChangeFlags {
+  None = 0,
+  Start = 1 << 0,
+  Finish = 1 << 1,
+  Duration = 1 << 2,
+  PercentComplete = 1 << 3,
+  ConstraintType = 1 << 4,
+  ConstraintDate = 1 << 5,
+  Notes = 1 << 6,
+  Deadline = 1 << 7,
+  Name = 1 << 8,
+}
+
+/** Validation message severity. Ported from C# ValidationSeverity. */
+export enum ValidationSeverity {
+  Info = 0,
+  Warning = 1,
+  Error = 2,
+}
+
+/** Status of a single task apply operation. Ported from C# TaskApplyStatus. */
+export enum TaskApplyStatus {
+  Applied = 'applied',
+  Skipped = 'skipped',
+  Failed = 'failed',
+  NotMatched = 'notMatched',
+}
+
+// ---------------------------------------------------------------------------
+// Core domain models
+// ---------------------------------------------------------------------------
+
+/** A scheduled task in the project. */
+export interface Task {
+  id: string;
+  wbsCode: string;
+  outlineLevel: number;
+  parentId: string | null;
+  name: string;
+  type: TaskType;
+
+  /** Duration in working minutes. */
+  durationMinutes: number;
+
+  /** Scheduled start (UTC). */
+  start: string;
+  /** Scheduled finish (UTC). */
+  finish: string;
+
+  constraintType: ConstraintType;
+  constraintDate: string | null;
+
+  calendarId: string | null;
+
+  /** 0–100 */
+  percentComplete: number;
+
+  isManuallyScheduled: boolean;
+
+  // CPM computed fields
+  isCritical: boolean;
+  totalSlackMinutes: number;
+  freeSlackMinutes: number;
+  earlyStart: string | null;
+  earlyFinish: string | null;
+  lateStart: string | null;
+  lateFinish: string | null;
+
+  deadline: string | null;
+  notes: string;
+
+  /** External key for matching (stored in custom field like Text30). */
+  externalKey: string | null;
+
+  /** Sort order within the project. */
+  sortOrder: number;
+
+  // Actuals — for progress tracking
+  actualStart?: string | null;
+  actualFinish?: string | null;
+  actualDurationMinutes?: number;
+  actualWork?: number;
+  actualCost?: number;
+  remainingDuration?: number;
+  remainingWork?: number;
+  remainingCost?: number;
+
+  // Cost
+  fixedCost?: number;
+  fixedCostAccrual?: AccrueAt;
+  cost?: number;
+  work?: number;
+
+  // Task mode
+  taskMode?: TaskMode;
+  isEffortDriven?: boolean;
+  isActive?: boolean;
+
+  // Earned value
+  bcws?: number;
+  bcwp?: number;
+  acwp?: number;
+  physicalPercentComplete?: number;
+
+  // Earned value — computed
+  sv?: number;   // Schedule Variance = BCWP - BCWS
+  cv?: number;   // Cost Variance = BCWP - ACWP
+  spi?: number;  // Schedule Performance Index = BCWP / BCWS
+  cpi?: number;  // Cost Performance Index = BCWP / ACWP
+  eac?: number;  // Estimate At Completion
+  vac?: number;  // Variance At Completion = BAC - EAC
+
+  // Split task support
+  isSplit?: boolean;
+
+  // Recurring task
+  isRecurring?: boolean;
+  recurringPattern?: RecurringPattern | null;
+
+  // Hyperlinks
+  hyperlink?: string;
+  hyperlinkAddress?: string;
+}
+
+/** A dependency link between two tasks. */
+export interface Dependency {
+  id: string;
+  fromTaskId: string;
+  toTaskId: string;
+  type: DependencyType;
+  /** Lag in working minutes. Negative = lead. */
+  lagMinutes: number;
+}
+
+/** Working-time calendar. */
+export interface Calendar {
+  id: string;
+  name: string;
+  /**
+   * Which days of the week are working days.
+   * Index 0 = Sunday, 6 = Saturday. true = working.
+   */
+  workingDaysOfWeek: boolean[];
+  /** Default working hours for standard working days. */
+  defaultWorkingHours: WorkingHourRange[];
+  /** Calendar exceptions (holidays, special days). */
+  exceptions: CalendarException[];
+}
+
+/** A time range within a day. Hours in 24h format. */
+export interface WorkingHourRange {
+  /** Start time as "HH:mm" (e.g. "08:00"). */
+  startTime: string;
+  /** End time as "HH:mm" (e.g. "12:00"). */
+  endTime: string;
+}
+
+/** A calendar exception — overrides for specific date ranges. */
+export interface CalendarException {
+  startDate: string;
+  endDate: string;
+  isWorking: boolean;
+  /** Working hours if isWorking=true. Empty/null = use default hours. */
+  workingHours: WorkingHourRange[] | null;
+}
+
+/** A project resource. */
+export interface Resource {
+  id: string;
+  name: string;
+  type: ResourceType;
+  /** Max units as decimal (1.0 = 100%). */
+  maxUnits: number;
+  calendarId: string | null;
+  initials?: string;
+  group?: string;
+  emailAddress?: string;
+  standardRate?: number;
+  overtimeRate?: number;
+  costPerUse?: number;
+  /** JSON string — cost rate tables A-E with effective dates. */
+  costRateTable?: CostRateTable[];
+  accrueAt?: AccrueAt;
+  budgetCost?: number;
+  budgetWork?: number;
+  isBudget?: boolean;
+  isGeneric?: boolean;
+}
+
+/** A cost rate table entry with effective date. */
+export interface CostRateEntry {
+  effectiveDate: string;
+  standardRate: number;
+  overtimeRate: number;
+  costPerUse: number;
+}
+
+/** A named rate table (A through E). */
+export interface CostRateTable {
+  name: string; // 'A' | 'B' | 'C' | 'D' | 'E'
+  entries: CostRateEntry[];
+}
+
+/** Assignment of a resource to a task. */
+export interface Assignment {
+  id: string;
+  taskId: string;
+  resourceId: string;
+  /** Assignment units as decimal (1.0 = 100%). */
+  units: number;
+  /** Total work in minutes. */
+  workMinutes: number;
+  actualWork?: number;
+  actualCost?: number;
+  remainingWork?: number;
+  remainingCost?: number;
+  start?: string | null;
+  finish?: string | null;
+  delay?: number;
+  costRateTableIndex?: number;
+  contour?: WorkContour;
+}
+
+/** Baseline snapshot of a task's schedule. */
+export interface Baseline {
+  taskId: string;
+  /** Baseline index 0–10 (matches MS Project Baseline through Baseline10). */
+  baselineIndex: number;
+  baselineStart: string;
+  baselineFinish: string;
+  baselineDurationMinutes: number;
+  baselineWork?: number;
+  baselineCost?: number;
+}
+
+/** Project-level settings. */
+export interface ProjectSettings {
+  id: string;
+  name: string;
+  startDate: string;
+  finishDate: string | null;
+  defaultCalendarId: string;
+  scheduleFrom: ScheduleFrom;
+  statusDate: string | null;
+  currencySymbol?: string;
+  minutesPerDay?: number;
+  minutesPerWeek?: number;
+  daysPerMonth?: number;
+  defaultTaskType?: TaskMode;
+  defaultFixedCostAccrual?: AccrueAt;
+  honorConstraints?: boolean;
+  newTasksEffortDriven?: boolean;
+  autolink?: boolean;
+  criticalSlackLimit?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Full project data container
+// ---------------------------------------------------------------------------
+
+/** Complete project data — everything needed to calculate and render. */
+export interface ProjectData {
+  settings: ProjectSettings;
+  tasks: Task[];
+  dependencies: Dependency[];
+  calendars: Calendar[];
+  resources: Resource[];
+  assignments: Assignment[];
+  baselines: Baseline[];
+}
+
+// ---------------------------------------------------------------------------
+// Update / Diff models — ported from C# ScheduleSync.Core
+// ---------------------------------------------------------------------------
+
+/**
+ * A proposed update to a single task.
+ * Ported from C# TaskUpdate.
+ */
+export interface TaskUpdate {
+  externalKey: string | null;
+  uniqueId: number | null;
+  name: string | null;
+  newStart: string | null;
+  newFinish: string | null;
+  newDurationMinutes: number | null;
+  newPercentComplete: number | null;
+  newConstraintType: number | null;
+  newConstraintDate: string | null;
+  newDeadline: string | null;
+  notesAppend: string | null;
+  allowConstraintOverride: boolean;
+  isNew: boolean;
+  metadata: Record<string, string>;
+}
+
+/**
+ * Snapshot of a task's current state before an update.
+ * Ported from C# TaskSnapshot.
+ */
+export interface TaskSnapshot {
+  uniqueId: number;
+  name: string;
+  externalKey: string | null;
+  start: string;
+  finish: string;
+  durationMinutes: number;
+  percentComplete: number;
+  constraintType: number;
+  constraintDate: string | null;
+  isSummary: boolean;
+  isManuallyScheduled: boolean;
+  deadline: string | null;
+  notes: string;
+}
+
+/** A validation message attached to a diff. */
+export interface ValidationMessage {
+  severity: ValidationSeverity;
+  message: string;
+}
+
+/**
+ * Diff between current task state and proposed update.
+ * Ported from C# TaskDiff.
+ */
+export interface TaskDiff {
+  uniqueId: number;
+  taskName: string;
+  before: TaskSnapshot | null;
+  update: TaskUpdate;
+  changes: ChangeFlags;
+  warnings: ValidationMessage[];
+  isBlocked: boolean;
+  isNewTask: boolean;
+}
+
+/** Result of applying a batch of updates. Ported from C# ApplyResult. */
+export interface ApplyResult {
+  totalProcessed: number;
+  applied: number;
+  skipped: number;
+  failed: number;
+  details: TaskApplyDetail[];
+}
+
+/** Detail for a single task's apply outcome. */
+export interface TaskApplyDetail {
+  uniqueId: number | null;
+  externalKey: string | null;
+  taskName: string;
+  status: TaskApplyStatus;
+  message: string;
+  changesApplied: ChangeFlags;
+}
+
+/** Options controlling apply behaviour. Ported from C# ApplyOptions. */
+export interface ApplyOptions {
+  externalKeyFieldName: string;
+  blockOnWarnings: boolean;
+  undoTransactionLabel: string;
+  allowTaskCreation: boolean;
+}
+
+/** Default apply options. */
+export const DEFAULT_APPLY_OPTIONS: ApplyOptions = {
+  externalKeyFieldName: 'Text30',
+  blockOnWarnings: true,
+  undoTransactionLabel: 'Apply Schedule Updates',
+  allowTaskCreation: true,
+};
+
+/** Error from parsing an update file. Ported from C# ParseError. */
+export interface ParseError {
+  rowNumber: number | null;
+  fieldName: string | null;
+  message: string;
+}
+
+/** Result of parsing an update file. Ported from C# ParseResult. */
+export interface ParseResult {
+  updates: TaskUpdate[];
+  errors: ParseError[];
+  readonly success: boolean;
+}
+
+/** Creates a ParseResult with computed success property. */
+export function createParseResult(
+  updates: TaskUpdate[],
+  errors: ParseError[],
+): ParseResult {
+  return {
+    updates,
+    errors,
+    get success() {
+      return this.errors.length === 0;
+    },
+  };
+}
+
+/** Hierarchy group for previewing task creation structure. */
+export interface HierarchyGroup {
+  name: string;
+  level: number;
+  taskCount: number;
+  children: HierarchyGroup[];
+}
+
+// ---------------------------------------------------------------------------
+// Interfaces (adapter / store contracts)
+// ---------------------------------------------------------------------------
+
+/**
+ * Interface for project data persistence.
+ * TypeScript equivalent of C# IProjectAdapter.
+ */
+export interface IProjectStore {
+  getAllTasks(): TaskSnapshot[];
+  getTaskByUniqueId(uniqueId: number): TaskSnapshot | null;
+  getTaskByExternalKey(key: string, fieldName: string): TaskSnapshot | null;
+  applyUpdates(diffs: TaskDiff[], options: ApplyOptions): ApplyResult;
+  createTask(
+    update: TaskUpdate,
+    options: ApplyOptions,
+    parentUniqueId?: number | null,
+  ): TaskSnapshot;
+  findOrCreateSummaryTask(
+    name: string,
+    parentUniqueId?: number | null,
+  ): TaskSnapshot;
+  setDeadline(uniqueId: number, deadline: string): void;
+  setCustomTextField(
+    uniqueId: number,
+    fieldName: string,
+    value: string,
+  ): void;
+}
+
+/**
+ * Interface for parsing update files.
+ * TypeScript equivalent of C# IUpdateSource.
+ */
+export interface IUpdateSource {
+  parse(content: string): ParseResult;
+}
+
+// ---------------------------------------------------------------------------
+// Scheduling engine output
+// ---------------------------------------------------------------------------
+
+/** Warning or info from the scheduling engine. */
+export interface ScheduleWarning {
+  taskId: string;
+  message: string;
+  severity: ValidationSeverity;
+}
+
+/** Result of a schedule recalculation. */
+export interface ScheduleResult {
+  tasks: Task[];
+  warnings: ScheduleWarning[];
+  /** Total calculation time in milliseconds. */
+  calculationTimeMs: number;
+}
+
+// ---------------------------------------------------------------------------
+// Recurring task pattern
+// ---------------------------------------------------------------------------
+
+export interface RecurringPattern {
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
+  daysOfWeek?: number[]; // 0=Sun..6=Sat (for weekly)
+  dayOfMonth?: number;   // (for monthly)
+  occurrences?: number;  // number of occurrences (null = use rangeEnd)
+  rangeEnd?: string;     // end date ISO
+}
+
+// ---------------------------------------------------------------------------
+// Task split — segments for split tasks
+// ---------------------------------------------------------------------------
+
+export interface TaskSplit {
+  id: string;
+  taskId: string;
+  segmentIndex: number;
+  start: string;
+  finish: string;
+  durationMinutes: number;
+}
+
+// ---------------------------------------------------------------------------
+// Interim plan snapshot
+// ---------------------------------------------------------------------------
+
+export interface InterimPlan {
+  taskId: string;
+  planIndex: number; // 1-10
+  start: string;
+  finish: string;
+}
+
+// ---------------------------------------------------------------------------
+// Timephased data — time-distributed work/cost
+// ---------------------------------------------------------------------------
+
+export type TimephasedType =
+  | 'work'
+  | 'actualWork'
+  | 'cost'
+  | 'actualCost'
+  | 'baselineWork'
+  | 'baselineCost';
+
+export interface TimephasedData {
+  id: string;
+  taskId?: string | null;
+  assignmentId?: string | null;
+  type: TimephasedType;
+  startDate: string;
+  endDate: string;
+  value: number;
+  unit: 'minutes' | 'hours' | 'currency';
+}
+
+// ---------------------------------------------------------------------------
+// Custom field formula evaluation
+// ---------------------------------------------------------------------------
+
+/** A compiled formula node (safe AST — no eval). */
+export type FormulaNode =
+  | { type: 'literal'; value: number | string | boolean }
+  | { type: 'field'; name: string }
+  | { type: 'binary'; op: '+' | '-' | '*' | '/' | '>' | '<' | '>=' | '<=' | '==' | '!=' | '&&' | '||'; left: FormulaNode; right: FormulaNode }
+  | { type: 'unary'; op: '-' | '!'; operand: FormulaNode }
+  | { type: 'func'; name: string; args: FormulaNode[] }
+  | { type: 'ternary'; condition: FormulaNode; whenTrue: FormulaNode; whenFalse: FormulaNode };
+
+// ---------------------------------------------------------------------------
+// Graphical indicator rules
+// ---------------------------------------------------------------------------
+
+export interface IndicatorRule {
+  /** Comparison operator */
+  operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'contains';
+  /** Value(s) to compare against */
+  values: (number | string | boolean)[];
+  /** Color to display (hex or named) */
+  color: string;
+  /** Icon name (e.g. 'greenCircle', 'yellowDiamond', 'redX') */
+  icon: string;
+}
+
+export interface GraphicalIndicatorConfig {
+  /** Rules are evaluated in order; first match wins */
+  rules: IndicatorRule[];
+  /** Show indicator for summary rows? */
+  showForSummary: boolean;
+  /** Show indicator for the project summary? */
+  showForProject: boolean;
+}

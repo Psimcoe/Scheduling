@@ -1,0 +1,67 @@
+/**
+ * CostOverviewChart — SVG bar chart showing budgeted vs actual vs remaining cost.
+ */
+
+import React from 'react';
+import { Box, Typography } from '@mui/material';
+
+interface CostOverviewChartProps {
+  budgeted: number;
+  actual: number;
+  remaining: number;
+  baseline: number;
+  width?: number;
+  height?: number;
+}
+
+const CostOverviewChart: React.FC<CostOverviewChartProps> = ({
+  budgeted, actual, remaining, baseline,
+  width = 400, height = 220,
+}) => {
+  const padding = { top: 20, right: 20, bottom: 30, left: 70 };
+  const chartW = width - padding.left - padding.right;
+  const chartH = height - padding.top - padding.bottom;
+  const maxVal = Math.max(budgeted, actual, remaining, baseline, 1);
+
+  const bars = [
+    { label: 'Baseline', value: baseline, color: '#90CAF9' },
+    { label: 'Budgeted', value: budgeted, color: '#0078D4' },
+    { label: 'Actual', value: actual, color: '#1B6B3A' },
+    { label: 'Remaining', value: remaining, color: '#FF9800' },
+  ];
+
+  const barH = Math.min(30, (chartH - (bars.length - 1) * 8) / bars.length);
+  const gap = 8;
+
+  const fmt = (v: number) =>
+    v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toLocaleString()}`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ fontFamily: 'Segoe UI, sans-serif' }}>
+      {bars.map((bar, i) => {
+        const y = padding.top + i * (barH + gap);
+        const barWidth = (bar.value / maxVal) * chartW;
+        return (
+          <g key={bar.label}>
+            <text x={padding.left - 6} y={y + barH / 2 + 4} textAnchor="end" fontSize={11} fill="#333">
+              {bar.label}
+            </text>
+            <rect
+              x={padding.left} y={y}
+              width={Math.max(barWidth, 0)} height={barH}
+              fill={bar.color} rx={3}
+            />
+            <text x={padding.left + barWidth + 6} y={y + barH / 2 + 4} fontSize={10} fill="#666">
+              {fmt(bar.value)}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Axis line */}
+      <line x1={padding.left} y1={padding.top - 4} x2={padding.left} y2={height - padding.bottom + 4} stroke="#999" />
+    </svg>
+  );
+};
+
+export default CostOverviewChart;

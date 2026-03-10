@@ -1,0 +1,144 @@
+/**
+ * Task validator — ported from C# ScheduleSync.Core.Validation.TaskValidator.
+ *
+ * Same 6 rules for existing tasks, 4 rules for new tasks.
+ */
+
+import {
+  ConstraintType,
+  ValidationSeverity,
+  type TaskSnapshot,
+  type TaskUpdate,
+  type ValidationMessage,
+} from '../types.js';
+
+const CONSTRAINT_ASAP = ConstraintType.ASAP as number;
+
+/** Returns true if the update changes any date field. */
+function hasDateChanges(update: TaskUpdate): boolean {
+  return (
+    update.newStart != null ||
+    update.newFinish != null ||
+    update.newDurationMinutes != null
+  );
+}
+
+/**
+ * Validate an update against an existing task snapshot.
+ * Returns an array of validation messages (may be empty if valid).
+ */
+export function validate(
+  snapshot: TaskSnapshot,
+  update: TaskUpdate,
+): ValidationMessage[] {
+  const warnings: ValidationMessage[] = [];
+
+  // Rule 1: Summary tasks — never edit
+  if (snapshot.isSummary) {
+    warnings.push({
+      severity: ValidationSeverity.Error,
+      message: 'Cannot update summary tasks.',
+    });
+    return warnings; // Immediate return, matches C# behaviour
+  }
+
+  // Rule 2: Manually scheduled + date changes → informational warning
+  if (snapshot.isManuallyScheduled && hasDateChanges(update)) {
+    warnings.push({
+      severity: ValidationSeverity.Warning,
+      message:
+        'Task is manually scheduled. Date changes will be applied but will not trigger auto-scheduling.',
+    });
+  }
+
+  // Rule 3: Active constraint + date changes + no override → error
+  if (
+    snapshot.constraintType !== CONSTRAINT_ASAP &&
+    hasDateChanges(update) &&
+    !update.allowConstraintOverride
+  ) {
+    warnings.push({
+      severity: ValidationSeverity.Error,
+      message:
+        'Task has an active constraint. Set AllowConstraintOverride to true to proceed.',
+    });
+  }
+
+  // Rule 4: Percent complete range
+  if (
+    update.newPercentComplete != null &&
+    (update.newPercentComplete < 0 || update.newPercentComplete > 100)
+  ) {
+    warnings.push({
+      severity: ValidationSeverity.Error,
+      message: 'Percent complete must be 0–100.',
+    });
+  }
+
+  // Rule 5: Negative duration
+  if (update.newDurationMinutes != null && update.newDurationMinutes < 0) {
+    warnings.push({
+      severity: ValidationSeverity.Error,
+      message: 'Duration must not be negative.',
+    });
+  }
+
+  // Rule 6: Finish before start (only when both dates are explicitly provided)
+  if (update.newStart != null && update.newFinish != null) {
+    if (update.newFinish < update.newStart) {
+      warnings.push({
+        severity: ValidationSeverity.Error,
+        message: 'Finish date must not precede start date.',
+      });
+    }
+  }
+
+  return warnings;
+}
+
+/**
+ * Validate a new task (no existing snapshot).
+ * Returns an array of validation messages.
+ */
+export function validateNew(update: TaskUpdate): ValidationMessage[] {
+  const warnings: ValidationMessage[] = [];
+
+  // Rule 1: Percent complete range
+  if (
+    update.newPercentComplete != null &&
+    (update.newPercentComplete < 0 || update.newPercentComplete > 100)
+  ) {
+    warnings.push({
+      severity: ValidationSeverity.Error,
+      message: 'Percent complete must be 0–100.',
+    });
+  }
+
+  // Rule 2: Negative duration
+  if (update.newDurationMinutes != null && update.newDurationMinutes < 0) {
+    warnings.push({
+      severity: ValidationSeverity.Error,
+      message: 'Duration must not be negative.',
+    });
+  }
+
+  // Rule 3: Finish before start (only if both provided)
+  if (update.newStart != null && update.newFinish != null) {
+    if (update.newFinish < update.newStart) {
+      warnings.push({
+        severity: ValidationSeverity.Error,
+        message: 'Finish date must not precede start date.',
+      });
+    }
+  }
+
+  // Rule 4: No name
+  if (!update.name || update.name.trim().length === 0) {
+    warnings.push({
+      severity: ValidationSeverity.Warning,
+      message: 'New task has no name.',
+    });
+  }
+
+  return warnings;
+}

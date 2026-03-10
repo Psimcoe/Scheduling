@@ -1,0 +1,95 @@
+/**
+ * /api/projects/:projectId/baselines routes
+ */
+
+import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { prisma } from '../db.js';
+
+const captureSchema = z.object({
+  baselineIndex: z.number().int().min(0).max(10),
+});
+
+export default async function baselineRoutes(app: FastifyInstance) {
+  // List baselines for a project (grouped by index)
+  app.get<{ Params: { projectId: string } }>('/', async (req) => {
+    const { projectId } = req.params;
+    const baselines = await prisma.baseline.findMany({
+      where: { task: { projectId } },
+      orderBy: [{ baselineIndex: 'asc' }, { taskId: 'asc' }],
+    });
+
+    // Group by index
+    const grouped: Record<number, typeof baselines> = {};
+    for (const b of baselines) {
+      (grouped[b.baselineIndex] ??= []).push(b);
+    }
+    return grouped;
+  });
+
+  // Capture baseline — snapshot all tasks at a given baseline index
+  app.post<{ Params: { projectId: string } }>('/', async (req, reply) => {
+    const { projectId } = req.params;
+    const body = captureSchema.parse(req.body);
+
+    const tasks = await prisma.task.findMany({
+      where: { projectId },
+    });
+
+    if (tasks.length === 0) {
+      return reply.code(400).send({ error: 'No tasks to baseline' });
+    }
+
+    // Remove existing baselines at this index and create new ones atomically
+    const taskIds = tasks.map((t) => t.id);
+    await prisma.$transaction([
+      prisma.baseline.deleteMany({
+        where: {
+          taskId: { in: taskIds },
+          baselineIndex: body.baselineIndex,
+        },
+      }),
+      prisma.baseline.createMany({
+        data: tasks.map((t) => ({
+          taskId: t.id,
+          baselineIndex: body.baselineIndex,
+          baselineStart: t.start,
+          baselineFinish: t.finish,
+          baselineDurationMinutes: t.durationMinutes,
+          baselineWork: t.work ?? 0,
+          baselineCost: t.cost ?? 0,
+        })),
+      }),
+    ]);
+
+    return reply.code(201).send({
+      baselineIndex: body.baselineIndex,
+      taskCount: tasks.length,
+    });
+  });
+
+  // Clear a baseline index for the project
+  app.delete<{ Params: { projectId: string; index: string } }>(
+    '/:index',
+    async (req, reply) => {
+      const { projectId } = req.params;
+      const baselineIndex = parseInt(req.params.index, 10);
+
+      const taskIds = (
+        await prisma.task.findMany({
+          where: { projectId },
+          select: { id: true },
+        })
+      ).map((t) => t.id);
+
+      await prisma.baseline.deleteMany({
+        where: {
+          taskId: { in: taskIds },
+          baselineIndex,
+        },
+      });
+
+      return reply.code(204).send();
+    },
+  );
+}

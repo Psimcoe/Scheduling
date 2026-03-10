@@ -1,0 +1,1005 @@
+/**
+ * /api/projects/:projectId/import-export routes
+ *
+ * - MSPDI XML import / export
+ * - CSV / JSON update import + preview + apply
+ */
+
+import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { prisma } from '../db.js';
+import { logImportEvent } from '../services/aiLearningService.js';
+import { recalculateProject } from '../services/schedulingService.js';
+import { markProjectKnowledgeDirty } from '../services/scheduleKnowledgeService.js';
+import { captureUndo } from '../services/undoService.js';
+import {
+  CsvUpdateSource,
+  JsonUpdateSource,
+  StratusCsvUpdateSource,
+  isStratusFormat,
+  ImportOrchestrator,
+  computeDiffs,
+  validate as validateTask,
+  type TaskUpdate,
+  type TaskSnapshot,
+  type TaskDiff,
+  type ApplyOptions,
+  DEFAULT_APPLY_OPTIONS,
+  type IProjectStore,
+  type ApplyResult,
+  ConstraintType,
+  ChangeFlags,
+  TaskApplyStatus,
+} from '@schedulesync/engine';
+import { importMspdi, exportMspdi } from '@schedulesync/mspdi';
+
+// ---------- MSPDI Import ----------
+export default async function importExportRoutes(app: FastifyInstance) {
+  app.post<{ Params: { projectId: string } }>(
+    '/import/mspdi',
+    async (req, reply) => {
+      const { projectId } = req.params;
+
+      const data = await (req as any).file();
+      if (!data) return reply.code(400).send({ error: 'No file uploaded' });
+
+      const xml = (await data.toBuffer()).toString('utf-8');
+      const projectData = importMspdi(xml);
+
+      await captureUndo(projectId, 'Import MSPDI');
+
+      // Clear existing data
+      await prisma.$transaction([
+        prisma.assignment.deleteMany({ where: { task: { projectId } } }),
+        prisma.baseline.deleteMany({ where: { task: { projectId } } }),
+        prisma.dependency.deleteMany({ where: { projectId } }),
+        prisma.task.deleteMany({ where: { projectId } }),
+        prisma.calendarException.deleteMany({
+          where: { calendar: { projectId } },
+        }),
+        prisma.calendar.deleteMany({ where: { projectId } }),
+        prisma.resource.deleteMany({ where: { projectId } }),
+      ]);
+
+      // Update project metadata
+      await prisma.project.update({
+        where: { id: projectId },
+        data: {
+          name: projectData.settings.name,
+          startDate: new Date(projectData.settings.startDate),
+          finishDate: projectData.settings.finishDate
+            ? new Date(projectData.settings.finishDate)
+            : null,
+          scheduleFrom: projectData.settings.scheduleFrom,
+        },
+      });
+
+      // Insert calendars
+      for (const cal of projectData.calendars) {
+        await prisma.calendar.create({
+          data: {
+            id: cal.id,
+            projectId,
+            name: cal.name,
+            workingDaysOfWeek: JSON.stringify(cal.workingDaysOfWeek),
+            defaultWorkingHours: JSON.stringify(cal.defaultWorkingHours),
+            exceptions: {
+              create: cal.exceptions.map((e) => ({
+                startDate: e.startDate,
+                endDate: e.endDate,
+                isWorking: e.isWorking,
+                workingHours: e.workingHours
+                  ? JSON.stringify(e.workingHours)
+                  : null,
+              })),
+            },
+          },
+        });
+      }
+
+      // Set default calendar
+      if (projectData.settings.defaultCalendarId) {
+        await prisma.project.update({
+          where: { id: projectId },
+          data: { defaultCalendarId: projectData.settings.defaultCalendarId },
+        });
+      }
+
+      // Insert tasks
+      for (const t of projectData.tasks) {
+        await prisma.task.create({
+          data: {
+            id: t.id,
+            projectId,
+            wbsCode: t.wbsCode ?? '',
+            outlineLevel: t.outlineLevel,
+            parentId: t.parentId,
+            name: t.name,
+            type: t.type,
+            durationMinutes: t.durationMinutes,
+            start: new Date(t.start),
+            finish: new Date(t.finish),
+            constraintType: t.constraintType,
+            constraintDate: t.constraintDate
+              ? new Date(t.constraintDate)
+              : null,
+            calendarId: t.calendarId,
+            percentComplete: t.percentComplete,
+            isManuallyScheduled: t.isManuallyScheduled,
+            isCritical: t.isCritical,
+            totalSlackMinutes: t.totalSlackMinutes,
+            freeSlackMinutes: t.freeSlackMinutes,
+            deadline: t.deadline ? new Date(t.deadline) : null,
+            notes: t.notes,
+            externalKey: t.externalKey,
+            sortOrder: t.sortOrder,
+          },
+        });
+      }
+
+      // Insert resources
+      for (const r of projectData.resources) {
+        await prisma.resource.create({
+          data: {
+            id: r.id,
+            projectId,
+            name: r.name,
+            type: r.type,
+            maxUnits: r.maxUnits,
+            calendarId: r.calendarId,
+          },
+        });
+      }
+
+      // Insert dependencies
+      for (const d of projectData.dependencies) {
+        await prisma.dependency.create({
+          data: {
+            id: d.id,
+            projectId,
+            fromTaskId: d.fromTaskId,
+            toTaskId: d.toTaskId,
+            type: d.type,
+            lagMinutes: d.lagMinutes,
+          },
+        });
+      }
+
+      // Insert assignments
+      for (const a of projectData.assignments) {
+        await prisma.assignment.create({
+          data: {
+            id: a.id,
+            taskId: a.taskId,
+            resourceId: a.resourceId,
+            units: a.units,
+            workMinutes: a.workMinutes,
+          },
+        });
+      }
+
+      // Insert baselines
+      for (const b of projectData.baselines) {
+        await prisma.baseline.create({
+          data: {
+            taskId: b.taskId,
+            baselineIndex: b.baselineIndex,
+            baselineStart: new Date(b.baselineStart),
+            baselineFinish: new Date(b.baselineFinish),
+            baselineDurationMinutes: b.baselineDurationMinutes,
+          },
+        });
+      }
+
+      await recalculateProject(projectId);
+      await logImportEvent(projectId, 'mspdi', {
+        importedTasks: projectData.tasks.length,
+        importedDependencies: projectData.dependencies.length,
+        importedResources: projectData.resources.length,
+      });
+      markProjectKnowledgeDirty(projectId);
+
+      return {
+        imported: {
+          tasks: projectData.tasks.length,
+          dependencies: projectData.dependencies.length,
+          calendars: projectData.calendars.length,
+          resources: projectData.resources.length,
+          assignments: projectData.assignments.length,
+        },
+      };
+    },
+  );
+
+  // ---------- MSPDI Export ----------
+  app.get<{ Params: { projectId: string } }>(
+    '/export/mspdi',
+    async (req, reply) => {
+      const { projectId } = req.params;
+
+      // Load everything
+      const project = await prisma.project.findUniqueOrThrow({
+        where: { id: projectId },
+      });
+      const [tasks, deps, cals, resources, assignments, baselines] =
+        await Promise.all([
+          prisma.task.findMany({ where: { projectId }, orderBy: { sortOrder: 'asc' } }),
+          prisma.dependency.findMany({ where: { projectId } }),
+          prisma.calendar.findMany({
+            where: { projectId },
+            include: { exceptions: true },
+          }),
+          prisma.resource.findMany({ where: { projectId } }),
+          prisma.assignment.findMany({ where: { task: { projectId } } }),
+          prisma.baseline.findMany({ where: { task: { projectId } } }),
+        ]);
+
+      const projectData = {
+        settings: {
+          id: project.id,
+          name: project.name,
+          startDate: project.startDate.toISOString(),
+          finishDate: project.finishDate?.toISOString() ?? null,
+          defaultCalendarId: project.defaultCalendarId,
+          scheduleFrom: project.scheduleFrom,
+          statusDate: project.statusDate?.toISOString() ?? null,
+        },
+        tasks: tasks.map((t) => ({
+          id: t.id,
+          wbsCode: t.wbsCode,
+          outlineLevel: t.outlineLevel,
+          parentId: t.parentId,
+          name: t.name,
+          type: t.type,
+          durationMinutes: t.durationMinutes,
+          start: t.start.toISOString(),
+          finish: t.finish.toISOString(),
+          constraintType: t.constraintType,
+          constraintDate: t.constraintDate?.toISOString() ?? null,
+          calendarId: t.calendarId,
+          percentComplete: t.percentComplete,
+          isManuallyScheduled: t.isManuallyScheduled,
+          isCritical: t.isCritical,
+          totalSlackMinutes: t.totalSlackMinutes,
+          freeSlackMinutes: t.freeSlackMinutes,
+          earlyStart: t.earlyStart?.toISOString() ?? null,
+          earlyFinish: t.earlyFinish?.toISOString() ?? null,
+          lateStart: t.lateStart?.toISOString() ?? null,
+          lateFinish: t.lateFinish?.toISOString() ?? null,
+          deadline: t.deadline?.toISOString() ?? null,
+          notes: t.notes,
+          externalKey: t.externalKey,
+          sortOrder: t.sortOrder,
+        })),
+        dependencies: deps.map((d) => ({
+          id: d.id,
+          fromTaskId: d.fromTaskId,
+          toTaskId: d.toTaskId,
+          type: d.type,
+          lagMinutes: d.lagMinutes,
+        })),
+        calendars: cals.map((c) => ({
+          id: c.id,
+          name: c.name,
+          workingDaysOfWeek: JSON.parse(c.workingDaysOfWeek),
+          defaultWorkingHours: JSON.parse(c.defaultWorkingHours),
+          exceptions: c.exceptions.map((e) => ({
+            startDate: e.startDate,
+            endDate: e.endDate,
+            isWorking: e.isWorking,
+            workingHours: e.workingHours ? JSON.parse(e.workingHours) : null,
+          })),
+        })),
+        resources: resources.map((r) => ({
+          id: r.id,
+          name: r.name,
+          type: r.type,
+          maxUnits: r.maxUnits,
+          calendarId: r.calendarId,
+        })),
+        assignments: assignments.map((a) => ({
+          id: a.id,
+          taskId: a.taskId,
+          resourceId: a.resourceId,
+          units: a.units,
+          workMinutes: a.workMinutes,
+        })),
+        baselines: baselines.map((b) => ({
+          taskId: b.taskId,
+          baselineIndex: b.baselineIndex,
+          baselineStart: b.baselineStart.toISOString(),
+          baselineFinish: b.baselineFinish.toISOString(),
+          baselineDurationMinutes: b.baselineDurationMinutes,
+        })),
+      };
+
+      const xml = exportMspdi(projectData as any);
+      reply
+        .header('Content-Type', 'application/xml')
+        .header(
+          'Content-Disposition',
+          `attachment; filename="${project.name.replace(/[^a-zA-Z0-9._-]/g, '_')}.xml"`,
+        )
+        .send(xml);
+    },
+  );
+
+  // ---------- CSV / JSON Update Preview ----------
+  app.post<{ Params: { projectId: string } }>(
+    '/import/preview',
+    async (req, reply) => {
+      const { projectId } = req.params;
+
+      const data = await (req as any).file();
+      if (!data) return reply.code(400).send({ error: 'No file uploaded' });
+
+      const content = (await data.toBuffer()).toString('utf-8');
+      const filename = data.filename ?? 'update.csv';
+
+      // Parse updates
+      const updates = parseUpdateFile(content, filename);
+      if ('error' in updates) {
+        return reply.code(400).send(updates);
+      }
+
+      // Load current tasks to build snapshots
+      const tasks = await prisma.task.findMany({
+        where: { projectId },
+        orderBy: { sortOrder: 'asc' },
+      });
+
+      const resolver = (update: TaskUpdate): TaskSnapshot | null => {
+        const task = tasks.find(
+          (t) =>
+            (update.uniqueId != null && (parseInt(t.id, 10) === update.uniqueId || t.externalKey === String(update.uniqueId))) ||
+            (update.externalKey != null && t.externalKey === update.externalKey),
+        );
+        if (!task) return null;
+        return {
+          uniqueId: parseInt(task.id, 10) || 0,
+          name: task.name,
+          externalKey: task.externalKey ?? null,
+          durationMinutes: task.durationMinutes,
+          start: task.start.toISOString(),
+          finish: task.finish.toISOString(),
+          percentComplete: task.percentComplete,
+          constraintType: task.constraintType as ConstraintType,
+          constraintDate: task.constraintDate?.toISOString() ?? null,
+          isSummary: task.type === 'summary',
+          isManuallyScheduled: task.isManuallyScheduled,
+          deadline: task.deadline?.toISOString() ?? null,
+          notes: task.notes,
+        };
+      };
+
+      const diffs = computeDiffs(updates, resolver);
+
+      // Validate diffs
+      const validated = diffs.map((diff: TaskDiff) => ({
+        ...diff,
+        warnings: validateTask(diff.before!, diff.update),
+      }));
+
+      return { diffs: validated, totalUpdates: updates.length };
+    },
+  );
+
+  // ---------- Apply Updates ----------
+  const applySchema = z.object({
+    format: z.enum(['csv', 'json', 'stratus']).optional(),
+    options: z
+      .object({
+        allowManualOverride: z.boolean().optional(),
+        allowConstraintOverride: z.boolean().optional(),
+        enableHierarchyCreation: z.boolean().optional(),
+        keyFieldName: z.string().nullable().optional(),
+      })
+      .optional(),
+  });
+
+  app.post<{ Params: { projectId: string } }>(
+    '/import/apply',
+    async (req, reply) => {
+      const { projectId } = req.params;
+      const data = await (req as any).file();
+      if (!data) return reply.code(400).send({ error: 'No file uploaded' });
+
+      const content = (await data.toBuffer()).toString('utf-8');
+      const filename = data.filename ?? 'update.csv';
+
+      // Parse the body fields from multipart
+      const bodyFields = data.fields;
+      let options: ApplyOptions = { ...DEFAULT_APPLY_OPTIONS };
+      if (bodyFields && typeof bodyFields === 'object') {
+        const optField = (bodyFields as Record<string, any>).options;
+        if (optField?.value) {
+          try {
+            const parsed = JSON.parse(optField.value);
+            options = { ...DEFAULT_APPLY_OPTIONS, ...parsed };
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      const updates = parseUpdateFile(content, filename);
+      if ('error' in updates) {
+        return reply.code(400).send(updates);
+      }
+
+      await captureUndo(projectId, `Import ${filename}`);
+
+      // Build a simple IProjectStore adapter from DB
+      const store = await buildProjectStore(projectId);
+      const orchestrator = new ImportOrchestrator(store, options);
+      const diffs = orchestrator.computeDiffs(updates);
+      const result = orchestrator.apply(diffs);
+
+      // Apply changes to DB
+      for (const detail of result.details) {
+        if (detail.status === TaskApplyStatus.Applied && detail.uniqueId != null) {
+          // Find task by uniqueId or externalKey
+          const task = await prisma.task.findFirst({
+            where: {
+              projectId,
+              OR: [
+                { externalKey: String(detail.uniqueId) },
+                { externalKey: detail.externalKey ?? undefined },
+              ],
+            },
+          });
+          // The store's applyUpdates handles in-memory; here we just recalculate
+        }
+      }
+
+      await recalculateProject(projectId);
+      await logImportEvent(projectId, 'update-apply', {
+        filename,
+        totalProcessed: result.totalProcessed,
+        applied: result.applied,
+        skipped: result.skipped,
+      });
+      markProjectKnowledgeDirty(projectId);
+
+      return result;
+    },
+  );
+
+  // ---------- Undo / Redo ----------
+  app.post<{ Params: { projectId: string } }>(
+    '/undo',
+    async (req) => {
+      const { projectId } = req.params;
+      const { undo } = await import('../services/undoService.js');
+      const success = await undo(projectId);
+      return { success };
+    },
+  );
+
+  app.post<{ Params: { projectId: string } }>(
+    '/redo',
+    async (req) => {
+      const { projectId } = req.params;
+      const { redo } = await import('../services/undoService.js');
+      const success = await redo(projectId);
+      return { success };
+    },
+  );
+
+  // ---------- Undo History List ----------
+  app.get<{ Params: { projectId: string } }>(
+    '/undo-history',
+    async (req) => {
+      const { projectId } = req.params;
+      const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
+      const entries = await prisma.undoEntry.findMany({
+        where: { projectId },
+        orderBy: { position: 'desc' },
+        select: { id: true, description: true, position: true, createdAt: true },
+      });
+      return { entries, currentPointer: project.undoPointer };
+    },
+  );
+
+  // ---------- CSV Export ----------
+  app.get<{ Params: { projectId: string } }>(
+    '/export/csv',
+    async (req, reply) => {
+      const { projectId } = req.params;
+      const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
+      const tasks = await prisma.task.findMany({ where: { projectId }, orderBy: { sortOrder: 'asc' } });
+
+      const headers = [
+        'WBS', 'Name', 'Type', 'Duration (days)', 'Start', 'Finish',
+        '% Complete', 'Cost', 'Actual Cost', 'Work (hours)',
+        'Critical', 'Constraint', 'Notes',
+      ];
+      const rows = tasks.map((t) => [
+        t.wbsCode,
+        `"${(t.name ?? '').replace(/"/g, '""')}"`,
+        t.type,
+        (t.durationMinutes / 480).toFixed(1),
+        t.start.toISOString().slice(0, 10),
+        t.finish.toISOString().slice(0, 10),
+        t.percentComplete,
+        t.cost ?? 0,
+        t.actualCost ?? 0,
+        ((t.work ?? 0) / 60).toFixed(1),
+        t.isCritical ? 'Yes' : 'No',
+        t.constraintType,
+        `"${(t.notes ?? '').replace(/"/g, '""')}"`,
+      ]);
+
+      const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+      const safeName = project.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      reply
+        .header('Content-Type', 'text/csv')
+        .header('Content-Disposition', `attachment; filename="${safeName}.csv"`)
+        .send(csv);
+    },
+  );
+
+  // ---------- JSON Export ----------
+  app.get<{ Params: { projectId: string } }>(
+    '/export/json',
+    async (req, reply) => {
+      const { projectId } = req.params;
+      const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
+      const [tasks, deps, resources, assignments] = await Promise.all([
+        prisma.task.findMany({ where: { projectId }, orderBy: { sortOrder: 'asc' } }),
+        prisma.dependency.findMany({ where: { projectId } }),
+        prisma.resource.findMany({ where: { projectId } }),
+        prisma.assignment.findMany({ where: { task: { projectId } } }),
+      ]);
+
+      const payload = {
+        project: {
+          id: project.id,
+          name: project.name,
+          startDate: project.startDate.toISOString(),
+          finishDate: project.finishDate?.toISOString() ?? null,
+        },
+        tasks: tasks.map((t) => ({
+          id: t.id, wbsCode: t.wbsCode, name: t.name, type: t.type,
+          outlineLevel: t.outlineLevel, parentId: t.parentId,
+          durationMinutes: t.durationMinutes,
+          start: t.start.toISOString(), finish: t.finish.toISOString(),
+          percentComplete: t.percentComplete, isCritical: t.isCritical,
+          cost: t.cost, actualCost: t.actualCost,
+          work: t.work, actualWork: t.actualWork,
+          constraintType: t.constraintType,
+          notes: t.notes,
+        })),
+        dependencies: deps.map((d) => ({
+          fromTaskId: d.fromTaskId, toTaskId: d.toTaskId, type: d.type, lagMinutes: d.lagMinutes,
+        })),
+        resources: resources.map((r) => ({
+          id: r.id, name: r.name, type: r.type, maxUnits: r.maxUnits,
+        })),
+        assignments: assignments.map((a) => ({
+          taskId: a.taskId, resourceId: a.resourceId, units: a.units, workMinutes: a.workMinutes,
+        })),
+      };
+
+      const safeName = project.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      reply
+        .header('Content-Type', 'application/json')
+        .header('Content-Disposition', `attachment; filename="${safeName}.json"`)
+        .send(JSON.stringify(payload, null, 2));
+    },
+  );
+
+  // ---------- Excel-Compatible Export (XLSX-like TSV wrapped in .xls) ----------
+  app.get<{ Params: { projectId: string } }>(
+    '/export/excel',
+    async (req, reply) => {
+      const { projectId } = req.params;
+      const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
+      const tasks = await prisma.task.findMany({ where: { projectId }, orderBy: { sortOrder: 'asc' } });
+      const resources = await prisma.resource.findMany({ where: { projectId } });
+      const assignments = await prisma.assignment.findMany({ where: { task: { projectId } } });
+
+      // Build a resource name lookup
+      const resourceMap = new Map(resources.map((r) => [r.id, r.name]));
+
+      const headers = [
+        'WBS', 'Task Name', 'Type', 'Outline Level', 'Duration (days)', 'Start', 'Finish',
+        '% Complete', 'Cost', 'Actual Cost', 'Remaining Cost',
+        'Work (hours)', 'Actual Work (hours)',
+        'BCWS', 'BCWP', 'ACWP',
+        'Critical', 'Constraint', 'Resource Names', 'Notes',
+      ];
+
+      const rows: string[][] = [headers];
+
+      for (const t of tasks) {
+        const taskAssignments = assignments.filter((a) => a.taskId === t.id);
+        const resourceNames = taskAssignments.map((a) => resourceMap.get(a.resourceId) ?? '').filter(Boolean).join(', ');
+
+        rows.push([
+          t.wbsCode ?? '',
+          t.name,
+          t.type,
+          String(t.outlineLevel),
+          String(Math.round(t.durationMinutes / 480)),
+          t.start.toISOString().split('T')[0],
+          t.finish.toISOString().split('T')[0],
+          String(t.percentComplete),
+          String(t.cost ?? 0),
+          String(t.actualCost ?? 0),
+          String(t.remainingCost ?? 0),
+          String(Math.round((t.work ?? 0) / 60)),
+          String(Math.round((t.actualWork ?? 0) / 60)),
+          String(t.bcws ?? 0),
+          String(t.bcwp ?? 0),
+          String(t.acwp ?? 0),
+          t.isCritical ? 'Yes' : 'No',
+          String(t.constraintType ?? 'ASAP'),
+          resourceNames,
+          t.notes ?? '',
+        ]);
+      }
+
+      // Tab-separated, Excel recognizes .xls with TSV content
+      const tsv = rows.map((row) => row.map((cell) => cell.replace(/[\t\r\n]/g, ' ')).join('\t')).join('\r\n');
+      const safeName = project.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      reply
+        .header('Content-Type', 'application/vnd.ms-excel')
+        .header('Content-Disposition', `attachment; filename="${safeName}.xls"`)
+        .send(tsv);
+    },
+  );
+
+  // ---------- Bulk CSV Upsert ----------
+  // Accepts a CSV file. Rows whose "ID" column matches an existing task in the
+  // project are updated; rows without a match (or without an ID) are created.
+  app.post<{ Params: { projectId: string } }>(
+    '/import/bulk-csv',
+    async (req, reply) => {
+      const { projectId } = req.params;
+
+      const data = await (req as any).file();
+      if (!data) return reply.code(400).send({ error: 'No file uploaded' });
+
+      const content = (await data.toBuffer()).toString('utf-8');
+
+      // Parse CSV rows
+      const lines = content.split(/\r?\n/).filter((l: string) => l.trim());
+      if (lines.length < 2) {
+        return reply.code(400).send({ error: 'CSV must have a header row and at least one data row' });
+      }
+
+      const headerLine = lines[0];
+      const headers = parseCsvRow(headerLine).map((h: string) => h.trim());
+
+      // Normalised header lookup (case-insensitive, trimmed)
+      const col = (name: string) => {
+        const idx = headers.findIndex(
+          (h: string) => h.toLowerCase().replace(/[^a-z0-9%]/g, '') === name.toLowerCase().replace(/[^a-z0-9%]/g, ''),
+        );
+        return idx;
+      };
+
+      // Load existing tasks for this project
+      const existingTasks = await prisma.task.findMany({
+        where: { projectId },
+        orderBy: { sortOrder: 'asc' },
+      });
+      const taskById = new Map(existingTasks.map((t) => [t.id, t]));
+
+      // Determine next sort order
+      let nextSortOrder = (existingTasks.length > 0
+        ? Math.max(...existingTasks.map((t) => t.sortOrder)) + 1
+        : 0);
+
+      // Get project start date for fallback
+      const project = await prisma.project.findUniqueOrThrow({ where: { id: projectId } });
+
+      await captureUndo(projectId, 'Bulk CSV Import');
+
+      let created = 0;
+      let updated = 0;
+      const errors: string[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCsvRow(lines[i]);
+        const get = (name: string): string | undefined => {
+          const idx = col(name);
+          return idx >= 0 ? values[idx]?.trim() : undefined;
+        };
+
+        try {
+          const rowId = get('ID') || get('Id') || get('id');
+          const name = get('Name') || get('TaskName') || get('Task Name');
+
+          if (!name && !rowId) {
+            errors.push(`Row ${i + 1}: Missing both ID and Name — skipped`);
+            continue;
+          }
+
+          // Parse common fields
+          const durationDaysStr = get('Duration') || get('Duration (days)') || get('Durationdays');
+          const durationMinutes = durationDaysStr ? parseFloat(durationDaysStr) * 480 : undefined;
+          const startStr = get('Start');
+          const finishStr = get('Finish');
+          const pctStr = get('% Complete') || get('%Complete') || get('PercentComplete');
+          const percentComplete = pctStr != null && pctStr !== '' ? parseInt(pctStr, 10) : undefined;
+          const typeStr = get('Type');
+          const notesStr = get('Notes');
+          const costStr = get('Cost');
+          const actualCostStr = get('Actual Cost') || get('ActualCost');
+          const workStr = get('Work') || get('Work (hours)') || get('Workhours');
+          const actualWorkStr = get('Actual Work') || get('Actual Work (hours)') || get('ActualWorkhours');
+          const constraintStr = get('Constraint') || get('ConstraintType');
+
+          // Check if task exists
+          const existingTask = rowId ? taskById.get(rowId) : undefined;
+
+          if (existingTask) {
+            // --- UPDATE ---
+            const updateData: Record<string, unknown> = {};
+            if (name !== undefined) updateData.name = name;
+            if (durationMinutes !== undefined && !isNaN(durationMinutes)) updateData.durationMinutes = durationMinutes;
+            if (startStr) updateData.start = new Date(startStr);
+            if (finishStr) updateData.finish = new Date(finishStr);
+            if (percentComplete !== undefined && !isNaN(percentComplete)) updateData.percentComplete = Math.min(100, Math.max(0, percentComplete));
+            if (typeStr) updateData.type = typeStr.toLowerCase();
+            if (notesStr !== undefined) updateData.notes = notesStr;
+            if (costStr) updateData.fixedCost = parseFloat(costStr);
+            if (actualCostStr) updateData.actualCost = parseFloat(actualCostStr);
+            if (workStr) updateData.work = parseFloat(workStr) * 60; // hours → minutes
+            if (actualWorkStr) updateData.actualWork = parseFloat(actualWorkStr) * 60;
+            if (constraintStr != null && constraintStr !== '') {
+              const ct = parseInt(constraintStr, 10);
+              if (!isNaN(ct) && ct >= 0 && ct <= 7) updateData.constraintType = ct;
+            }
+
+            if (Object.keys(updateData).length > 0) {
+              await prisma.task.update({ where: { id: existingTask.id }, data: updateData });
+              updated++;
+            }
+          } else {
+            // --- CREATE ---
+            if (!name) {
+              errors.push(`Row ${i + 1}: New task requires a Name — skipped`);
+              continue;
+            }
+
+            const start = startStr ? new Date(startStr) : project.startDate;
+            const dur = durationMinutes !== undefined && !isNaN(durationMinutes) ? durationMinutes : 480;
+            const finish = finishStr
+              ? new Date(finishStr)
+              : new Date(start.getTime() + dur * 60_000);
+
+            await prisma.task.create({
+              data: {
+                projectId,
+                name,
+                wbsCode: '',
+                outlineLevel: 0,
+                type: typeStr?.toLowerCase() || 'task',
+                durationMinutes: dur,
+                start,
+                finish,
+                constraintType: constraintStr != null && constraintStr !== '' ? parseInt(constraintStr, 10) || 0 : 0,
+                percentComplete: percentComplete !== undefined && !isNaN(percentComplete) ? Math.min(100, Math.max(0, percentComplete)) : 0,
+                notes: notesStr ?? '',
+                fixedCost: costStr ? parseFloat(costStr) : 0,
+                actualCost: actualCostStr ? parseFloat(actualCostStr) : 0,
+                work: workStr ? parseFloat(workStr) * 60 : 0,
+                actualWork: actualWorkStr ? parseFloat(actualWorkStr) * 60 : 0,
+                sortOrder: nextSortOrder++,
+              },
+            });
+            created++;
+          }
+        } catch (err: unknown) {
+          errors.push(`Row ${i + 1}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      }
+
+      await recalculateProject(projectId);
+      await logImportEvent(projectId, 'bulk-csv', {
+        created,
+        updated,
+        errors: errors.length,
+      });
+      markProjectKnowledgeDirty(projectId);
+
+      return { created, updated, errors };
+    },
+  );
+}
+
+// ---------- Helpers ----------
+
+/** Parse a single CSV row, handling quoted fields with commas and escaped quotes. */
+function parseCsvRow(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+function parseUpdateFile(
+  content: string,
+  filename: string,
+): TaskUpdate[] | { error: string } {
+  const lowerFilename = filename.toLowerCase();
+
+  try {
+    if (lowerFilename.endsWith('.json')) {
+      const source = new JsonUpdateSource();
+      const result = source.parse(content);
+      if (result.errors.length > 0 && result.updates.length === 0) {
+        return { error: result.errors.map((e) => e.message).join('; ') };
+      }
+      return result.updates;
+    }
+
+    // Check if it's a STRATUS CSV
+    if (isStratusFormat(content.split('\\n')[0] ?? null)) {
+      const source = new StratusCsvUpdateSource();
+      const result = source.parse(content);
+      if (result.errors.length > 0 && result.updates.length === 0) {
+        return { error: result.errors.map((e) => e.message).join('; ') };
+      }
+      return result.updates;
+    }
+
+    // Default CSV
+    const source = new CsvUpdateSource();
+    const result = source.parse(content);
+    if (result.errors.length > 0 && result.updates.length === 0) {
+      return { error: result.errors.map((e) => e.message).join('; ') };
+    }
+    return result.updates;
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : 'Failed to parse file' };
+  }
+}
+
+async function buildProjectStore(projectId: string): Promise<IProjectStore> {
+  const tasks = await prisma.task.findMany({
+    where: { projectId },
+    orderBy: { sortOrder: 'asc' },
+  });
+
+  function toSnapshot(t: typeof tasks[0]): TaskSnapshot {
+    return {
+      uniqueId: parseInt(t.id, 10) || 0,
+      name: t.name,
+      externalKey: t.externalKey ?? null,
+      durationMinutes: t.durationMinutes,
+      start: t.start.toISOString(),
+      finish: t.finish.toISOString(),
+      percentComplete: t.percentComplete,
+      constraintType: t.constraintType as ConstraintType,
+      constraintDate: t.constraintDate?.toISOString() ?? null,
+      isSummary: t.type === 'summary',
+      isManuallyScheduled: t.isManuallyScheduled,
+      deadline: t.deadline?.toISOString() ?? null,
+      notes: t.notes,
+    };
+  }
+
+  return {
+    getAllTasks(): TaskSnapshot[] {
+      return tasks.map(toSnapshot);
+    },
+
+    getTaskByUniqueId(uniqueId: number): TaskSnapshot | null {
+      const task = tasks.find(
+        (t) => parseInt(t.id, 10) === uniqueId,
+      );
+      return task ? toSnapshot(task) : null;
+    },
+
+    getTaskByExternalKey(key: string, _fieldName: string): TaskSnapshot | null {
+      const task = tasks.find((t) => t.externalKey === key);
+      return task ? toSnapshot(task) : null;
+    },
+
+    applyUpdates(diffs: TaskDiff[], _options: ApplyOptions): ApplyResult {
+      // In-memory stub — actual persistence happens in the route handler
+      return {
+        totalProcessed: diffs.length,
+        applied: diffs.filter((d) => !d.isBlocked).length,
+        skipped: diffs.filter((d) => d.isBlocked).length,
+        failed: 0,
+        details: diffs.map((d) => ({
+          uniqueId: d.uniqueId || null,
+          externalKey: d.update.externalKey ?? null,
+          taskName: d.taskName,
+          status: d.isBlocked ? TaskApplyStatus.Skipped : TaskApplyStatus.Applied,
+          message: d.warnings.map((w) => w.message).join('; '),
+          changesApplied: d.changes,
+        })),
+      };
+    },
+
+    createTask(
+      update: TaskUpdate,
+      _options: ApplyOptions,
+      _parentUniqueId?: number | null,
+    ): TaskSnapshot {
+      return {
+        uniqueId: update.uniqueId ?? 0,
+        name: update.name ?? '',
+        externalKey: update.externalKey ?? null,
+        durationMinutes: update.newDurationMinutes ?? 480,
+        start: update.newStart ?? new Date().toISOString(),
+        finish: update.newFinish ?? new Date().toISOString(),
+        percentComplete: update.newPercentComplete ?? 0,
+        constraintType: ConstraintType.ASAP,
+        constraintDate: null,
+        isSummary: false,
+        isManuallyScheduled: false,
+        deadline: null,
+        notes: '',
+      };
+    },
+
+    findOrCreateSummaryTask(
+      name: string,
+      _parentUniqueId?: number | null,
+    ): TaskSnapshot {
+      const existing = tasks.find(
+        (t) => t.type === 'summary' && t.name === name,
+      );
+      if (existing) return toSnapshot(existing);
+      return {
+        uniqueId: 0,
+        name,
+        externalKey: null,
+        durationMinutes: 0,
+        start: new Date().toISOString(),
+        finish: new Date().toISOString(),
+        percentComplete: 0,
+        constraintType: ConstraintType.ASAP,
+        constraintDate: null,
+        isSummary: true,
+        isManuallyScheduled: false,
+        deadline: null,
+        notes: '',
+      };
+    },
+
+    setDeadline(_uniqueId: number, _deadline: string): void {
+      // no-op for now
+    },
+
+    setCustomTextField(
+      _uniqueId: number,
+      _fieldName: string,
+      _value: string,
+    ): void {
+      // no-op for now
+    },
+  };
+}
