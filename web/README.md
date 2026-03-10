@@ -15,6 +15,16 @@ packages/
 
 ## Prerequisites
 
+## Windows Quick Start
+
+From a fresh clone on Windows, the easiest path is:
+
+```powershell
+..\Setup-ScheduleSync.cmd
+```
+
+That bootstrap handles Node/pnpm setup, installs dependencies, generates the Prisma client, syncs the local SQLite database, and launches the app.
+
 - **Node.js** ≥ 20
 - **pnpm** ≥ 9 (`npm install -g pnpm`)
 
@@ -26,16 +36,30 @@ cd web
 pnpm install
 
 # 2. Generate Prisma client
-pnpm --filter @schedulesync/backend exec prisma generate
+pnpm db:generate
 
 # 3. Create / migrate the SQLite database
-pnpm --filter @schedulesync/backend exec prisma db push
+pnpm db:push
 
 # 4. Build all packages (engine → mspdi → backend/frontend)
 pnpm build
 
 # 5. Start both backend & frontend in dev mode
 pnpm dev
+```
+
+On Windows, prefer these helper entrypoints:
+
+```powershell
+cd web
+pnpm setup:launch
+```
+
+or, after first-time setup:
+
+```powershell
+cd web
+pnpm dev:windows
 ```
 
 The backend runs on **http://localhost:3001** and the frontend on **http://localhost:5173**
@@ -46,6 +70,13 @@ The backend runs on **http://localhost:3001** and the frontend on **http://local
 | Command | Description |
 |---------|-------------|
 | `pnpm dev` | Start backend + frontend in watch mode |
+| `pnpm setup:windows` | Install dependencies, generate Prisma client, and sync the local DB |
+| `pnpm setup:launch` | Run the Windows bootstrap path and launch the app |
+| `pnpm dev:windows` | Launch the app through the Windows repo launcher |
+| `pnpm dev:backend` | Start only the backend watch server |
+| `pnpm dev:frontend` | Start only the frontend watch server |
+| `pnpm db:generate` | Generate the Prisma client for the backend |
+| `pnpm db:push` | Create or update the local SQLite dev database |
 | `pnpm build` | Build all packages |
 | `pnpm test` | Run all unit tests (vitest) |
 | `pnpm test:e2e` | Run Playwright end-to-end tests |

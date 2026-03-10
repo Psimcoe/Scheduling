@@ -39,6 +39,7 @@ Thumbs.db
 
 ## Node / pnpm
 node_modules/
+.pnpm-store/
 dist/
 .turbo/
 *.tsbuildinfo

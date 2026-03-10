@@ -64,9 +64,44 @@ function Get-RepoPaths {
         EngineRoot   = Join-Path $webRoot 'packages\engine'
         MspdiRoot    = Join-Path $webRoot 'packages\mspdi'
         BackendRoot  = Join-Path $webRoot 'packages\backend'
+        BackendDbPath = Join-Path $webRoot 'packages\backend\prisma\dev.db'
+        BackendTemplateDbPath = Join-Path $webRoot 'packages\backend\prisma\dev-template.db'
         FrontendRoot = Join-Path $webRoot 'packages\frontend'
         LogRoot      = Join-Path $env:LOCALAPPDATA 'ScheduleSync\logs'
     }
+}
+
+function Convert-ToPrismaSqliteUrl {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath
+    )
+
+    return "file:$($FilePath.Replace('\', '/'))"
+}
+
+function Resolve-DatabaseFilePath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DefaultPath,
+        [string]$DatabaseUrl
+    )
+
+    if (-not $DatabaseUrl) {
+        return $DefaultPath
+    }
+
+    if (-not $DatabaseUrl.StartsWith('file:', [StringComparison]::OrdinalIgnoreCase)) {
+        return $DefaultPath
+    }
+
+    $pathPart = $DatabaseUrl.Substring(5)
+    if ([System.IO.Path]::IsPathRooted($pathPart)) {
+        return $pathPart.Replace('/', '\')
+    }
+
+    $schemaDirectory = Split-Path -Path $DefaultPath -Parent
+    return [System.IO.Path]::GetFullPath((Join-Path $schemaDirectory $pathPart))
 }
 
 function Assert-CommandPath {
@@ -76,6 +111,99 @@ function Assert-CommandPath {
     )
 
     return (Get-Command $Name -ErrorAction Stop).Source
+}
+
+function Find-NodeCommand {
+    $nodeCommand = Get-Command 'node' -ErrorAction SilentlyContinue
+    if ($nodeCommand) {
+        return $nodeCommand.Source
+    }
+
+    $commonPaths = @(
+        'C:\Program Files\nodejs\node.exe'
+        'C:\Program Files (x86)\nodejs\node.exe'
+        (Join-Path $env:LOCALAPPDATA 'Programs\nodejs\node.exe')
+    )
+
+    foreach ($path in $commonPaths) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+
+    $wingetPackagesRoot = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+    if (Test-Path $wingetPackagesRoot) {
+        $wingetNode = Get-ChildItem $wingetPackagesRoot -Recurse -Filter 'node.exe' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+        if ($wingetNode) {
+            return $wingetNode
+        }
+    }
+
+    return $null
+}
+
+function Resolve-CorepackCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$NodeCommand
+    )
+
+    $corepackCommand = Get-Command 'corepack' -ErrorAction SilentlyContinue
+    if ($corepackCommand) {
+        return $corepackCommand.Source
+    }
+
+    $nodeDirectory = Split-Path -Path $NodeCommand -Parent
+    foreach ($candidate in @(
+        (Join-Path $nodeDirectory 'corepack.cmd'),
+        (Join-Path $nodeDirectory 'corepack.exe')
+    )) {
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
+function Resolve-PnpmInvoker {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$NodeCommand
+    )
+
+    $pnpmCommand = Get-Command 'pnpm' -ErrorAction SilentlyContinue
+    if ($pnpmCommand) {
+        return [pscustomobject]@{
+            Command        = $pnpmCommand.Source
+            PrefixArguments = @()
+        }
+    }
+
+    $corepackCommand = Resolve-CorepackCommand -NodeCommand $NodeCommand
+    if (-not $corepackCommand) {
+        throw 'pnpm is not available and corepack could not be found next to Node.js.'
+    }
+
+    & $corepackCommand enable
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to enable pnpm with corepack (exit code $LASTEXITCODE)."
+    }
+
+    $pnpmCommand = Get-Command 'pnpm' -ErrorAction SilentlyContinue
+    if ($pnpmCommand) {
+        return [pscustomobject]@{
+            Command        = $pnpmCommand.Source
+            PrefixArguments = @()
+        }
+    }
+
+    return [pscustomobject]@{
+        Command        = $corepackCommand
+        PrefixArguments = @('pnpm')
+    }
 }
 
 function Invoke-Pnpm {
@@ -88,7 +216,7 @@ function Invoke-Pnpm {
 
     Push-Location $WorkingDirectory
     try {
-        & $script:PnpmCommand @Arguments
+        & $script:PnpmCommand @script:PnpmPrefixArguments @Arguments
         if ($LASTEXITCODE -ne 0) {
             throw "pnpm $($Arguments -join ' ') failed with exit code $LASTEXITCODE."
         }
@@ -235,7 +363,7 @@ function Ensure-WebWorkspaceReady {
     )
 
     if (Test-DependenciesNeedInstall -WebRoot $Paths.WebRoot) {
-        Invoke-Pnpm -WorkingDirectory $Paths.WebRoot -Arguments @('install')
+        Invoke-Pnpm -WorkingDirectory $Paths.WebRoot -Arguments @('install', '--force')
     }
 
     if (Test-SharedBuildNeeded -PackageRoot $Paths.EngineRoot) {
@@ -247,8 +375,24 @@ function Ensure-WebWorkspaceReady {
     }
 
     if ($IncludeBackendSetup) {
-        Invoke-Pnpm -WorkingDirectory $Paths.WebRoot -Arguments @('--filter', '@schedulesync/backend', 'exec', 'prisma', 'generate')
-        Invoke-Pnpm -WorkingDirectory $Paths.WebRoot -Arguments @('--filter', '@schedulesync/backend', 'exec', 'prisma', 'db', 'push')
+        if (-not $env:DATABASE_URL) {
+            $env:DATABASE_URL = Convert-ToPrismaSqliteUrl -FilePath $Paths.BackendDbPath
+        }
+
+        Invoke-Pnpm -WorkingDirectory $Paths.WebRoot -Arguments @('db:generate')
+
+        $databasePath = Resolve-DatabaseFilePath -DefaultPath $Paths.BackendDbPath -DatabaseUrl $env:DATABASE_URL
+        if (-not (Test-Path $databasePath) -and (Test-Path $Paths.BackendTemplateDbPath)) {
+            New-Item -ItemType Directory -Path (Split-Path -Path $databasePath -Parent) -Force | Out-Null
+            Copy-Item -Path $Paths.BackendTemplateDbPath -Destination $databasePath -Force
+        }
+
+        if (Test-Path $databasePath) {
+            Invoke-Pnpm -WorkingDirectory $Paths.WebRoot -Arguments @('db:push')
+        }
+        else {
+            Invoke-Pnpm -WorkingDirectory $Paths.WebRoot -Arguments @('db:deploy')
+        }
     }
 }
 
@@ -258,8 +402,14 @@ $frontendUrl = 'http://localhost:5173/'
 Start-LauncherTranscript -Path $LogPath
 
 try {
-    $script:PnpmCommand = Assert-CommandPath -Name 'pnpm'
-    [void](Assert-CommandPath -Name 'node')
+    $nodeCommand = Find-NodeCommand
+    if (-not $nodeCommand) {
+        throw 'Node.js 20 or later is required. Run Setup-ScheduleSync.cmd first, or install Node.js LTS and rerun.'
+    }
+
+    $pnpmInvoker = Resolve-PnpmInvoker -NodeCommand $nodeCommand
+    $script:PnpmCommand = $pnpmInvoker.Command
+    $script:PnpmPrefixArguments = @($pnpmInvoker.PrefixArguments)
 
     switch ($Mode) {
         'Backend' {

@@ -33,9 +33,22 @@ if (configuredDataDir) {
   mkdirSync(dataDir, { recursive: true });
 }
 
-const databasePath = join(dataDir, 'schedulesync.db');
-const packagedDatabaseTemplatePath = resolve(PACKAGE_ROOT, 'prisma', 'dev.db');
-if (configuredDataDir && !process.env.DATABASE_URL) {
+const packagedDatabaseTemplatePath = resolve(PACKAGE_ROOT, 'prisma', 'dev-template.db');
+const databasePath = configuredDataDir
+  ? join(dataDir, 'schedulesync.db')
+  : resolve(PACKAGE_ROOT, 'prisma', 'dev.db');
+
+if (!process.env.DATABASE_URL) {
+  if (!existsSync(databasePath) && existsSync(packagedDatabaseTemplatePath)) {
+    copyFileSync(packagedDatabaseTemplatePath, databasePath);
+  }
+
+  if (!configuredDataDir) {
+    process.env.DATABASE_URL = toPrismaSqliteUrl(databasePath);
+  }
+}
+
+if (configuredDataDir && !getTrimmedEnv('DATABASE_URL')) {
   if (!existsSync(databasePath) && existsSync(packagedDatabaseTemplatePath)) {
     copyFileSync(packagedDatabaseTemplatePath, databasePath);
   }

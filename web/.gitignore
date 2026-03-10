@@ -3,6 +3,7 @@ node_modules/
 packages/*/node_modules/
 packages/*/dist/
 packages/backend/prisma/*.db
+!packages/backend/prisma/dev-template.db
 packages/backend/prisma/*.db-journal
 packages/frontend/playwright-report/
 packages/frontend/test-results/

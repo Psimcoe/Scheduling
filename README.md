@@ -15,6 +15,21 @@ The repo also includes `ScheduleSync.Desktop`, a Windows `win-x64` WPF shell tha
 
 Mutable desktop data lives under `%LocalAppData%\ScheduleSync\Desktop`. The packaged backend serves both the SPA and `/api` on the same localhost origin.
 
+## Fresh Clone (Windows)
+
+On a new Windows machine, clone the repo and run `Setup-ScheduleSync.cmd` from the repo root.
+
+That one-time bootstrap will:
+
+- install Node.js LTS with `winget` if Node is missing,
+- enable `pnpm` with Corepack if needed,
+- install the `web` workspace dependencies,
+- generate the Prisma client,
+- create or update the local SQLite dev database,
+- launch the web app.
+
+After that, use `Run-ScheduleSync.cmd` from the repo root to relaunch the repo-hosted web app.
+
 ## Solution Structure
 
 ```
