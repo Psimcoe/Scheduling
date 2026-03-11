@@ -306,6 +306,7 @@ export function normalizeStratusPackage(
       getString(rawPackage, "name"),
       getFieldValue(fieldMap, ["STRATUS.Package.Name"]),
     ) ?? null;
+  const stratusProjectId = getString(rawPackage, "projectId");
   const projectNumber =
     firstNonEmptyString(
       getFieldValue(fieldMap, [
@@ -471,7 +472,7 @@ export function normalizeStratusPackage(
 
   return {
     id: packageId,
-    projectId: getString(rawPackage, "projectId"),
+    projectId: stratusProjectId,
     modelId: getString(rawPackage, "modelId"),
     packageNumber,
     packageName,
@@ -481,7 +482,9 @@ export function normalizeStratusPackage(
     externalKey: packageNumber
       ? projectNumber
         ? `${projectNumber}-${packageNumber}`
-        : packageNumber
+        : stratusProjectId
+          ? `${stratusProjectId}-${packageNumber}`
+          : packageNumber
       : packageId,
     normalizedFields,
     rawPackage,

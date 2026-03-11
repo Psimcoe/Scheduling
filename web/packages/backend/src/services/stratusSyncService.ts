@@ -2262,10 +2262,47 @@ async function upsertStratusTaskSync(
       pulledDeadlineSignature ?? toDateSignature(scheduledDates?.deadline),
   };
 
-  await prisma.stratusTaskSync.upsert({
-    where: { taskId },
-    create: { taskId, ...data },
-    update: data,
+  const [existingByPackage, existingByTask] = await Promise.all([
+    prisma.stratusTaskSync.findUnique({
+      where: {
+        localProjectId_packageId: {
+          localProjectId,
+          packageId: pkg.id,
+        },
+      },
+    }),
+    prisma.stratusTaskSync.findUnique({
+      where: { taskId },
+    }),
+  ]);
+
+  if (existingByPackage) {
+    if (existingByTask && existingByTask.id !== existingByPackage.id) {
+      await prisma.stratusTaskSync.delete({
+        where: { taskId },
+      });
+    }
+
+    await prisma.stratusTaskSync.update({
+      where: { id: existingByPackage.id },
+      data: {
+        taskId,
+        ...data,
+      },
+    });
+    return;
+  }
+
+  if (existingByTask) {
+    await prisma.stratusTaskSync.update({
+      where: { taskId },
+      data,
+    });
+    return;
+  }
+
+  await prisma.stratusTaskSync.create({
+    data: { taskId, ...data },
   });
 }
 
@@ -2851,8 +2888,29 @@ async function syncStratusProjectGroupsToProject(
     }
   }
 
+  const managedExternalKeys = new Set(
+    [...managedTaskIds]
+      .map((taskId) =>
+        normalizeNullableString(taskById.get(taskId)?.externalKey),
+      )
+      .filter((externalKey): externalKey is string => Boolean(externalKey)),
+  );
+
   for (const task of existingTasks) {
     if (managedTaskIds.has(task.id)) {
+      continue;
+    }
+
+    if (
+      shouldDeleteObsoleteStratusTask(
+        task,
+        managedExternalKeys,
+        options.includeProjectSummaries,
+      )
+    ) {
+      await prisma.task.delete({
+        where: { id: task.id },
+      });
       continue;
     }
 
@@ -2913,6 +2971,23 @@ function buildImportedProjectName(
     return `${trimmedNumber} - ${trimmedName}`;
   }
   return trimmedNumber ?? trimmedName ?? `Stratus Project ${projectId}`;
+}
+
+function shouldDeleteObsoleteStratusTask(
+  task: TaskWithSync,
+  managedExternalKeys: ReadonlySet<string>,
+  includeProjectSummaries: boolean,
+) {
+  const externalKey = normalizeNullableString(task.externalKey);
+  if (!externalKey) {
+    return false;
+  }
+
+  if (!includeProjectSummaries && externalKey.startsWith("stratus-project:")) {
+    return true;
+  }
+
+  return managedExternalKeys.has(externalKey);
 }
 
 function buildProjectRegion(stratusProject: NormalizedStratusProject) {

@@ -145,6 +145,23 @@ describe("stratusApi", () => {
     expect(normalized.trackingStatusName).toBe("Fabrication Complete");
   });
 
+  it("falls back to the Stratus project id in package external keys when project number is missing", () => {
+    const config = normalizeStratusConfig();
+    const normalized = normalizeStratusPackage(
+      {
+        id: "pkg-2",
+        projectId: "stratus-project-2",
+        modelId: "model-2",
+        number: "1252",
+        name: "Package 1252",
+        fieldNameToValueMap: {},
+      },
+      config,
+    );
+
+    expect(normalized.externalKey).toBe("stratus-project-2-1252");
+  });
+
   it("normalizes Stratus project and assembly records for import and grouping", () => {
     const project = normalizeStratusProject({
       id: "proj-1",
