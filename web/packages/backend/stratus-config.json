@@ -1,0 +1,218 @@
+{
+  "baseUrl": "https://api.gtpstratus.com/v1",
+  "appKey": "10fce333-54bf-4fa7-83a4-3d22a1c02fe9",
+  "companyId": "068aa999-feb6-436b-900b-6c02dbd728e5",
+  "taskNameField": "STRATUS.Package.Name",
+  "durationDaysField": "STRATUS.Field.SMC_Overview Days Estimate_Not Editable",
+  "durationHoursField": "STRATUS.Field.PREFAB ESTIMATED BUILD TIME",
+  "startDateField": "STRATUS.Field.SMC_Package Start Date",
+  "finishDateField": "STRATUS.Field.SMC_Package Estimated Finish Date",
+  "deadlineField": "STRATUS.Package.RequiredDT",
+  "startDateFieldIdOverride": "",
+  "finishDateFieldIdOverride": "",
+  "deadlineFieldIdOverride": "",
+  "cachedStartDateFieldId": "",
+  "cachedFinishDateFieldId": "",
+  "cachedDeadlineFieldId": "",
+  "statusProgressMappings": [
+    {
+      "statusId": "00000000-0000-0000-0000-000000000000",
+      "statusName": "[Undefined]",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "2664fb00-cec1-49d9-b3c1-6c4873a190f7",
+      "statusName": "New Item",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "5a47a2e3-1ac7-4c28-84ce-552fcdc7af64",
+      "statusName": "Design Stage",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "94d5bd75-57ea-401f-98f0-a82a2d285d85",
+      "statusName": "Design Stage-Prefab Early Planning",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "9d98ad2d-bb4c-43ff-92b5-1f6e37a3c1a1",
+      "statusName": "CLASH",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "8f37dd5f-ff5d-4b80-94da-352da827483d",
+      "statusName": "BIM/VDC Released to Prefab",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "c3c1c8cd-7831-4264-acf3-baa00da8ae1d",
+      "statusName": "Prefab Confirmed Received From BIM/VDC",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "65ba2108-106d-41ae-8319-08a3832150d1",
+      "statusName": "Spool QA/QC Complete-Ready for Assembly",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "ceb706b9-6d58-424f-ac02-4d7d1c06906f",
+      "statusName": "Assembly (Spool) Confirmed",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "7b1e2038-51a5-4167-91c5-7c88ac98537f",
+      "statusName": "Packages (FAB) Confirmed",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "f2cec0dd-176d-43cf-8e31-b1cec00bb5bc",
+      "statusName": "Package-BOM Generated",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "1aa68b4f-42e0-4c44-96f3-963602dac1a6",
+      "statusName": "Package-BOM Released for Purchasing",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "1b70441e-2767-4c81-9142-1dc0fbf66253",
+      "statusName": "Package-BOM Purchased",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "544f11e1-7e8a-429b-a14c-3a45879da3fa",
+      "statusName": "Package-BOM Received w/ Back Orders",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "303103ee-5f7d-424e-ae68-651382db228d",
+      "statusName": "Assembly-BOM Received",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "52ac33c1-c0cc-4f2f-926d-1c00ef764ce1",
+      "statusName": "Package-BOM Received No Backorders",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "74c5223e-bdc9-4a66-9041-fe83de65e738",
+      "statusName": "Ready for Fab Release to Shop",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "783eb9ea-0985-4b33-afbf-2f9ca65b6403",
+      "statusName": "Issued for Fabrication",
+      "percentCompleteShop": 10
+    },
+    {
+      "statusId": "da06d2b6-a9fa-45cf-82bc-bcdd83705ac1",
+      "statusName": "Fabrication in Progress",
+      "percentCompleteShop": 50
+    },
+    {
+      "statusId": "639c9b44-4211-4613-b84d-82ebb4154a1b",
+      "statusName": "Fabrication Complete",
+      "percentCompleteShop": 80
+    },
+    {
+      "statusId": "cf339166-927e-408b-a235-53c57efd816a",
+      "statusName": "QA QC Inspection",
+      "percentCompleteShop": 85
+    },
+    {
+      "statusId": "e2421754-9933-4185-ac4e-3642f5d3c9de",
+      "statusName": "Packaged for Shipment",
+      "percentCompleteShop": 95
+    },
+    {
+      "statusId": "fcebb720-efdf-4aab-a4c0-aeacbcd7e61f",
+      "statusName": "Waiting to Ship",
+      "percentCompleteShop": 98
+    },
+    {
+      "statusId": "1ba0d975-3487-40b0-b1e3-50fbfe1b7054",
+      "statusName": "Shipped to Jobsite",
+      "percentCompleteShop": 99
+    },
+    {
+      "statusId": "493d0932-ee31-461e-97cf-c55c14dc0fbf",
+      "statusName": "Received on Jobsite",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "401b58e1-3b0c-4b97-92dd-8e2acc831553",
+      "statusName": "Issued for Installation",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "c151d272-4b8d-4b96-b24a-060df8c3dbfa",
+      "statusName": "Installed",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "4be76997-8460-45e1-9f26-447856add454",
+      "statusName": "Wire Pulled",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "b5cd7c47-cbe6-4f47-b088-b6af75013c74",
+      "statusName": "Trim and Terminations Complete",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "20176b46-34d7-4090-b4a8-f920146b03b1",
+      "statusName": "Hold",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "56abd7da-9c22-4225-bec6-ad2a5c5f7469",
+      "statusName": "Point List Ready",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "0aaddec6-a2e3-4638-bdaa-e9fc5d92de6e",
+      "statusName": "FAB CANCELLED",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "61a3d021-4a62-425d-b2a7-4bf758703516",
+      "statusName": "NO PREFAB (FIELD INSTALL)",
+      "percentCompleteShop": 0
+    },
+    {
+      "statusId": "6edbfc37-c332-47ce-8991-62f51578d6ec",
+      "statusName": "TESTING",
+      "percentCompleteShop": 0
+    }
+  ],
+  "excludedProjectIds": [
+    "09dd197f-af51-4cec-9bb2-c02c273bbafd",
+    "164fb083-2545-49c0-86b3-0890b6d7c268",
+    "9fb052db-8363-4060-91e0-101ac9a8d8b6",
+    "5c6c8ff1-0304-40fa-aeb3-ddc151d8d674",
+    "4abf0869-8042-4881-91fc-b98c83efba3b",
+    "33231928-0df6-4908-acbf-725e2b3ab196",
+    "662b9ce7-2fac-4f7e-883d-bcbedf511e37",
+    "df0b0629-50f1-4155-9415-637f9e78bdea",
+    "53d11826-9ba0-401a-93d6-a867ce00db85",
+    "5588d99b-de40-4882-9584-af99fe8d7abc",
+    "59e697b3-a47a-46a3-90a8-cec44fe44510",
+    "3e409e46-d92f-410d-9e7c-ac4c81955572",
+    "27cf4748-1163-4fc9-8bb7-e135342d3d3b",
+    "18c45cca-7210-4b11-b7d0-77fe3e1eabc8",
+    "b8b1c9a7-0c84-4ce7-9eee-0ef6cbf3e8b3",
+    "e82a2c65-a18c-4027-b356-9c38fda03caa",
+    "e9c7cf10-f23e-474b-b777-06379d75ad97",
+    "b00b0aec-77f1-485d-b18f-ea6359c33f2e",
+    "c6a2611c-c935-4314-8036-4433605c2ba0",
+    "80ca67b1-a297-4d1b-ba65-3ad3189f1de1",
+    "7bb49c93-e8e5-4594-9d7d-0af9ac720e8b",
+    "f09db3ea-de7a-4877-bb29-c34925a0cbfd",
+    "dbe98059-c689-4381-af23-a61450ca8513",
+    "4c3dcc1e-3d7e-459b-aa10-49ff5c42768d",
+    "8eddfca2-cee8-4dbf-8c53-dd5ec34b30b9",
+    "b76d6bbf-21a3-4fee-9895-38a743c74a8c",
+    "eb8df122-5159-4329-86a4-8b63ccce1c12"
+  ]
+}

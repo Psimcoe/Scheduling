@@ -68,6 +68,7 @@ export interface NormalizedStratusPackage {
   modelId: string | null;
   packageNumber: string | null;
   packageName: string | null;
+  assemblyIds?: string[];
   trackingStatusId: string | null;
   trackingStatusName: string | null;
   externalKey: string | null;
@@ -329,6 +330,7 @@ export function normalizeStratusPackage(
       getString(rawPackage, "trackingStatusName"),
       getFieldValue(fieldMap, ["STRATUS.Package.TrackingStatus"]),
     ) ?? null;
+  const assemblyIds = getStringArray(rawPackage, "assemblyIds");
   const statusName =
     firstNonEmptyString(
       getString(rawPackage, "statusName"),
@@ -473,6 +475,7 @@ export function normalizeStratusPackage(
     modelId: getString(rawPackage, "modelId"),
     packageNumber,
     packageName,
+    assemblyIds,
     trackingStatusId,
     trackingStatusName: trackingStatusName ?? statusName,
     externalKey: packageNumber
@@ -680,6 +683,72 @@ export async function fetchAssembliesForPackage(
     const response = await stratusRequestJson<{ data?: unknown[] }>(
       config,
       `/v2/package/${encodeURIComponent(packageId)}/assemblies?${searchParams.toString()}`,
+    );
+    const items = Array.isArray(response.data) ? response.data : [];
+    results.push(
+      ...items.filter((item): item is Record<string, unknown> =>
+        isRecord(item),
+      ),
+    );
+    if (items.length < 1000) {
+      break;
+    }
+  }
+
+  return results;
+}
+
+export async function fetchModelsForProject(
+  config: StratusConfig,
+  projectId: string,
+): Promise<Record<string, unknown>[]> {
+  ensureStratusConfigured(config);
+  const results: Record<string, unknown>[] = [];
+  const where = `projectId eq '${escapeStratusWhereValue(projectId)}'`;
+
+  for (let page = 0; ; page++) {
+    const searchParams = new URLSearchParams({
+      page: String(page),
+      pagesize: "1000",
+      disabletotal: "true",
+      where,
+    });
+    const response = await stratusRequestJson<{ data?: unknown[] }>(
+      config,
+      `/v1/model?${searchParams.toString()}`,
+    );
+    const items = Array.isArray(response.data) ? response.data : [];
+    results.push(
+      ...items.filter((item): item is Record<string, unknown> =>
+        isRecord(item),
+      ),
+    );
+    if (items.length < 1000) {
+      break;
+    }
+  }
+
+  return results;
+}
+
+export async function fetchAssembliesForModel(
+  config: StratusConfig,
+  modelId: string,
+): Promise<Record<string, unknown>[]> {
+  ensureStratusConfigured(config);
+  const results: Record<string, unknown>[] = [];
+  const where = `modelId eq '${escapeStratusWhereValue(modelId)}'`;
+
+  for (let page = 0; ; page++) {
+    const searchParams = new URLSearchParams({
+      page: String(page),
+      pagesize: "1000",
+      disabletotal: "true",
+      where,
+    });
+    const response = await stratusRequestJson<{ data?: unknown[] }>(
+      config,
+      `/v1/assembly?${searchParams.toString()}`,
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
@@ -945,6 +1014,20 @@ function getString(
   key: string,
 ): string | null {
   return toNullableString(source[key]);
+}
+
+function getStringArray(
+  source: Record<string, unknown>,
+  key: string,
+): string[] {
+  const value = source[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => toNullableString(item))
+    .filter((item): item is string => Boolean(item));
 }
 
 function getFieldValue(

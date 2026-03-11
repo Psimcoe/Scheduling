@@ -12,8 +12,10 @@ import {
   type NormalizedStratusProject,
   type StratusProjectTarget,
   fetchActiveProjectsFromStratus,
+  fetchAssembliesForModel,
   fetchAssembliesForPackage,
   fetchCompanyFields,
+  fetchModelsForProject,
   fetchPackagesFromStratus,
   getConfiguredPackageFieldValue,
   normalizeStratusAssembly,
@@ -367,6 +369,9 @@ interface AppliedPackageGroup {
   packageTaskId: string;
   childTaskIds: string[];
 }
+
+const UNDEFINED_PACKAGE_NAME = "Undefined Package";
+const UNDEFINED_PACKAGE_PREFIX = "stratus-undefined-package:";
 
 export async function loadProjectStratusTarget(
   projectId: string,
@@ -777,7 +782,7 @@ export async function applyStratusProjectImport(
       prefabGroups,
       config,
       {
-        includeProjectSummaries: true,
+        includeProjectSummaries: false,
         canonicalPackageSync: true,
       },
     );
@@ -888,7 +893,7 @@ export async function applyStratusPull(
       groups,
       config,
       {
-        includeProjectSummaries: true,
+        includeProjectSummaries: false,
         canonicalPackageSync: true,
       },
     );
@@ -998,7 +1003,7 @@ export async function applyStratusPull(
     [projectGroup],
     config,
     {
-      includeProjectSummaries: true,
+      includeProjectSummaries: false,
       canonicalPackageSync: true,
     },
   );
@@ -2031,9 +2036,14 @@ async function loadStratusPackageBundles(
   const packages = (await fetchPackagesFromStratus(config, project))
     .map((pkg) => normalizeStratusPackage(pkg, config))
     .sort(compareStratusPackages);
-
   const bundles: StratusPackageBundle[] = [];
+  const assignedAssemblyIds = new Set<string>();
+
   for (const pkg of packages) {
+    for (const assemblyId of pkg.assemblyIds ?? []) {
+      assignedAssemblyIds.add(assemblyId);
+    }
+
     const rawAssemblies = pkg.id
       ? await fetchAssembliesForPackage(config, pkg.id)
       : [];
@@ -2042,10 +2052,128 @@ async function loadStratusPackageBundles(
         normalizeStratusAssembly(pkg.id, pkg.externalKey, rawAssembly),
       )
       .sort(compareStratusAssemblies);
+    for (const assembly of assemblies) {
+      assignedAssemblyIds.add(assembly.id);
+    }
     bundles.push({ package: pkg, assemblies });
   }
 
-  return bundles;
+  const unpackagedAssemblies = await loadUnpackagedStratusAssemblies(
+    project,
+    config,
+    packages
+      .map((pkg) => pkg.modelId)
+      .filter((modelId): modelId is string => Boolean(modelId)),
+    assignedAssemblyIds,
+  );
+  if (unpackagedAssemblies.length > 0) {
+    bundles.push({
+      package: createUndefinedPackage(project),
+      assemblies: unpackagedAssemblies.sort(compareStratusAssemblies),
+    });
+  }
+
+  return bundles.sort((left, right) =>
+    compareStratusPackages(left.package, right.package),
+  );
+}
+
+async function loadUnpackagedStratusAssemblies(
+  project: LoadedProjectTarget,
+  config: StratusConfig,
+  packageModelIds: readonly string[],
+  assignedAssemblyIds: ReadonlySet<string>,
+): Promise<NormalizedStratusAssembly[]> {
+  const placeholderPackage = createUndefinedPackage(project);
+  const unpackagedAssemblies: NormalizedStratusAssembly[] = [];
+  const seenAssemblyIds = new Set<string>(assignedAssemblyIds);
+  const modelIds = await loadStratusModelIdsForAssemblyScan(
+    project,
+    config,
+    packageModelIds,
+  );
+
+  for (const modelId of modelIds) {
+    const rawAssemblies = await fetchAssembliesForModel(config, modelId);
+    for (const rawAssembly of rawAssemblies) {
+      const assembly = normalizeStratusAssembly(
+        placeholderPackage.id,
+        placeholderPackage.externalKey,
+        rawAssembly,
+      );
+      if (!assembly.id || seenAssemblyIds.has(assembly.id)) {
+        continue;
+      }
+
+      seenAssemblyIds.add(assembly.id);
+      unpackagedAssemblies.push(assembly);
+    }
+  }
+
+  return unpackagedAssemblies;
+}
+
+async function loadStratusModelIdsForAssemblyScan(
+  project: LoadedProjectTarget,
+  config: StratusConfig,
+  packageModelIds: readonly string[],
+): Promise<string[]> {
+  const modelIds = new Set<string>();
+
+  if (project.stratusModelId) {
+    modelIds.add(project.stratusModelId);
+  }
+
+  for (const modelId of packageModelIds) {
+    modelIds.add(modelId);
+  }
+
+  if (project.stratusProjectId) {
+    const rawModels = await fetchModelsForProject(
+      config,
+      project.stratusProjectId,
+    );
+    for (const rawModel of rawModels) {
+      const modelId =
+        typeof rawModel.id === "string"
+          ? normalizeNullableString(rawModel.id)
+          : null;
+      if (modelId) {
+        modelIds.add(modelId);
+      }
+    }
+  }
+
+  return [...modelIds];
+}
+
+function createUndefinedPackage(
+  project: LoadedProjectTarget,
+): NormalizedStratusPackage {
+  const scopeKey =
+    project.stratusProjectId ?? project.stratusModelId ?? project.id;
+  const externalKey = `${UNDEFINED_PACKAGE_PREFIX}${scopeKey}`;
+
+  return {
+    id: externalKey,
+    projectId: project.stratusProjectId,
+    modelId: project.stratusModelId,
+    packageNumber: UNDEFINED_PACKAGE_NAME,
+    packageName: UNDEFINED_PACKAGE_NAME,
+    assemblyIds: [],
+    trackingStatusId: null,
+    trackingStatusName: null,
+    externalKey,
+    normalizedFields: {
+      "STRATUS.Package.Name": UNDEFINED_PACKAGE_NAME,
+      "STRATUS.Package.Number": UNDEFINED_PACKAGE_NAME,
+    },
+    rawPackage: {},
+  };
+}
+
+function isUndefinedPackage(pkg: NormalizedStratusPackage) {
+  return pkg.externalKey?.startsWith(UNDEFINED_PACKAGE_PREFIX) ?? false;
 }
 
 async function loadActiveStratusProjectGroupsForPrefab(
@@ -2141,15 +2269,8 @@ async function upsertStratusTaskSync(
   });
 }
 
-function resolveMappedTaskName(
-  config: StratusTaskMappingConfig,
-  pkg: NormalizedStratusPackage,
-): string {
-  return (
-    getConfiguredPackageFieldValue(pkg, config.taskNameField) ??
-    pkg.packageName ??
-    `Package ${pkg.id}`
-  );
+function resolveMappedTaskName(pkg: NormalizedStratusPackage): string {
+  return pkg.packageName ?? pkg.packageNumber ?? `Package ${pkg.id}`;
 }
 
 function resolveMappedDurationMinutes(
@@ -2216,7 +2337,7 @@ function createMappedPackageTaskData(
     ) ?? new Date(start.getTime() + durationMinutes * 60_000);
 
   return {
-    name: resolveMappedTaskName(config, pkg),
+    name: resolveMappedTaskName(pkg),
     start,
     finish,
     deadline: parseDateValue(
@@ -2244,7 +2365,7 @@ function createMappedPackagePreviewData(
   statusLookup: StatusProgressLookup,
 ): PullPreviewRow["mappedTask"] {
   return {
-    name: resolveMappedTaskName(config, pkg),
+    name: resolveMappedTaskName(pkg),
     start: getConfiguredPackageFieldValue(pkg, config.startDateField),
     finish: getConfiguredPackageFieldValue(pkg, config.finishDateField),
     deadline: getConfiguredPackageFieldValue(pkg, config.deadlineField),
@@ -2676,7 +2797,10 @@ async function syncStratusProjectGroupsToProject(
 
       const packageTask = await upsertTask({
         externalKey: bundle.package.externalKey ?? bundle.package.id,
-        packageId: options.canonicalPackageSync ? bundle.package.id : undefined,
+        packageId:
+          options.canonicalPackageSync && !isUndefinedPackage(bundle.package)
+            ? bundle.package.id
+            : undefined,
         name: mappedPackage.name,
         parentId: projectSummaryTaskId,
         outlineLevel: packageOutlineLevel,
@@ -2691,7 +2815,10 @@ async function syncStratusProjectGroupsToProject(
           options.referenceSourceProjectName,
           bundle.package.externalKey,
         ),
-        syncPackage: options.canonicalPackageSync ? bundle.package : undefined,
+        syncPackage:
+          options.canonicalPackageSync && !isUndefinedPackage(bundle.package)
+            ? bundle.package
+            : undefined,
       });
 
       for (const assembly of bundle.assemblies) {
@@ -2859,6 +2986,12 @@ function compareStratusPackages(
   left: NormalizedStratusPackage,
   right: NormalizedStratusPackage,
 ) {
+  const leftUndefined = isUndefinedPackage(left);
+  const rightUndefined = isUndefinedPackage(right);
+  if (leftUndefined !== rightUndefined) {
+    return leftUndefined ? 1 : -1;
+  }
+
   return (
     compareNullableStrings(left.packageNumber, right.packageNumber) ||
     compareNullableStrings(left.packageName, right.packageName) ||

@@ -106,6 +106,7 @@ describe("stratusApi", () => {
         id: "pkg-1",
         projectId: "stratus-project-1",
         modelId: "model-1",
+        assemblyIds: ["asm-1", "asm-2"],
         number: "P-100",
         name: "Package 100",
         qrCodeUrl: "https://example.test/qr",
@@ -139,6 +140,7 @@ describe("stratusApi", () => {
     expect(
       normalized.normalizedFields["STRATUS.Field.SMC_Package Start Date"],
     ).toBe("2026-03-03T00:00:00.000Z");
+    expect(normalized.assemblyIds).toEqual(["asm-1", "asm-2"]);
     expect(normalized.trackingStatusId).toBe("track-1");
     expect(normalized.trackingStatusName).toBe("Fabrication Complete");
   });

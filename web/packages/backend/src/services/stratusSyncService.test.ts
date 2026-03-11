@@ -217,6 +217,88 @@ describe("stratusSyncService", () => {
     expect(rows[0]?.mappedTask.percentComplete).toBe(50);
   });
 
+  it("keeps Stratus package task names package-based even when the config points at project name fields", () => {
+    const rows = buildPullPreviewRows(
+      [
+        {
+          package: {
+            id: "pkg-project-name",
+            projectId: "stratus-project",
+            modelId: "model-1",
+            packageNumber: "PKG-7",
+            packageName: "Package Seven",
+            trackingStatusId: null,
+            trackingStatusName: null,
+            externalKey: "1001-PKG-7",
+            normalizedFields: {
+              "STRATUS.Package.Name": "Package Seven",
+              "STRATUS.Field.Project Name Override": "Warehouse Expansion",
+            },
+            rawPackage: {},
+          },
+          assemblies: [],
+        },
+      ],
+      [],
+      480,
+      normalizeStratusConfig({
+        taskNameField: "STRATUS.Field.Project Name Override",
+      }),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.mappedTask.name).toBe("Package Seven");
+  });
+
+  it("supports an Undefined Package placeholder with only assembly children", () => {
+    const rows = buildPullPreviewRows(
+      [
+        {
+          package: {
+            id: "stratus-undefined-package:stratus-project-1",
+            projectId: "stratus-project-1",
+            modelId: null,
+            packageNumber: "Undefined Package",
+            packageName: "Undefined Package",
+            trackingStatusId: null,
+            trackingStatusName: null,
+            externalKey: "stratus-undefined-package:stratus-project-1",
+            normalizedFields: {
+              "STRATUS.Package.Name": "Undefined Package",
+              "STRATUS.Package.Number": "Undefined Package",
+            },
+            rawPackage: {},
+          },
+          assemblies: [
+            {
+              id: "asm-orphan-1",
+              packageId: "stratus-undefined-package:stratus-project-1",
+              projectId: "stratus-project-1",
+              modelId: "model-1",
+              name: "Assembly Without Package",
+              externalKey:
+                "stratus-undefined-package:stratus-project-1::assembly:asm-orphan-1",
+              trackingStatusId: null,
+              trackingStatusName: null,
+              notes: "",
+              rawAssembly: {},
+            },
+          ],
+        },
+      ],
+      [],
+      480,
+      normalizeStratusConfig(),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.mappedTask.name).toBe("Undefined Package");
+    expect(rows[0]?.assemblyCount).toBe(1);
+    expect(rows[0]?.assemblyRows[0]?.mappedTask.name).toBe(
+      "Assembly Without Package",
+    );
+  });
+
   it("includes only changed linked tasks in push preview rows", () => {
     const rows = buildPushPreviewRows([
       {
