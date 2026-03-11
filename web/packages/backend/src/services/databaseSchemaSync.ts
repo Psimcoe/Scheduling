@@ -10,6 +10,14 @@ const PACKAGE_ROOT = resolve(DIST_DIR, '..', '..');
 const PRISMA_CLI_PATH = resolve(PACKAGE_ROOT, 'node_modules', 'prisma', 'build', 'index.js');
 const PRISMA_SCHEMA_PATH = resolve(PACKAGE_ROOT, 'prisma', 'schema.prisma');
 const SCHEDULE_CHUNK_FTS_TABLE = 'AiScheduleChunkFts';
+const SCHEDULE_CHUNK_DERIVED_TABLES = [
+  SCHEDULE_CHUNK_FTS_TABLE,
+  `${SCHEDULE_CHUNK_FTS_TABLE}_config`,
+  `${SCHEDULE_CHUNK_FTS_TABLE}_content`,
+  `${SCHEDULE_CHUNK_FTS_TABLE}_data`,
+  `${SCHEDULE_CHUNK_FTS_TABLE}_docsize`,
+  `${SCHEDULE_CHUNK_FTS_TABLE}_idx`,
+] as const;
 
 async function pathExists(pathValue: string): Promise<boolean> {
   try {
@@ -63,7 +71,9 @@ function dropDerivedScheduleKnowledgeTables(): void {
   const database = new DatabaseSync(runtimeConfig.databasePath);
 
   try {
-    database.exec(`DROP TABLE IF EXISTS "${SCHEDULE_CHUNK_FTS_TABLE}"`);
+    for (const tableName of SCHEDULE_CHUNK_DERIVED_TABLES) {
+      database.exec(`DROP TABLE IF EXISTS "${tableName}"`);
+    }
   } finally {
     database.close();
   }

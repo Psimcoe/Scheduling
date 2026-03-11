@@ -363,34 +363,38 @@ function Start-DevProcess {
     }
 
     $errorLogPath = [System.IO.Path]::ChangeExtension($ChildLogPath, '.err.log')
-    $webRootLiteral = Convert-ToSingleQuotedPowerShellLiteral -Value $paths.WebRoot
-    $pnpmCommandLiteral = Convert-ToSingleQuotedPowerShellLiteral -Value $script:PnpmCommand
-    $pnpmArguments = @($script:PnpmPrefixArguments)
+    $serviceRoot = $null
+    $serviceCommand = $null
+    $serviceArguments = @()
 
     switch ($ServiceMode) {
         'Backend' {
-            $pnpmArguments += @('--filter', '@schedulesync/backend', 'dev')
+            $serviceRoot = $paths.BackendRoot
+            $serviceCommand = Join-Path $serviceRoot 'node_modules\.bin\tsx.CMD'
+            $serviceArguments = @('watch', 'src/server.ts')
         }
         'Frontend' {
-            $pnpmArguments += @('--filter', '@schedulesync/frontend', 'dev')
+            $serviceRoot = $paths.FrontendRoot
+            $serviceCommand = Join-Path $serviceRoot 'node_modules\.bin\vite.CMD'
         }
     }
 
-    $pnpmArgumentLiterals = @($pnpmArguments | ForEach-Object {
-        Convert-ToSingleQuotedPowerShellLiteral -Value $_
+    if (-not (Test-Path $serviceCommand)) {
+        throw "Unable to locate the $ServiceMode dev command at $serviceCommand."
+    }
+
+    $quotedServiceCommand = '"' + $serviceCommand.Replace('"', '""') + '"'
+    $quotedServiceArguments = @($serviceArguments | ForEach-Object {
+        '"' + $_.Replace('"', '""') + '"'
     }) -join ' '
+    $cmdLine = "call $quotedServiceCommand"
+    if ($quotedServiceArguments) {
+        $cmdLine = "$cmdLine $quotedServiceArguments"
+    }
 
-    $command = @(
-        '& {'
-        'Set-StrictMode -Version Latest'
-        '$ErrorActionPreference = ''Stop'''
-        "Set-Location $webRootLiteral"
-        "& $pnpmCommandLiteral $pnpmArgumentLiterals"
-        '}'
-    ) -join '; '
-
-    Start-Process -FilePath 'powershell.exe' `
-        -ArgumentList @('-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command) `
+    Start-Process -FilePath 'cmd.exe' `
+        -ArgumentList @('/d', '/c', $cmdLine) `
+        -WorkingDirectory $serviceRoot `
         -WindowStyle Hidden `
         -RedirectStandardOutput $ChildLogPath `
         -RedirectStandardError $errorLogPath | Out-Null

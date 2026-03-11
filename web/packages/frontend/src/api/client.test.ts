@@ -79,4 +79,24 @@ describe("API client request headers", () => {
     expect(init?.body).toBe(JSON.stringify(payload));
     expect(headers.get("Content-Type")).toBe("application/json");
   });
+
+  it("prefers backend message over generic error field", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          statusCode: 500,
+          error: "Internal Server Error",
+          message: "Stratus request failed (401): invalid app key",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(stratusApi.previewProjectImport()).rejects.toThrow(
+      "Stratus request failed (401): invalid app key",
+    );
+  });
 });

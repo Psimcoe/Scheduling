@@ -18,8 +18,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (res.status === 204) return undefined as unknown as T;
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(body.error ?? `Request failed: ${res.status}`);
+    const body = await res
+      .json()
+      .catch(() => ({ message: res.statusText, error: res.statusText }));
+    const message =
+      typeof body?.message === "string" && body.message.trim().length > 0
+        ? body.message
+        : typeof body?.error === "string" && body.error.trim().length > 0
+          ? body.error
+          : `Request failed: ${res.status}`;
+    throw new Error(message);
   }
 
   return res.json();
