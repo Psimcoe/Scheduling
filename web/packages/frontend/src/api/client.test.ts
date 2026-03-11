@@ -15,6 +15,7 @@ describe("API client request headers", () => {
 
   it.each<readonly [string, () => Promise<unknown>]>([
     ["testConnection", () => stratusApi.testConnection()],
+    ["testBigDataConnection", () => stratusApi.testBigDataConnection()],
     ["previewProjectImport", () => stratusApi.previewProjectImport()],
   ])(
     "omits Content-Type for no-body POST requests (%s)",
@@ -47,6 +48,19 @@ describe("API client request headers", () => {
           baseUrl: payload.baseUrl,
           appKeySet: false,
           companyId: "",
+          importReadSource: "apiOnly",
+          bigDataServer: "",
+          bigDataDatabase: "",
+          bigDataUsername: "",
+          bigDataPasswordSet: false,
+          bigDataEncrypt: false,
+          bigDataTrustServerCertificate: true,
+          bigDataTaskNameColumn: "",
+          bigDataDurationDaysColumn: "",
+          bigDataDurationHoursColumn: "",
+          bigDataStartDateColumn: "",
+          bigDataFinishDateColumn: "",
+          bigDataDeadlineColumn: "",
           taskNameField: "STRATUS.Package.Name",
           durationDaysField:
             "STRATUS.Field.SMC_Overview Days Estimate_Not Editable",

@@ -71,6 +71,7 @@ export interface NormalizedStratusPackage {
   assemblyIds?: string[];
   trackingStatusId: string | null;
   trackingStatusName: string | null;
+  percentCompleteShop?: number | null;
   externalKey: string | null;
   normalizedFields: Record<string, string | null>;
   rawPackage: Record<string, unknown>;
@@ -85,6 +86,7 @@ export interface NormalizedStratusAssembly {
   externalKey: string;
   trackingStatusId: string | null;
   trackingStatusName: string | null;
+  percentCompleteShop?: number | null;
   notes: string;
   rawAssembly: Record<string, unknown>;
 }
@@ -174,6 +176,35 @@ export function combineWhereClauses(
   }
 
   return filtered.map((clause) => `(${clause})`).join(" AND ");
+}
+
+const ARCHIVED_STATUS_TOKENS = new Set([
+  "archived",
+  "inactive",
+  "deleted",
+  "disabled",
+]);
+
+const ACTIVE_STATUS_TOKENS = new Set(["active", "activated"]);
+
+export const STRATUS_ACTIVE_PACKAGE_WHERE_CLAUSE = "statusName eq 'Active'";
+
+export function isImportableStratusPackageRecord(
+  rawPackage: Record<string, unknown>,
+): boolean {
+  return isImportableLifecycleRecord(
+    resolvePackageLifecycleStatus(rawPackage),
+    true,
+  );
+}
+
+export function isImportableStratusAssemblyRecord(
+  rawAssembly: Record<string, unknown>,
+): boolean {
+  return isImportableLifecycleRecord(
+    resolveAssemblyLifecycleStatus(rawAssembly),
+    true,
+  );
 }
 
 export function resolveFieldIdsFromDefinitions(
@@ -604,6 +635,7 @@ export async function fetchPackagesFromStratus(
     project.stratusProjectId
       ? `projectId eq '${escapeStratusWhereValue(project.stratusProjectId)}'`
       : null,
+    STRATUS_ACTIVE_PACKAGE_WHERE_CLAUSE,
     project.stratusPackageWhere,
   );
   const endpointBase = project.stratusModelId
@@ -627,8 +659,9 @@ export async function fetchPackagesFromStratus(
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
-      ...items.filter((item): item is Record<string, unknown> =>
-        isRecord(item),
+      ...items.filter(
+        (item): item is Record<string, unknown> =>
+          isRecord(item) && isImportableStratusPackageRecord(item),
       ),
     );
     if (items.length < STRATUS_PAGE_SIZE) {
@@ -689,8 +722,9 @@ export async function fetchAssembliesForPackage(
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
-      ...items.filter((item): item is Record<string, unknown> =>
-        isRecord(item),
+      ...items.filter(
+        (item): item is Record<string, unknown> =>
+          isRecord(item) && isImportableStratusAssemblyRecord(item),
       ),
     );
     if (items.length < 1000) {
@@ -755,8 +789,9 @@ export async function fetchAssembliesForModel(
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
-      ...items.filter((item): item is Record<string, unknown> =>
-        isRecord(item),
+      ...items.filter(
+        (item): item is Record<string, unknown> =>
+          isRecord(item) && isImportableStratusAssemblyRecord(item),
       ),
     );
     if (items.length < 1000) {
@@ -856,6 +891,53 @@ function resolveStratusUrl(baseUrl: string, path: string): string {
   }
 
   return `${normalizedBase}${normalizedPath}`;
+}
+
+function resolvePackageLifecycleStatus(
+  rawPackage: Record<string, unknown>,
+): string | null {
+  const fieldMap = getRecord(rawPackage, "fieldNameToValueMap");
+  return firstNonEmptyString(
+    getString(rawPackage, "statusName"),
+    getFieldValue(fieldMap, ["STRATUS.Package.Status", "Package Status"]),
+  );
+}
+
+function resolveAssemblyLifecycleStatus(
+  rawAssembly: Record<string, unknown>,
+): string | null {
+  const fieldMap = getRecord(rawAssembly, "fieldNameToValueMap");
+  return firstNonEmptyString(
+    getString(rawAssembly, "statusName"),
+    getFieldValue(fieldMap, ["STRATUS.Assembly.Status", "Assembly Status"]),
+  );
+}
+
+function isImportableLifecycleRecord(
+  status: string | null,
+  defaultWhenUnknown: boolean,
+): boolean {
+  const normalized = normalizeLifecycleStatus(status);
+  if (!normalized) {
+    return defaultWhenUnknown;
+  }
+  if (ACTIVE_STATUS_TOKENS.has(normalized)) {
+    return true;
+  }
+  if (
+    ARCHIVED_STATUS_TOKENS.has(normalized) ||
+    normalized.includes("archiv")
+  ) {
+    return false;
+  }
+  return false;
+}
+
+function normalizeLifecycleStatus(
+  value: string | null | undefined,
+): string | null {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  return normalized.length > 0 ? normalized : null;
 }
 
 export function toDateSignature(

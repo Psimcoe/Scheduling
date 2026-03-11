@@ -9,6 +9,7 @@ import {
   setStratusConfig,
 } from "../services/stratusConfig.js";
 import { testStratusConnection } from "../services/stratusApi.js";
+import { testStratusBigDataConnection } from "../services/stratusBigDataService.js";
 import {
   applyStratusProjectImport,
   applyStratusPull,
@@ -28,6 +29,19 @@ const configSchema = z.object({
   baseUrl: z.string().url().optional(),
   appKey: z.string().optional(),
   companyId: z.string().optional(),
+  importReadSource: z.enum(["sqlPreferred", "apiOnly"]).optional(),
+  bigDataServer: z.string().optional(),
+  bigDataDatabase: z.string().optional(),
+  bigDataUsername: z.string().optional(),
+  bigDataPassword: z.string().optional(),
+  bigDataEncrypt: z.boolean().optional(),
+  bigDataTrustServerCertificate: z.boolean().optional(),
+  bigDataTaskNameColumn: z.string().optional(),
+  bigDataDurationDaysColumn: z.string().optional(),
+  bigDataDurationHoursColumn: z.string().optional(),
+  bigDataStartDateColumn: z.string().optional(),
+  bigDataFinishDateColumn: z.string().optional(),
+  bigDataDeadlineColumn: z.string().optional(),
   taskNameField: z.string().optional(),
   durationDaysField: z.string().optional(),
   durationHoursField: z.string().optional(),
@@ -62,6 +76,10 @@ export default async function stratusRoutes(app: FastifyInstance) {
 
   app.post("/stratus/test", async () => {
     return testStratusConnection(getStratusConfig());
+  });
+
+  app.post("/stratus/big-data/test", async () => {
+    return testStratusBigDataConnection(getStratusConfig());
   });
 
   app.post("/stratus/projects/preview", async () => {

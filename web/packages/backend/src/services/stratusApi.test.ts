@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   getRequestedStratusFieldKeys,
+  isImportableStratusAssemblyRecord,
+  isImportableStratusPackageRecord,
   normalizeStratusAssembly,
   normalizeStratusPackage,
   normalizeStratusProject,
@@ -191,5 +193,44 @@ describe("stratusApi", () => {
     expect(assembly.externalKey).toBe("1001-PKG-1::assembly:asm-1");
     expect(assembly.trackingStatusName).toBe("Ready to Ship");
     expect(assembly.notes).toContain("Assembly note");
+  });
+
+  it("treats only active package lifecycle rows as importable", () => {
+    expect(
+      isImportableStratusPackageRecord({
+        id: "pkg-active",
+        statusName: "Active",
+      }),
+    ).toBe(true);
+    expect(
+      isImportableStratusPackageRecord({
+        id: "pkg-archived",
+        statusName: "Archived",
+      }),
+    ).toBe(false);
+    expect(
+      isImportableStratusPackageRecord({
+        id: "pkg-fallback",
+        fieldNameToValueMap: {
+          "STRATUS.Package.Status": "Archived",
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps assemblies importable when lifecycle status is absent but rejects archived rows when present", () => {
+    expect(
+      isImportableStratusAssemblyRecord({
+        id: "asm-unknown",
+      }),
+    ).toBe(true);
+    expect(
+      isImportableStratusAssemblyRecord({
+        id: "asm-archived",
+        fieldNameToValueMap: {
+          "STRATUS.Assembly.Status": "Archived",
+        },
+      }),
+    ).toBe(false);
   });
 });

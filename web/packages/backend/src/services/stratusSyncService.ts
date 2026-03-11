@@ -3,6 +3,7 @@ import { prisma } from "../db.js";
 import {
   type StratusConfig,
   type StratusStatusProgressMapping,
+  isStratusBigDataConfigured,
   setStratusConfig,
 } from "./stratusConfig.js";
 import {
@@ -12,10 +13,8 @@ import {
   type NormalizedStratusProject,
   type StratusProjectTarget,
   fetchActiveProjectsFromStratus,
-  fetchAssembliesForModel,
   fetchAssembliesForPackage,
   fetchCompanyFields,
-  fetchModelsForProject,
   fetchPackagesFromStratus,
   getConfiguredPackageFieldValue,
   normalizeStratusAssembly,
@@ -27,6 +26,14 @@ import {
   stratusRequestJson,
   toDateSignature,
 } from "./stratusApi.js";
+import {
+  type StratusPackageBundle,
+  type StratusProjectBundleGroup,
+  type StratusReadSourceInfo,
+  loadBigDataPackageBundleSnapshot,
+  loadBigDataPrefabProjectGroupSnapshot,
+  loadBigDataProjectImportSnapshot,
+} from "./stratusBigDataService.js";
 
 export interface StratusSyncSummary {
   packageId: string;
@@ -61,6 +68,7 @@ export interface ProjectImportPreviewRow {
 
 export interface ProjectImportPreviewResult {
   rows: ProjectImportPreviewRow[];
+  sourceInfo: StratusReadSourceInfo;
   summary: {
     totalProjects: number;
     createCount: number;
@@ -80,6 +88,7 @@ export interface ProjectImportApplyResult {
     localProjectName: string | null;
     message: string | null;
   }>;
+  sourceInfo: StratusReadSourceInfo;
   summary: {
     processed: number;
     created: number;
@@ -139,6 +148,7 @@ export interface PullPreviewRow {
 
 export interface PullPreviewResult {
   rows: PullPreviewRow[];
+  sourceInfo: StratusReadSourceInfo;
   summary: {
     totalPackages: number;
     createCount: number;
@@ -165,6 +175,7 @@ export interface PullApplyResult {
     failedAssemblies: number;
     message: string | null;
   }>;
+  sourceInfo: StratusReadSourceInfo;
   summary: {
     processed: number;
     created: number;
@@ -347,21 +358,11 @@ interface LocalProjectRecord {
   stratusProjectId: string | null;
 }
 
-interface StratusPackageBundle {
-  package: NormalizedStratusPackage;
-  assemblies: NormalizedStratusAssembly[];
-}
-
 interface SyncProjectTarget {
   id: string;
   name: string;
   startDate: Date;
   minutesPerDay: number;
-}
-
-interface StratusProjectBundleGroup {
-  stratusProject: NormalizedStratusProject;
-  bundles: StratusPackageBundle[];
 }
 
 interface AppliedPackageGroup {
@@ -371,8 +372,34 @@ interface AppliedPackageGroup {
 }
 
 const STRATUS_FETCH_CONCURRENCY = 6;
-const UNDEFINED_PACKAGE_NAME = "Undefined Package";
+const STRATUS_PREVIEW_CACHE_TTL_MS = 15 * 60 * 1_000;
+const STRATUS_PREVIEW_CACHE_MAX_ENTRIES = 24;
 const UNDEFINED_PACKAGE_PREFIX = "stratus-undefined-package:";
+
+const projectImportSnapshotCache = new Map<
+  string,
+  {
+    createdAt: number;
+    projects: NormalizedStratusProject[];
+    sourceInfo: StratusReadSourceInfo;
+  }
+>();
+const packageBundleSnapshotCache = new Map<
+  string,
+  {
+    createdAt: number;
+    bundles: StratusPackageBundle[];
+    sourceInfo: StratusReadSourceInfo;
+  }
+>();
+const prefabGroupSnapshotCache = new Map<
+  string,
+  {
+    createdAt: number;
+    groups: StratusProjectBundleGroup[];
+    sourceInfo: StratusReadSourceInfo;
+  }
+>();
 
 async function mapWithConcurrency<T, TResult>(
   items: readonly T[],
@@ -514,15 +541,29 @@ export async function buildProjectStratusStatus(
 
   const warnings: string[] = [];
   const prefabProject = isPrefabProjectName(project.name);
-  if (!config.appKey) {
-    warnings.push("Set a Stratus app key in Stratus Settings.");
+  const readConfigured = hasConfiguredStratusReadSource(config);
+  if (!readConfigured) {
+    warnings.push(
+      "Set a Stratus app key or configure Stratus Big Data in Stratus Settings.",
+    );
   }
   if (!prefabProject && !project.stratusProjectId && !project.stratusModelId) {
     warnings.push("Set a Stratus project id or model id for this project.");
   }
+  if (
+    config.importReadSource === "sqlPreferred" &&
+    !isStratusBigDataConfigured(config)
+  ) {
+    warnings.push(
+      "SQL import is selected, but Stratus Big Data is not fully configured. Reads will fall back to the Stratus API.",
+    );
+  }
+  if (!config.appKey) {
+    warnings.push("Set a Stratus app key to enable push to Stratus.");
+  }
 
   const pushPreview = buildPushPreviewRows(tasks);
-  const configured = config.appKey.length > 0;
+  const configured = readConfigured;
   const projectConfigured = prefabProject
     ? true
     : !!(project.stratusProjectId || project.stratusModelId);
@@ -532,11 +573,11 @@ export async function buildProjectStratusStatus(
   }
 
   return {
-    appKeySet: configured,
+    appKeySet: config.appKey.length > 0,
     configured,
     projectConfigured,
-    canPull: configured && projectConfigured,
-    canPush: configured && prefabProject && tasks.length > 0,
+    canPull: readConfigured && projectConfigured,
+    canPush: config.appKey.length > 0 && prefabProject && tasks.length > 0,
     linkedTaskCount: tasks.length,
     changedTaskCount: pushPreview.filter((row) => row.action === "push").length,
     stratusProjectId: project.stratusProjectId,
@@ -551,8 +592,8 @@ export async function buildProjectStratusStatus(
 export async function previewStratusProjectImport(
   config: StratusConfig,
 ): Promise<ProjectImportPreviewResult> {
-  const [rawProjects, localProjects] = await Promise.all([
-    fetchActiveProjectsFromStratus(config),
+  const [sourceSnapshot, localProjects] = await Promise.all([
+    loadProjectImportSnapshot(config, false),
     prisma.project.findMany({
       select: {
         id: true,
@@ -570,15 +611,14 @@ export async function previewStratusProjectImport(
   ]);
 
   const rows = buildProjectImportPreviewRows(
-    rawProjects
-      .map((rawProject) => normalizeStratusProject(rawProject))
-      .sort(compareStratusProjects),
+    sourceSnapshot.projects,
     localProjects,
     config.excludedProjectIds,
   );
 
   return {
     rows,
+    sourceInfo: sourceSnapshot.sourceInfo,
     summary: buildProjectImportPreviewSummary(rows),
   };
 }
@@ -586,10 +626,8 @@ export async function previewStratusProjectImport(
 export async function applyStratusProjectImport(
   config: StratusConfig,
 ): Promise<ProjectImportApplyResult> {
-  const rawProjects = await fetchActiveProjectsFromStratus(config);
-  const stratusProjects = rawProjects
-    .map((rawProject) => normalizeStratusProject(rawProject))
-    .sort(compareStratusProjects);
+  const sourceSnapshot = await loadProjectImportSnapshot(config, true);
+  const stratusProjects = sourceSnapshot.projects;
   const localProjects = await prisma.project.findMany({
     select: {
       id: true,
@@ -789,7 +827,9 @@ export async function applyStratusProjectImport(
             stratusLastPullAt: null,
             stratusLastPushAt: null,
           };
-          const bundles = await loadStratusPackageBundles(syncTarget, config);
+          const bundles = (
+            await loadStratusPackageBundleSnapshot(syncTarget, config, true)
+          ).bundles;
           return {
             stratusProject,
             targetProject,
@@ -852,6 +892,7 @@ export async function applyStratusProjectImport(
 
   return {
     rows,
+    sourceInfo: sourceSnapshot.sourceInfo,
     summary: {
       processed: preview.rows.length,
       created,
@@ -885,11 +926,13 @@ export async function previewStratusPull(
     },
   });
 
-  const bundles = isPrefabProjectName(project.name)
-    ? (await loadActiveStratusProjectGroupsForPrefab(project, config)).flatMap(
-        (group) => group.bundles,
-      )
-    : await loadStratusPackageBundles(project, config);
+  const sourceSnapshot = isPrefabProjectName(project.name)
+    ? await loadActiveStratusProjectGroupSnapshot(project, config, false)
+    : await loadStratusPackageBundleSnapshot(project, config, false);
+  const bundles =
+    "groups" in sourceSnapshot
+      ? sourceSnapshot.groups.flatMap((group) => group.bundles)
+      : sourceSnapshot.bundles;
   const rows = buildPullPreviewRows(
     bundles,
     tasks,
@@ -898,6 +941,7 @@ export async function previewStratusPull(
   );
   return {
     rows,
+    sourceInfo: sourceSnapshot.sourceInfo,
     summary: {
       totalPackages: rows.length,
       createCount: rows.filter((row) => row.action === "create").length,
@@ -926,10 +970,12 @@ export async function applyStratusPull(
 ): Promise<PullApplyResult> {
   const project = await loadProjectStratusTarget(projectId);
   if (isPrefabProjectName(project.name)) {
-    const groups = await loadActiveStratusProjectGroupsForPrefab(
+    const sourceSnapshot = await loadActiveStratusProjectGroupSnapshot(
       project,
       config,
+      true,
     );
+    const groups = sourceSnapshot.groups;
     const existingTasks = await prisma.task.findMany({
       where: { projectId },
       orderBy: { sortOrder: "asc" },
@@ -981,6 +1027,7 @@ export async function applyStratusPull(
         message:
           row.action === "skip" ? row.warnings.join(". ") || "Skipped." : null,
       })),
+      sourceInfo: sourceSnapshot.sourceInfo,
       summary: {
         processed: previewRows.length,
         created: previewRows.filter((row) => row.action === "create").length,
@@ -1008,7 +1055,12 @@ export async function applyStratusPull(
     };
   }
 
-  const bundles = await loadStratusPackageBundles(project, config);
+  const sourceSnapshot = await loadStratusPackageBundleSnapshot(
+    project,
+    config,
+    true,
+  );
+  const bundles = sourceSnapshot.bundles;
   const existingTasks = await prisma.task.findMany({
     where: { projectId },
     orderBy: { sortOrder: "asc" },
@@ -1092,6 +1144,7 @@ export async function applyStratusPull(
       message:
         row.action === "skip" ? row.warnings.join(". ") || "Skipped." : null,
     })),
+    sourceInfo: sourceSnapshot.sourceInfo,
     summary: {
       processed: previewRows.length,
       created: previewRows.filter((row) => row.action === "create").length,
@@ -2161,20 +2214,302 @@ function isStratusTaskSyncEquivalent(
   );
 }
 
-async function loadStratusPackageBundles(
+async function loadProjectImportSnapshot(
+  config: StratusConfig,
+  preferCached: boolean,
+): Promise<{
+  projects: NormalizedStratusProject[];
+  sourceInfo: StratusReadSourceInfo;
+}> {
+  const cacheKey = buildProjectImportSnapshotKey(config);
+  if (preferCached) {
+    const cached = getCachedSnapshot(projectImportSnapshotCache, cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  const snapshot = await loadProjectImportSnapshotFromSource(config);
+  setCachedSnapshot(projectImportSnapshotCache, cacheKey, snapshot);
+  return snapshot;
+}
+
+async function loadProjectImportSnapshotFromSource(config: StratusConfig) {
+  if (shouldPreferSqlBigData(config)) {
+    try {
+      return await loadBigDataProjectImportSnapshot(config);
+    } catch (error) {
+      return loadApiProjectImportSnapshot(
+        config,
+        buildApiFallbackSourceInfo(error, "Big Data import failed"),
+      );
+    }
+  }
+
+  return loadApiProjectImportSnapshot(config, buildApiSourceInfo());
+}
+
+async function loadApiProjectImportSnapshot(
+  config: StratusConfig,
+  sourceInfo: StratusReadSourceInfo,
+) {
+  const rawProjects = await fetchActiveProjectsFromStratus(config);
+  return {
+    projects: rawProjects
+      .map((rawProject) => normalizeStratusProject(rawProject))
+      .sort(compareStratusProjects),
+    sourceInfo,
+  };
+}
+
+async function loadStratusPackageBundleSnapshot(
+  project: LoadedProjectTarget,
+  config: StratusConfig,
+  preferCached: boolean,
+): Promise<{
+  bundles: StratusPackageBundle[];
+  sourceInfo: StratusReadSourceInfo;
+}> {
+  const cacheKey = buildPackageBundleSnapshotKey(project, config);
+  if (preferCached) {
+    const cached = getCachedSnapshot(packageBundleSnapshotCache, cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  const snapshot = await loadPackageBundleSnapshotFromSource(project, config);
+  setCachedSnapshot(packageBundleSnapshotCache, cacheKey, snapshot);
+  return snapshot;
+}
+
+async function loadPackageBundleSnapshotFromSource(
+  project: LoadedProjectTarget,
+  config: StratusConfig,
+) {
+  if (shouldPreferSqlBigData(config)) {
+    try {
+      return await loadBigDataPackageBundleSnapshot(config, project);
+    } catch (error) {
+      return {
+        bundles: await loadApiStratusPackageBundles(project, config),
+        sourceInfo: buildApiFallbackSourceInfo(error, "Big Data import failed"),
+      };
+    }
+  }
+
+  return {
+    bundles: await loadApiStratusPackageBundles(project, config),
+    sourceInfo: buildApiSourceInfo(),
+  };
+}
+
+async function loadActiveStratusProjectGroupSnapshot(
+  prefabProject: LoadedProjectTarget,
+  config: StratusConfig,
+  preferCached: boolean,
+): Promise<{
+  groups: StratusProjectBundleGroup[];
+  sourceInfo: StratusReadSourceInfo;
+}> {
+  const cacheKey = buildPrefabGroupSnapshotKey(config);
+  if (preferCached) {
+    const cached = getCachedSnapshot(prefabGroupSnapshotCache, cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  const snapshot = await loadActiveProjectGroupSnapshotFromSource(
+    prefabProject,
+    config,
+  );
+  setCachedSnapshot(prefabGroupSnapshotCache, cacheKey, snapshot);
+  return snapshot;
+}
+
+async function loadActiveProjectGroupSnapshotFromSource(
+  prefabProject: LoadedProjectTarget,
+  config: StratusConfig,
+) {
+  if (shouldPreferSqlBigData(config)) {
+    try {
+      return await loadBigDataPrefabProjectGroupSnapshot(config);
+    } catch (error) {
+      return {
+        groups: await loadApiActiveStratusProjectGroupsForPrefab(
+          prefabProject,
+          config,
+        ),
+        sourceInfo: buildApiFallbackSourceInfo(error, "Big Data import failed"),
+      };
+    }
+  }
+
+  return {
+    groups: await loadApiActiveStratusProjectGroupsForPrefab(
+      prefabProject,
+      config,
+    ),
+    sourceInfo: buildApiSourceInfo(),
+  };
+}
+
+function shouldPreferSqlBigData(config: StratusConfig) {
+  return (
+    config.importReadSource === "sqlPreferred" &&
+    isStratusBigDataConfigured(config)
+  );
+}
+
+function hasConfiguredStratusReadSource(config: StratusConfig) {
+  return config.appKey.length > 0 || shouldPreferSqlBigData(config);
+}
+
+function buildApiSourceInfo(
+  partial?: Partial<StratusReadSourceInfo>,
+): StratusReadSourceInfo {
+  return {
+    source: "stratusApi",
+    fallbackUsed: false,
+    message: null,
+    warnings: [],
+    freshness: null,
+    trackingStart: null,
+    packageReportName: null,
+    assemblyReportName: null,
+    isFullRebuild: null,
+    ...partial,
+  };
+}
+
+function buildApiFallbackSourceInfo(
+  error: unknown,
+  prefix: string,
+): StratusReadSourceInfo {
+  const detail =
+    error instanceof Error ? error.message : "Unknown Big Data error.";
+  const message = `${prefix}. Falling back to the Stratus API. ${detail}`;
+  return buildApiSourceInfo({
+    fallbackUsed: true,
+    message,
+    warnings: [message],
+  });
+}
+
+function buildProjectImportSnapshotKey(config: StratusConfig) {
+  return JSON.stringify({
+    kind: "project-import",
+    readSource: config.importReadSource,
+    baseUrl: config.baseUrl,
+    appKey: config.appKey,
+    companyId: config.companyId,
+    bigDataServer: config.bigDataServer,
+    bigDataDatabase: config.bigDataDatabase,
+    bigDataUsername: config.bigDataUsername,
+  });
+}
+
+function buildPackageBundleSnapshotKey(
+  project: LoadedProjectTarget,
+  config: StratusConfig,
+) {
+  return JSON.stringify({
+    kind: "package-bundles",
+    projectId: project.id,
+    stratusProjectId: project.stratusProjectId,
+    stratusModelId: project.stratusModelId,
+    stratusPackageWhere: project.stratusPackageWhere,
+    readSource: config.importReadSource,
+    baseUrl: config.baseUrl,
+    appKey: config.appKey,
+    companyId: config.companyId,
+    taskNameField: config.taskNameField,
+    durationDaysField: config.durationDaysField,
+    durationHoursField: config.durationHoursField,
+    startDateField: config.startDateField,
+    finishDateField: config.finishDateField,
+    deadlineField: config.deadlineField,
+    bigDataServer: config.bigDataServer,
+    bigDataDatabase: config.bigDataDatabase,
+    bigDataUsername: config.bigDataUsername,
+    bigDataTaskNameColumn: config.bigDataTaskNameColumn,
+    bigDataDurationDaysColumn: config.bigDataDurationDaysColumn,
+    bigDataDurationHoursColumn: config.bigDataDurationHoursColumn,
+    bigDataStartDateColumn: config.bigDataStartDateColumn,
+    bigDataFinishDateColumn: config.bigDataFinishDateColumn,
+    bigDataDeadlineColumn: config.bigDataDeadlineColumn,
+  });
+}
+
+function buildPrefabGroupSnapshotKey(config: StratusConfig) {
+  return JSON.stringify({
+    kind: "prefab-groups",
+    readSource: config.importReadSource,
+    baseUrl: config.baseUrl,
+    appKey: config.appKey,
+    companyId: config.companyId,
+    taskNameField: config.taskNameField,
+    durationDaysField: config.durationDaysField,
+    durationHoursField: config.durationHoursField,
+    startDateField: config.startDateField,
+    finishDateField: config.finishDateField,
+    deadlineField: config.deadlineField,
+    bigDataServer: config.bigDataServer,
+    bigDataDatabase: config.bigDataDatabase,
+    bigDataUsername: config.bigDataUsername,
+    bigDataTaskNameColumn: config.bigDataTaskNameColumn,
+    bigDataDurationDaysColumn: config.bigDataDurationDaysColumn,
+    bigDataDurationHoursColumn: config.bigDataDurationHoursColumn,
+    bigDataStartDateColumn: config.bigDataStartDateColumn,
+    bigDataFinishDateColumn: config.bigDataFinishDateColumn,
+    bigDataDeadlineColumn: config.bigDataDeadlineColumn,
+  });
+}
+
+function getCachedSnapshot<T extends { createdAt: number }>(
+  cache: Map<string, T>,
+  key: string,
+): Omit<T, "createdAt"> | null {
+  const cached = cache.get(key);
+  if (!cached) {
+    return null;
+  }
+
+  if (Date.now() - cached.createdAt > STRATUS_PREVIEW_CACHE_TTL_MS) {
+    cache.delete(key);
+    return null;
+  }
+
+  const { createdAt: _createdAt, ...snapshot } = cached;
+  return snapshot;
+}
+
+function setCachedSnapshot<T extends object>(
+  cache: Map<string, T & { createdAt: number }>,
+  key: string,
+  snapshot: T,
+) {
+  if (!cache.has(key) && cache.size >= STRATUS_PREVIEW_CACHE_MAX_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+    if (typeof oldestKey === "string") {
+      cache.delete(oldestKey);
+    }
+  }
+
+  cache.set(key, {
+    ...snapshot,
+    createdAt: Date.now(),
+  });
+}
+
+async function loadApiStratusPackageBundles(
   project: LoadedProjectTarget,
   config: StratusConfig,
 ): Promise<StratusPackageBundle[]> {
   const packages = (await fetchPackagesFromStratus(config, project))
     .map((pkg) => normalizeStratusPackage(pkg, config))
     .sort(compareStratusPackages);
-  const assignedAssemblyIds = new Set<string>();
-
-  for (const pkg of packages) {
-    for (const assemblyId of pkg.assemblyIds ?? []) {
-      assignedAssemblyIds.add(assemblyId);
-    }
-  }
 
   const bundles = await mapWithConcurrency(
     packages,
@@ -2192,136 +2527,16 @@ async function loadStratusPackageBundles(
     },
   );
 
-  for (const bundle of bundles) {
-    for (const assembly of bundle.assemblies) {
-      assignedAssemblyIds.add(assembly.id);
-    }
-  }
-
-  const unpackagedAssemblies = await loadUnpackagedStratusAssemblies(
-    project,
-    config,
-    packages
-      .map((pkg) => pkg.modelId)
-      .filter((modelId): modelId is string => Boolean(modelId)),
-    assignedAssemblyIds,
-  );
-  if (unpackagedAssemblies.length > 0) {
-    bundles.push({
-      package: createUndefinedPackage(project),
-      assemblies: unpackagedAssemblies.sort(compareStratusAssemblies),
-    });
-  }
-
   return bundles.sort((left, right) =>
     compareStratusPackages(left.package, right.package),
   );
-}
-
-async function loadUnpackagedStratusAssemblies(
-  project: LoadedProjectTarget,
-  config: StratusConfig,
-  packageModelIds: readonly string[],
-  assignedAssemblyIds: ReadonlySet<string>,
-): Promise<NormalizedStratusAssembly[]> {
-  const placeholderPackage = createUndefinedPackage(project);
-  const seenAssemblyIds = new Set<string>(assignedAssemblyIds);
-  const modelIds = await loadStratusModelIdsForAssemblyScan(
-    project,
-    config,
-    packageModelIds,
-  );
-
-  const unpackagedAssemblies: NormalizedStratusAssembly[] = [];
-  const assembliesByModel = await mapWithConcurrency(
-    modelIds,
-    STRATUS_FETCH_CONCURRENCY,
-    async (modelId) => fetchAssembliesForModel(config, modelId),
-  );
-
-  for (const rawAssemblies of assembliesByModel) {
-    for (const rawAssembly of rawAssemblies) {
-      const assembly = normalizeStratusAssembly(
-        placeholderPackage.id,
-        placeholderPackage.externalKey,
-        rawAssembly,
-      );
-      if (!assembly.id || seenAssemblyIds.has(assembly.id)) {
-        continue;
-      }
-
-      seenAssemblyIds.add(assembly.id);
-      unpackagedAssemblies.push(assembly);
-    }
-  }
-
-  return unpackagedAssemblies;
-}
-
-async function loadStratusModelIdsForAssemblyScan(
-  project: LoadedProjectTarget,
-  config: StratusConfig,
-  packageModelIds: readonly string[],
-): Promise<string[]> {
-  const modelIds = new Set<string>();
-
-  if (project.stratusModelId) {
-    modelIds.add(project.stratusModelId);
-  }
-
-  for (const modelId of packageModelIds) {
-    modelIds.add(modelId);
-  }
-
-  if (project.stratusProjectId) {
-    const rawModels = await fetchModelsForProject(
-      config,
-      project.stratusProjectId,
-    );
-    for (const rawModel of rawModels) {
-      const modelId =
-        typeof rawModel.id === "string"
-          ? normalizeNullableString(rawModel.id)
-          : null;
-      if (modelId) {
-        modelIds.add(modelId);
-      }
-    }
-  }
-
-  return [...modelIds];
-}
-
-function createUndefinedPackage(
-  project: LoadedProjectTarget,
-): NormalizedStratusPackage {
-  const scopeKey =
-    project.stratusProjectId ?? project.stratusModelId ?? project.id;
-  const externalKey = `${UNDEFINED_PACKAGE_PREFIX}${scopeKey}`;
-
-  return {
-    id: externalKey,
-    projectId: project.stratusProjectId,
-    modelId: project.stratusModelId,
-    packageNumber: UNDEFINED_PACKAGE_NAME,
-    packageName: UNDEFINED_PACKAGE_NAME,
-    assemblyIds: [],
-    trackingStatusId: null,
-    trackingStatusName: null,
-    externalKey,
-    normalizedFields: {
-      "STRATUS.Package.Name": UNDEFINED_PACKAGE_NAME,
-      "STRATUS.Package.Number": UNDEFINED_PACKAGE_NAME,
-    },
-    rawPackage: {},
-  };
 }
 
 function isUndefinedPackage(pkg: NormalizedStratusPackage) {
   return pkg.externalKey?.startsWith(UNDEFINED_PACKAGE_PREFIX) ?? false;
 }
 
-async function loadActiveStratusProjectGroupsForPrefab(
+async function loadApiActiveStratusProjectGroupsForPrefab(
   prefabProject: LoadedProjectTarget,
   config: StratusConfig,
 ): Promise<StratusProjectBundleGroup[]> {
@@ -2334,7 +2549,7 @@ async function loadActiveStratusProjectGroupsForPrefab(
     stratusProjects,
     Math.max(1, Math.min(4, STRATUS_FETCH_CONCURRENCY)),
     async (stratusProject) => {
-      const bundles = await loadStratusPackageBundles(
+      const bundles = await loadApiStratusPackageBundles(
         {
           id: prefabProject.id,
           name: prefabProject.name,
@@ -2505,9 +2720,17 @@ function resolveMappedProgress(
   status: {
     trackingStatusId: string | null;
     trackingStatusName: string | null;
+    percentCompleteShop?: number | null;
   },
   fallback = 0,
 ): number {
+  if (
+    typeof status.percentCompleteShop === "number" &&
+    Number.isFinite(status.percentCompleteShop)
+  ) {
+    return Math.max(0, Math.min(100, Math.round(status.percentCompleteShop)));
+  }
+
   const byId = normalizeLookupKey(status.trackingStatusId);
   if (byId && lookup.byId.has(byId)) {
     return lookup.byId.get(byId) ?? fallback;

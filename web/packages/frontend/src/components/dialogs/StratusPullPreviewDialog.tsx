@@ -23,6 +23,14 @@ function formatDate(value: string | null): string {
   return value ? value.slice(0, 10) : '-';
 }
 
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return '-';
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+}
+
 const StratusPullPreviewDialog: React.FC = () => {
   const open = useUIStore((s) => s.openDialog === 'stratusPullPreview');
   const closeDialog = useUIStore((s) => s.closeDialog);
@@ -97,6 +105,17 @@ const StratusPullPreviewDialog: React.FC = () => {
           </Alert>
           {preview && (
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Chip
+                label={
+                  preview.sourceInfo.source === 'sqlBigData'
+                    ? 'Source SQL Big Data'
+                    : preview.sourceInfo.fallbackUsed
+                      ? 'Source API Fallback'
+                      : 'Source Stratus API'
+                }
+                size="small"
+                color={preview.sourceInfo.source === 'sqlBigData' ? 'primary' : 'default'}
+              />
               <Chip label={`Packages ${preview.summary.totalPackages}`} size="small" />
               <Chip label={`Create ${preview.summary.createCount}`} size="small" color="success" />
               <Chip label={`Update ${preview.summary.updateCount}`} size="small" color="primary" />
@@ -106,6 +125,13 @@ const StratusPullPreviewDialog: React.FC = () => {
               <Chip label={`Assembly Update ${preview.summary.updateAssemblyCount}`} size="small" color="primary" />
               <Chip label={`Assembly Skip ${preview.summary.skipAssemblyCount}`} size="small" />
             </Box>
+          )}
+          {preview && (
+            <Alert severity={preview.sourceInfo.fallbackUsed ? 'warning' : 'info'}>
+              {preview.sourceInfo.message || 'Pull source ready.'}
+              <br />
+              Freshness {formatDateTime(preview.sourceInfo.freshness)} | Package report {preview.sourceInfo.packageReportName || '-'} | Assembly report {preview.sourceInfo.assemblyReportName || '-'}
+            </Alert>
           )}
 
           {loading && <Alert severity="info">Loading Stratus package preview...</Alert>}

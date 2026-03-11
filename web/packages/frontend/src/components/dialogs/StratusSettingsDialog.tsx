@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  MenuItem,
   Stack,
   Table,
   TableBody,
@@ -20,6 +21,7 @@ import {
 import { projectsApi, stratusApi } from "../../api";
 import type {
   SafeStratusConfigResponse,
+  StratusBigDataConnectionTestResponse,
   StratusStatusProgressMapping,
 } from "../../api/client";
 import { useProjectStore, useUIStore } from "../../stores";
@@ -55,6 +57,15 @@ function parsePercentInput(value: string): number | null {
   return Math.max(0, Math.min(100, Math.round(parsed)));
 }
 
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+}
+
 const StratusSettingsDialog: React.FC = () => {
   const open = useUIStore((s) => s.openDialog === "stratusSettings");
   const closeDialog = useUIStore((s) => s.closeDialog);
@@ -65,10 +76,32 @@ const StratusSettingsDialog: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testingBigData, setTestingBigData] = useState(false);
   const [appKeySet, setAppKeySet] = useState(false);
   const [baseUrl, setBaseUrl] = useState("");
   const [appKey, setAppKey] = useState("");
   const [companyId, setCompanyId] = useState("");
+  const [importReadSource, setImportReadSource] = useState<
+    "sqlPreferred" | "apiOnly"
+  >("apiOnly");
+  const [bigDataServer, setBigDataServer] = useState("");
+  const [bigDataDatabase, setBigDataDatabase] = useState("");
+  const [bigDataUsername, setBigDataUsername] = useState("");
+  const [bigDataPassword, setBigDataPassword] = useState("");
+  const [bigDataPasswordSet, setBigDataPasswordSet] = useState(false);
+  const [bigDataEncrypt, setBigDataEncrypt] = useState(false);
+  const [bigDataTrustServerCertificate, setBigDataTrustServerCertificate] =
+    useState(true);
+  const [bigDataTaskNameColumn, setBigDataTaskNameColumn] = useState("");
+  const [bigDataDurationDaysColumn, setBigDataDurationDaysColumn] =
+    useState("");
+  const [bigDataDurationHoursColumn, setBigDataDurationHoursColumn] =
+    useState("");
+  const [bigDataStartDateColumn, setBigDataStartDateColumn] = useState("");
+  const [bigDataFinishDateColumn, setBigDataFinishDateColumn] = useState("");
+  const [bigDataDeadlineColumn, setBigDataDeadlineColumn] = useState("");
+  const [bigDataStatus, setBigDataStatus] =
+    useState<StratusBigDataConnectionTestResponse | null>(null);
   const [taskNameField, setTaskNameField] = useState("");
   const [durationDaysField, setDurationDaysField] = useState("");
   const [durationHoursField, setDurationHoursField] = useState("");
@@ -94,6 +127,22 @@ const StratusSettingsDialog: React.FC = () => {
     setAppKey("");
     setAppKeySet(config.appKeySet);
     setCompanyId(config.companyId ?? "");
+    setImportReadSource(config.importReadSource ?? "apiOnly");
+    setBigDataServer(config.bigDataServer ?? "");
+    setBigDataDatabase(config.bigDataDatabase ?? "");
+    setBigDataUsername(config.bigDataUsername ?? "");
+    setBigDataPassword("");
+    setBigDataPasswordSet(config.bigDataPasswordSet ?? false);
+    setBigDataEncrypt(config.bigDataEncrypt ?? false);
+    setBigDataTrustServerCertificate(
+      config.bigDataTrustServerCertificate ?? true,
+    );
+    setBigDataTaskNameColumn(config.bigDataTaskNameColumn ?? "");
+    setBigDataDurationDaysColumn(config.bigDataDurationDaysColumn ?? "");
+    setBigDataDurationHoursColumn(config.bigDataDurationHoursColumn ?? "");
+    setBigDataStartDateColumn(config.bigDataStartDateColumn ?? "");
+    setBigDataFinishDateColumn(config.bigDataFinishDateColumn ?? "");
+    setBigDataDeadlineColumn(config.bigDataDeadlineColumn ?? "");
     setTaskNameField(config.taskNameField ?? "");
     setDurationDaysField(config.durationDaysField ?? "");
     setDurationHoursField(config.durationHoursField ?? "");
@@ -109,6 +158,7 @@ const StratusSettingsDialog: React.FC = () => {
     setStatusProgressMappings(
       mapStatusProgressRows(config.statusProgressMappings ?? []),
     );
+    setBigDataStatus(null);
     setStratusProjectId(activeProject?.stratusProjectId ?? "");
     setStratusModelId(activeProject?.stratusModelId ?? "");
     setStratusPackageWhere(activeProject?.stratusPackageWhere ?? "");
@@ -127,6 +177,25 @@ const StratusSettingsDialog: React.FC = () => {
       .then((config) => {
         if (!cancelled) {
           applyConfig(config);
+          if (
+            config.bigDataServer &&
+            config.bigDataDatabase &&
+            config.bigDataUsername &&
+            config.bigDataPasswordSet
+          ) {
+            void stratusApi
+              .testBigDataConnection()
+              .then((result) => {
+                if (!cancelled) {
+                  setBigDataStatus(result);
+                }
+              })
+              .catch(() => {
+                if (!cancelled) {
+                  setBigDataStatus(null);
+                }
+              });
+          }
         }
       })
       .catch((error: unknown) => {
@@ -166,6 +235,18 @@ const StratusSettingsDialog: React.FC = () => {
     const payload: Record<string, unknown> = {
       baseUrl: baseUrl.trim(),
       companyId: companyId.trim(),
+      importReadSource,
+      bigDataServer: bigDataServer.trim(),
+      bigDataDatabase: bigDataDatabase.trim(),
+      bigDataUsername: bigDataUsername.trim(),
+      bigDataEncrypt,
+      bigDataTrustServerCertificate,
+      bigDataTaskNameColumn: bigDataTaskNameColumn.trim(),
+      bigDataDurationDaysColumn: bigDataDurationDaysColumn.trim(),
+      bigDataDurationHoursColumn: bigDataDurationHoursColumn.trim(),
+      bigDataStartDateColumn: bigDataStartDateColumn.trim(),
+      bigDataFinishDateColumn: bigDataFinishDateColumn.trim(),
+      bigDataDeadlineColumn: bigDataDeadlineColumn.trim(),
       taskNameField: taskNameField.trim(),
       durationDaysField: durationDaysField.trim(),
       durationHoursField: durationHoursField.trim(),
@@ -185,6 +266,9 @@ const StratusSettingsDialog: React.FC = () => {
     };
     if (appKey.trim().length > 0 || !appKeySet) {
       payload.appKey = appKey.trim();
+    }
+    if (bigDataPassword.trim().length > 0 || !bigDataPasswordSet) {
+      payload.bigDataPassword = bigDataPassword.trim();
     }
     return payload;
   };
@@ -232,6 +316,25 @@ const StratusSettingsDialog: React.FC = () => {
     }
   };
 
+  const handleTestBigData = async () => {
+    setTestingBigData(true);
+    try {
+      const updated = await stratusApi.updateConfig(buildConfigPayload());
+      applyConfig(updated);
+      const result = await stratusApi.testBigDataConnection();
+      setBigDataStatus(result);
+      showSnackbar(result.message ?? "Big Data test complete", result.ok ? "success" : "error");
+    } catch (error: unknown) {
+      setBigDataStatus(null);
+      showSnackbar(
+        error instanceof Error ? error.message : "Big Data connection test failed",
+        "error",
+      );
+    } finally {
+      setTestingBigData(false);
+    }
+  };
+
   return (
     <Dialog open={open} onClose={closeDialog} maxWidth="lg" fullWidth>
       <DialogTitle>Stratus Settings</DialogTitle>
@@ -272,6 +375,194 @@ const StratusSettingsDialog: React.FC = () => {
             fullWidth
             disabled={loading || saving}
           />
+
+          <Divider />
+
+          <Typography variant="subtitle2">Big Data Import</Typography>
+          <TextField
+            select
+            label="Read Source"
+            value={importReadSource}
+            onChange={(e) =>
+              setImportReadSource(
+                e.target.value as "sqlPreferred" | "apiOnly",
+              )
+            }
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+            helperText="SQL preferred uses Stratus Big Data for import and pull when configured, then falls back to the Stratus API."
+          >
+            <MenuItem value="sqlPreferred">SQL Big Data Preferred</MenuItem>
+            <MenuItem value="apiOnly">API Only</MenuItem>
+          </TextField>
+          <TextField
+            label="Big Data Server"
+            value={bigDataServer}
+            onChange={(e) => setBigDataServer(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+          />
+          <TextField
+            label="Big Data Database"
+            value={bigDataDatabase}
+            onChange={(e) => setBigDataDatabase(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+          />
+          <TextField
+            label="Big Data Username"
+            value={bigDataUsername}
+            onChange={(e) => setBigDataUsername(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+          />
+          <TextField
+            label="Big Data Password"
+            value={bigDataPassword}
+            onChange={(e) => setBigDataPassword(e.target.value)}
+            size="small"
+            type="password"
+            fullWidth
+            disabled={loading || saving}
+            helperText={
+              bigDataPasswordSet
+                ? "A password is already stored. Leave blank to keep it unchanged."
+                : "Required for SQL-backed import."
+            }
+          />
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              select
+              label="Encrypt"
+              value={String(bigDataEncrypt)}
+              onChange={(e) => setBigDataEncrypt(e.target.value === "true")}
+              size="small"
+              fullWidth
+              disabled={loading || saving}
+            >
+              <MenuItem value="false">False</MenuItem>
+              <MenuItem value="true">True</MenuItem>
+            </TextField>
+            <TextField
+              select
+              label="Trust Server Certificate"
+              value={String(bigDataTrustServerCertificate)}
+              onChange={(e) =>
+                setBigDataTrustServerCertificate(e.target.value === "true")
+              }
+              size="small"
+              fullWidth
+              disabled={loading || saving}
+            >
+              <MenuItem value="true">True</MenuItem>
+              <MenuItem value="false">False</MenuItem>
+            </TextField>
+          </Stack>
+          <Alert severity="info">
+            Big Data reads are read-only. Push still goes through the Stratus
+            API. Projects with a custom package filter will automatically fall
+            back to the API.
+          </Alert>
+          {bigDataStatus && (
+            <Alert severity={bigDataStatus.ok ? "success" : "warning"}>
+              {bigDataStatus.message || "Big Data status loaded."}
+              <br />
+              Freshness: {formatDateTime(bigDataStatus.freshness)}
+              <br />
+              Package report: {bigDataStatus.packageReportName || "-"}
+              <br />
+              Assembly report: {bigDataStatus.assemblyReportName || "-"}
+            </Alert>
+          )}
+
+          <Typography variant="subtitle2">Advanced SQL Column Overrides</Typography>
+          <TextField
+            label="Task Name SQL Column"
+            value={bigDataTaskNameColumn}
+            onChange={(e) => setBigDataTaskNameColumn(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+            helperText="Optional. Example: Packages.Name"
+          />
+          <TextField
+            label="Duration Days SQL Column"
+            value={bigDataDurationDaysColumn}
+            onChange={(e) => setBigDataDurationDaysColumn(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+          />
+          <TextField
+            label="Duration Hours SQL Column"
+            value={bigDataDurationHoursColumn}
+            onChange={(e) => setBigDataDurationHoursColumn(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+          />
+          <TextField
+            label="Start SQL Column"
+            value={bigDataStartDateColumn}
+            onChange={(e) => setBigDataStartDateColumn(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+          />
+          <TextField
+            label="Finish SQL Column"
+            value={bigDataFinishDateColumn}
+            onChange={(e) => setBigDataFinishDateColumn(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+          />
+          <TextField
+            label="Deadline SQL Column"
+            value={bigDataDeadlineColumn}
+            onChange={(e) => setBigDataDeadlineColumn(e.target.value)}
+            size="small"
+            fullWidth
+            disabled={loading || saving}
+          />
+          {bigDataStatus?.fieldMappings?.length ? (
+            <Box
+              sx={{
+                maxHeight: 240,
+                overflow: "auto",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+              }}
+            >
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Mapping</TableCell>
+                    <TableCell>Configured Field</TableCell>
+                    <TableCell>Override</TableCell>
+                    <TableCell>Resolved SQL Column</TableCell>
+                    <TableCell>Warning</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {bigDataStatus.fieldMappings.map((mapping) => (
+                    <TableRow key={mapping.mappingKey}>
+                      <TableCell>{mapping.label}</TableCell>
+                      <TableCell>{mapping.configuredField || "-"}</TableCell>
+                      <TableCell>{mapping.overrideColumn || "-"}</TableCell>
+                      <TableCell>{mapping.resolvedColumn || "-"}</TableCell>
+                      <TableCell>{mapping.warning || "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          ) : null}
 
           <Divider />
 
@@ -482,9 +773,15 @@ const StratusSettingsDialog: React.FC = () => {
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
           <Button onClick={handleTest} disabled={loading || saving || testing}>
             {testing ? "Testing..." : "Test Connection"}
+          </Button>
+          <Button
+            onClick={handleTestBigData}
+            disabled={loading || saving || testingBigData}
+          >
+            {testingBigData ? "Testing Big Data..." : "Test Big Data"}
           </Button>
         </Box>
         <Button onClick={closeDialog} disabled={saving}>

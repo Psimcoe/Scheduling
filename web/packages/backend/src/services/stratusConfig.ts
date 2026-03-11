@@ -12,6 +12,9 @@ export const STRATUS_START_DATE_FIELD_NAME =
 export const STRATUS_FINISH_DATE_FIELD_NAME =
   "STRATUS.Field.SMC_Package Estimated Finish Date";
 export const STRATUS_DEADLINE_FIELD_NAME = "STRATUS.Package.RequiredDT";
+export const DEFAULT_STRATUS_IMPORT_READ_SOURCE = "apiOnly";
+
+export type StratusImportReadSource = "sqlPreferred" | "apiOnly";
 
 export interface StratusStatusProgressMapping {
   statusId: string;
@@ -23,6 +26,19 @@ export interface StratusConfig {
   baseUrl: string;
   appKey: string;
   companyId: string;
+  importReadSource: StratusImportReadSource;
+  bigDataServer: string;
+  bigDataDatabase: string;
+  bigDataUsername: string;
+  bigDataPassword: string;
+  bigDataEncrypt: boolean;
+  bigDataTrustServerCertificate: boolean;
+  bigDataTaskNameColumn: string;
+  bigDataDurationDaysColumn: string;
+  bigDataDurationHoursColumn: string;
+  bigDataStartDateColumn: string;
+  bigDataFinishDateColumn: string;
+  bigDataDeadlineColumn: string;
   taskNameField: string;
   durationDaysField: string;
   durationHoursField: string;
@@ -43,6 +59,19 @@ export interface SafeStratusConfig {
   baseUrl: string;
   appKeySet: boolean;
   companyId: string;
+  importReadSource: StratusImportReadSource;
+  bigDataServer: string;
+  bigDataDatabase: string;
+  bigDataUsername: string;
+  bigDataPasswordSet: boolean;
+  bigDataEncrypt: boolean;
+  bigDataTrustServerCertificate: boolean;
+  bigDataTaskNameColumn: string;
+  bigDataDurationDaysColumn: string;
+  bigDataDurationHoursColumn: string;
+  bigDataStartDateColumn: string;
+  bigDataFinishDateColumn: string;
+  bigDataDeadlineColumn: string;
   taskNameField: string;
   durationDaysField: string;
   durationHoursField: string;
@@ -237,6 +266,19 @@ const DEFAULT_CONFIG: StratusConfig = {
   baseUrl: DEFAULT_STRATUS_BASE_URL,
   appKey: "",
   companyId: "",
+  importReadSource: DEFAULT_STRATUS_IMPORT_READ_SOURCE,
+  bigDataServer: "",
+  bigDataDatabase: "",
+  bigDataUsername: "",
+  bigDataPassword: "",
+  bigDataEncrypt: false,
+  bigDataTrustServerCertificate: true,
+  bigDataTaskNameColumn: "",
+  bigDataDurationDaysColumn: "",
+  bigDataDurationHoursColumn: "",
+  bigDataStartDateColumn: "",
+  bigDataFinishDateColumn: "",
+  bigDataDeadlineColumn: "",
   taskNameField: STRATUS_TASK_NAME_FIELD_NAME,
   durationDaysField: STRATUS_DURATION_DAYS_FIELD_NAME,
   durationHoursField: STRATUS_DURATION_HOURS_FIELD_NAME,
@@ -325,6 +367,19 @@ export function getSafeStratusConfig(): SafeStratusConfig {
     baseUrl: config.baseUrl,
     appKeySet: config.appKey.length > 0,
     companyId: config.companyId,
+    importReadSource: config.importReadSource,
+    bigDataServer: config.bigDataServer,
+    bigDataDatabase: config.bigDataDatabase,
+    bigDataUsername: config.bigDataUsername,
+    bigDataPasswordSet: config.bigDataPassword.length > 0,
+    bigDataEncrypt: config.bigDataEncrypt,
+    bigDataTrustServerCertificate: config.bigDataTrustServerCertificate,
+    bigDataTaskNameColumn: config.bigDataTaskNameColumn,
+    bigDataDurationDaysColumn: config.bigDataDurationDaysColumn,
+    bigDataDurationHoursColumn: config.bigDataDurationHoursColumn,
+    bigDataStartDateColumn: config.bigDataStartDateColumn,
+    bigDataFinishDateColumn: config.bigDataFinishDateColumn,
+    bigDataDeadlineColumn: config.bigDataDeadlineColumn,
     taskNameField: config.taskNameField,
     durationDaysField: config.durationDaysField,
     durationHoursField: config.durationHoursField,
@@ -347,10 +402,36 @@ export function getSafeStratusConfig(): SafeStratusConfig {
 export function normalizeStratusConfig(
   raw?: Partial<StratusConfig> | null,
 ): StratusConfig {
+  const hasBigDataCredentials = hasStratusBigDataCredentials(raw);
   return {
     baseUrl: normalizeBaseUrl(raw?.baseUrl),
     appKey: normalizeOptionalString(raw?.appKey) ?? "",
     companyId: normalizeOptionalString(raw?.companyId) ?? "",
+    importReadSource: normalizeImportReadSource(
+      raw?.importReadSource,
+      hasBigDataCredentials,
+    ),
+    bigDataServer: normalizeOptionalString(raw?.bigDataServer) ?? "",
+    bigDataDatabase: normalizeOptionalString(raw?.bigDataDatabase) ?? "",
+    bigDataUsername: normalizeOptionalString(raw?.bigDataUsername) ?? "",
+    bigDataPassword: normalizeOptionalString(raw?.bigDataPassword) ?? "",
+    bigDataEncrypt: normalizeBoolean(raw?.bigDataEncrypt, false),
+    bigDataTrustServerCertificate: normalizeBoolean(
+      raw?.bigDataTrustServerCertificate,
+      true,
+    ),
+    bigDataTaskNameColumn:
+      normalizeOptionalString(raw?.bigDataTaskNameColumn) ?? "",
+    bigDataDurationDaysColumn:
+      normalizeOptionalString(raw?.bigDataDurationDaysColumn) ?? "",
+    bigDataDurationHoursColumn:
+      normalizeOptionalString(raw?.bigDataDurationHoursColumn) ?? "",
+    bigDataStartDateColumn:
+      normalizeOptionalString(raw?.bigDataStartDateColumn) ?? "",
+    bigDataFinishDateColumn:
+      normalizeOptionalString(raw?.bigDataFinishDateColumn) ?? "",
+    bigDataDeadlineColumn:
+      normalizeOptionalString(raw?.bigDataDeadlineColumn) ?? "",
     taskNameField:
       normalizeOptionalString(raw?.taskNameField) ??
       STRATUS_TASK_NAME_FIELD_NAME,
@@ -396,6 +477,48 @@ export function normalizeBaseUrl(baseUrl?: string | null): string {
 export function normalizeOptionalString(value?: string | null): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function hasStratusBigDataCredentials(raw?: Partial<StratusConfig> | null) {
+  return Boolean(
+    normalizeOptionalString(raw?.bigDataServer) &&
+      normalizeOptionalString(raw?.bigDataDatabase) &&
+      normalizeOptionalString(raw?.bigDataUsername) &&
+      normalizeOptionalString(raw?.bigDataPassword),
+  );
+}
+
+function normalizeImportReadSource(
+  value: StratusImportReadSource | string | null | undefined,
+  hasBigDataCredentials: boolean,
+): StratusImportReadSource {
+  return value === "sqlPreferred" || value === "apiOnly"
+    ? value
+    : hasBigDataCredentials
+      ? "sqlPreferred"
+      : DEFAULT_STRATUS_IMPORT_READ_SOURCE;
+}
+
+function normalizeBoolean(
+  value: boolean | string | null | undefined,
+  fallback: boolean,
+): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  const normalized = normalizeOptionalString(value);
+  if (!normalized) {
+    return fallback;
+  }
+
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+  return fallback;
 }
 
 function normalizeOptionalStringArray(values?: string[] | null): string[] {
@@ -493,4 +616,21 @@ export function ensureStratusConfigured(config: StratusConfig): void {
   if (!config.appKey) {
     throw new Error("Stratus app key is not configured.");
   }
+}
+
+export function isStratusBigDataConfigured(
+  config: Pick<
+    StratusConfig,
+    | "bigDataServer"
+    | "bigDataDatabase"
+    | "bigDataUsername"
+    | "bigDataPassword"
+  >,
+): boolean {
+  return Boolean(
+    normalizeOptionalString(config.bigDataServer) &&
+      normalizeOptionalString(config.bigDataDatabase) &&
+      normalizeOptionalString(config.bigDataUsername) &&
+      normalizeOptionalString(config.bigDataPassword),
+  );
 }

@@ -217,6 +217,37 @@ describe("stratusSyncService", () => {
     expect(rows[0]?.mappedTask.percentComplete).toBe(50);
   });
 
+  it("prefers SQL-native shop percent complete values over seeded status mappings when available", () => {
+    const rows = buildPullPreviewRows(
+      [
+        {
+          package: {
+            id: "pkg-sql-progress",
+            projectId: "stratus-project",
+            modelId: "model-1",
+            packageNumber: "PKG-SQL",
+            packageName: "Package SQL",
+            trackingStatusId: "2664fb00-cec1-49d9-b3c1-6c4873a190f7",
+            trackingStatusName: "New Item",
+            percentCompleteShop: 73,
+            externalKey: "1001-PKG-SQL",
+            normalizedFields: {
+              "STRATUS.Package.Name": "Package SQL",
+            },
+            rawPackage: {},
+          },
+          assemblies: [],
+        },
+      ],
+      [],
+      480,
+      normalizeStratusConfig(),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.mappedTask.percentComplete).toBe(73);
+  });
+
   it("uses the configured task name field for package tasks", () => {
     const rows = buildPullPreviewRows(
       [

@@ -375,6 +375,19 @@ export interface SafeStratusConfigResponse {
   baseUrl: string;
   appKeySet: boolean;
   companyId: string;
+  importReadSource: "sqlPreferred" | "apiOnly";
+  bigDataServer: string;
+  bigDataDatabase: string;
+  bigDataUsername: string;
+  bigDataPasswordSet: boolean;
+  bigDataEncrypt: boolean;
+  bigDataTrustServerCertificate: boolean;
+  bigDataTaskNameColumn: string;
+  bigDataDurationDaysColumn: string;
+  bigDataDurationHoursColumn: string;
+  bigDataStartDateColumn: string;
+  bigDataFinishDateColumn: string;
+  bigDataDeadlineColumn: string;
   taskNameField: string;
   durationDaysField: string;
   durationHoursField: string;
@@ -389,6 +402,40 @@ export interface SafeStratusConfigResponse {
   cachedDeadlineFieldId: string;
   statusProgressMappings: StratusStatusProgressMapping[];
   excludedProjectIds: string[];
+}
+
+export interface StratusReadSourceInfoResponse {
+  source: "sqlBigData" | "stratusApi";
+  fallbackUsed: boolean;
+  message: string | null;
+  warnings: string[];
+  freshness: string | null;
+  trackingStart: string | null;
+  packageReportName: string | null;
+  assemblyReportName: string | null;
+  isFullRebuild: boolean | null;
+}
+
+export interface StratusBigDataFieldValidationResponse {
+  mappingKey:
+    | "taskName"
+    | "durationDays"
+    | "durationHours"
+    | "startDate"
+    | "finishDate"
+    | "deadline";
+  label: string;
+  configuredField: string;
+  overrideColumn: string | null;
+  resolvedColumn: string | null;
+  warning: string | null;
+}
+
+export interface StratusBigDataConnectionTestResponse
+  extends StratusReadSourceInfoResponse {
+  ok: boolean;
+  configured: boolean;
+  fieldMappings: StratusBigDataFieldValidationResponse[];
 }
 
 export interface StratusProjectImportPreviewRow {
@@ -411,6 +458,7 @@ export interface StratusProjectImportPreviewRow {
 
 export interface StratusProjectImportPreviewResponse {
   rows: StratusProjectImportPreviewRow[];
+  sourceInfo: StratusReadSourceInfoResponse;
   summary: {
     totalProjects: number;
     createCount: number;
@@ -430,6 +478,7 @@ export interface StratusProjectImportApplyResponse {
     localProjectName: string | null;
     message: string | null;
   }>;
+  sourceInfo: StratusReadSourceInfoResponse;
   summary: {
     processed: number;
     created: number;
@@ -503,6 +552,7 @@ export interface StratusPullPreviewRow {
 
 export interface StratusPullPreviewResponse {
   rows: StratusPullPreviewRow[];
+  sourceInfo: StratusReadSourceInfoResponse;
   summary: {
     totalPackages: number;
     createCount: number;
@@ -529,6 +579,7 @@ export interface StratusPullApplyResponse {
     failedAssemblies: number;
     message: string | null;
   }>;
+  sourceInfo: StratusReadSourceInfoResponse;
   summary: {
     processed: number;
     created: number;
@@ -696,6 +747,10 @@ export const stratusApi = {
     }),
   testConnection: () =>
     request<{ ok: boolean; message: string }>("/stratus/test", {
+      method: "POST",
+    }),
+  testBigDataConnection: () =>
+    request<StratusBigDataConnectionTestResponse>("/stratus/big-data/test", {
       method: "POST",
     }),
   previewProjectImport: () =>

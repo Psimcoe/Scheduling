@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_STATUS_PROGRESS_MAPPINGS,
+  DEFAULT_STRATUS_IMPORT_READ_SOURCE,
   STRATUS_DEADLINE_FIELD_NAME,
   STRATUS_DURATION_DAYS_FIELD_NAME,
   STRATUS_DURATION_HOURS_FIELD_NAME,
   STRATUS_FINISH_DATE_FIELD_NAME,
   STRATUS_START_DATE_FIELD_NAME,
   STRATUS_TASK_NAME_FIELD_NAME,
+  isStratusBigDataConfigured,
   normalizeStratusConfig,
 } from "./stratusConfig.js";
 
@@ -20,6 +22,7 @@ describe("stratusConfig", () => {
     expect(config.startDateField).toBe(STRATUS_START_DATE_FIELD_NAME);
     expect(config.finishDateField).toBe(STRATUS_FINISH_DATE_FIELD_NAME);
     expect(config.deadlineField).toBe(STRATUS_DEADLINE_FIELD_NAME);
+    expect(config.importReadSource).toBe(DEFAULT_STRATUS_IMPORT_READ_SOURCE);
     expect(config.statusProgressMappings).toEqual(
       DEFAULT_STATUS_PROGRESS_MAPPINGS,
     );
@@ -36,5 +39,17 @@ describe("stratusConfig", () => {
     expect(config.deadlineFieldIdOverride).toBe("");
     expect(config.taskNameField).toBe(STRATUS_TASK_NAME_FIELD_NAME);
     expect(config.statusProgressMappings.length).toBeGreaterThan(0);
+  });
+
+  it("defaults to sqlPreferred when a legacy Big Data config is present without an explicit read-source mode", () => {
+    const config = normalizeStratusConfig({
+      bigDataServer: "server",
+      bigDataDatabase: "database",
+      bigDataUsername: "username",
+      bigDataPassword: "secret",
+    });
+
+    expect(config.importReadSource).toBe("sqlPreferred");
+    expect(isStratusBigDataConfigured(config)).toBe(true);
   });
 });

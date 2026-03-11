@@ -23,6 +23,14 @@ function formatDate(value: string | null): string {
   return value ? value.slice(0, 10) : '-';
 }
 
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return '-';
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+}
+
 function getExcludedProjectIds(preview: StratusProjectImportPreviewResponse | null): string[] {
   return preview?.rows
     .filter((row) => row.action === 'exclude')
@@ -152,12 +160,30 @@ const StratusProjectImportDialog: React.FC = () => {
           </Alert>
           {preview && (
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Chip
+                label={
+                  preview.sourceInfo.source === 'sqlBigData'
+                    ? 'Source SQL Big Data'
+                    : preview.sourceInfo.fallbackUsed
+                      ? 'Source API Fallback'
+                      : 'Source Stratus API'
+                }
+                size="small"
+                color={preview.sourceInfo.source === 'sqlBigData' ? 'primary' : 'default'}
+              />
               <Chip label={`Projects ${preview.summary.totalProjects}`} size="small" />
               <Chip label={`Create ${preview.summary.createCount}`} size="small" color="success" />
               <Chip label={`Update ${preview.summary.updateCount}`} size="small" color="primary" />
               <Chip label={`Skip ${preview.summary.skipCount}`} size="small" />
               <Chip label={`Excluded ${preview.summary.excludedCount}`} size="small" color="warning" />
             </Box>
+          )}
+          {preview && (
+            <Alert severity={preview.sourceInfo.fallbackUsed ? 'warning' : 'info'}>
+              {preview.sourceInfo.message || 'Import source ready.'}
+              <br />
+              Freshness {formatDateTime(preview.sourceInfo.freshness)} | Package report {preview.sourceInfo.packageReportName || '-'} | Assembly report {preview.sourceInfo.assemblyReportName || '-'}
+            </Alert>
           )}
 
           {loading && <Alert severity="info">Loading active Stratus projects...</Alert>}

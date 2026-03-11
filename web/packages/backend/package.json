@@ -26,11 +26,13 @@
     "@schedulesync/mspdi": "workspace:*",
     "dayjs": "^1.11.13",
     "fastify": "^5.2.0",
+    "mssql": "^12.1.0",
     "node-llama-cpp": "^3.17.1",
     "prisma": "^6.3.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/mssql": "^9.1.8",
     "@types/node": "^25.3.5",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",

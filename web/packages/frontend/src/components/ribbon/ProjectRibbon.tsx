@@ -390,7 +390,13 @@ const ProjectRibbon: React.FC = () => {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title={stratusStatus?.warnings[0] ?? 'Pull packages from Stratus'}>
+        <Tooltip
+          title={
+            stratusStatus?.canPull
+              ? 'Pull packages from Stratus'
+              : stratusStatus?.warnings[0] ?? 'Pull packages from Stratus'
+          }
+        >
           <span>
             <IconButton
               size="small"
