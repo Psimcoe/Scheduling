@@ -15,6 +15,7 @@ import {
   calendarsApi,
   baselinesApi,
 } from '../api';
+import type { StratusSyncSummary } from '../api/client';
 
 export interface ProjectSummary {
   id: string;
@@ -24,6 +25,11 @@ export interface ProjectSummary {
   projectType: string | null;
   sector: string | null;
   region: string | null;
+  stratusProjectId: string | null;
+  stratusModelId: string | null;
+  stratusPackageWhere: string | null;
+  stratusLastPullAt: string | null;
+  stratusLastPushAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +61,7 @@ export interface TaskRow {
   notes: string | null;
   externalKey: string | null;
   sortOrder: number;
+  stratusSync: StratusSyncSummary | null;
   // Cost fields
   fixedCost: number | null;
   fixedCostAccrual: string | null;

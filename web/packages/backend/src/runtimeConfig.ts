@@ -63,6 +63,7 @@ export const runtimeConfig = {
   staticDir,
   databasePath,
   aiConfigPath: join(dataDir, 'ai-config.json'),
+  stratusConfigPath: join(dataDir, 'stratus-config.json'),
   modelsDir: join(dataDir, 'data', 'models'),
   shutdownOnStdinClose: process.env.SCHEDULESYNC_SHUTDOWN_ON_STDIN_CLOSE === '1',
   isDesktopRuntime: configuredDataDir !== null,

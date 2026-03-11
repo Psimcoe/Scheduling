@@ -36,6 +36,11 @@ export interface ProjectSummaryResponse {
   projectType: string | null;
   sector: string | null;
   region: string | null;
+  stratusProjectId: string | null;
+  stratusModelId: string | null;
+  stratusPackageWhere: string | null;
+  stratusLastPullAt: string | null;
+  stratusLastPushAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -317,6 +322,262 @@ export const importExportApi = {
     if (!res.ok) throw new Error('Bulk CSV import failed');
     return res.json() as Promise<{ created: number; updated: number; errors: string[] }>;
   },
+};
+
+// ---------- Stratus ----------
+
+export interface StratusSyncSummary {
+  packageId: string;
+  packageNumber: string | null;
+  packageName: string | null;
+  trackingStatusId: string | null;
+  trackingStatusName: string | null;
+  lastPulledAt: string;
+  lastPushedAt: string | null;
+  pulledStart: string | null;
+  pulledFinish: string | null;
+  pulledDeadline: string | null;
+}
+
+export interface SafeStratusConfigResponse {
+  baseUrl: string;
+  appKeySet: boolean;
+  companyId: string;
+  startDateFieldIdOverride: string;
+  finishDateFieldIdOverride: string;
+  cachedStartDateFieldId: string;
+  cachedFinishDateFieldId: string;
+}
+
+export interface StratusProjectImportPreviewRow {
+  action: 'create' | 'update' | 'skip';
+  stratusProjectId: string;
+  projectNumber: string | null;
+  projectName: string | null;
+  localProjectId: string | null;
+  localProjectName: string | null;
+  warnings: string[];
+  mappedProject: {
+    name: string;
+    startDate: string;
+    finishDate: string | null;
+    projectType: string | null;
+    sector: string | null;
+    region: string | null;
+  };
+}
+
+export interface StratusProjectImportPreviewResponse {
+  rows: StratusProjectImportPreviewRow[];
+  summary: {
+    totalProjects: number;
+    createCount: number;
+    updateCount: number;
+    skipCount: number;
+  };
+}
+
+export interface StratusProjectImportApplyResponse {
+  rows: Array<{
+    action: 'created' | 'updated' | 'skipped' | 'failed';
+    stratusProjectId: string;
+    projectNumber: string | null;
+    projectName: string | null;
+    localProjectId: string | null;
+    localProjectName: string | null;
+    message: string | null;
+  }>;
+  summary: {
+    processed: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+  };
+}
+
+export interface StratusStatusResponse {
+  appKeySet: boolean;
+  configured: boolean;
+  projectConfigured: boolean;
+  canPull: boolean;
+  canPush: boolean;
+  linkedTaskCount: number;
+  changedTaskCount: number;
+  stratusProjectId: string | null;
+  stratusModelId: string | null;
+  stratusPackageWhere: string | null;
+  lastPullAt: string | null;
+  lastPushAt: string | null;
+  warnings: string[];
+}
+
+export interface StratusPullPreviewRow {
+  action: 'create' | 'update' | 'skip';
+  matchStrategy: 'packageId' | 'externalKey' | 'none';
+  packageId: string;
+  packageNumber: string | null;
+  packageName: string | null;
+  externalKey: string | null;
+  taskId: string | null;
+  taskName: string | null;
+  warnings: string[];
+  assemblyCount: number;
+  createAssemblyCount: number;
+  updateAssemblyCount: number;
+  skipAssemblyCount: number;
+  assemblyRows: Array<{
+    action: 'create' | 'update' | 'skip';
+    assemblyId: string;
+    assemblyName: string | null;
+    externalKey: string;
+    taskId: string | null;
+    taskName: string | null;
+    warnings: string[];
+    mappedTask: {
+      name: string;
+      start: string | null;
+      finish: string | null;
+      deadline: string | null;
+      durationMinutes: number | null;
+      percentComplete: number;
+      notes: string;
+      externalKey: string;
+    };
+  }>;
+  mappedTask: {
+    name: string;
+    start: string | null;
+    finish: string | null;
+    deadline: string | null;
+    durationMinutes: number | null;
+    percentComplete: number;
+    notes: string;
+    externalKey: string | null;
+  };
+}
+
+export interface StratusPullPreviewResponse {
+  rows: StratusPullPreviewRow[];
+  summary: {
+    totalPackages: number;
+    createCount: number;
+    updateCount: number;
+    skipCount: number;
+    totalAssemblies: number;
+    createAssemblyCount: number;
+    updateAssemblyCount: number;
+    skipAssemblyCount: number;
+  };
+}
+
+export interface StratusPullApplyResponse {
+  rows: Array<{
+    action: 'created' | 'updated' | 'skipped' | 'failed';
+    packageId: string;
+    packageNumber: string | null;
+    packageName: string | null;
+    taskId: string | null;
+    taskName: string | null;
+    createdAssemblies: number;
+    updatedAssemblies: number;
+    skippedAssemblies: number;
+    failedAssemblies: number;
+    message: string | null;
+  }>;
+  summary: {
+    processed: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+    totalAssemblies: number;
+    createdAssemblies: number;
+    updatedAssemblies: number;
+    skippedAssemblies: number;
+    failedAssemblies: number;
+  };
+}
+
+export interface StratusPushPreviewResponse {
+  rows: Array<{
+    action: 'push' | 'skip';
+    taskId: string;
+    taskName: string;
+    packageId: string;
+    packageNumber: string | null;
+    packageName: string | null;
+    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    warnings: string[];
+  }>;
+  summary: {
+    linkedTaskCount: number;
+    pushCount: number;
+    skipCount: number;
+  };
+  fieldResolution: {
+    startFieldId: string | null;
+    finishFieldId: string | null;
+    canPush: boolean;
+    message: string | null;
+  };
+}
+
+export interface StratusPushApplyResponse {
+  rows: Array<{
+    action: 'pushed' | 'skipped' | 'failed';
+    taskId: string;
+    taskName: string;
+    packageId: string;
+    packageNumber: string | null;
+    packageName: string | null;
+    message: string | null;
+  }>;
+  summary: {
+    processed: number;
+    pushed: number;
+    skipped: number;
+    failed: number;
+  };
+}
+
+export const stratusApi = {
+  getConfig: () => request<SafeStratusConfigResponse>('/stratus/config'),
+  updateConfig: (data: Record<string, unknown>) =>
+    request<SafeStratusConfigResponse>('/stratus/config', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  testConnection: () =>
+    request<{ ok: boolean; message: string }>('/stratus/test', {
+      method: 'POST',
+    }),
+  previewProjectImport: () =>
+    request<StratusProjectImportPreviewResponse>('/stratus/projects/preview', {
+      method: 'POST',
+    }),
+  applyProjectImport: () =>
+    request<StratusProjectImportApplyResponse>('/stratus/projects/apply', {
+      method: 'POST',
+    }),
+  getStatus: (projectId: string) =>
+    request<StratusStatusResponse>(`/projects/${projectId}/stratus/status`),
+  previewPull: (projectId: string) =>
+    request<StratusPullPreviewResponse>(`/projects/${projectId}/stratus/pull/preview`, {
+      method: 'POST',
+    }),
+  applyPull: (projectId: string) =>
+    request<StratusPullApplyResponse>(`/projects/${projectId}/stratus/pull/apply`, {
+      method: 'POST',
+    }),
+  previewPush: (projectId: string) =>
+    request<StratusPushPreviewResponse>(`/projects/${projectId}/stratus/push/preview`, {
+      method: 'POST',
+    }),
+  applyPush: (projectId: string) =>
+    request<StratusPushApplyResponse>(`/projects/${projectId}/stratus/push/apply`, {
+      method: 'POST',
+    }),
 };
 
 // ---------- AI ----------

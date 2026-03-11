@@ -10,5 +10,6 @@ export {
   levelingApi,
   customFieldsApi,
   aiApi,
+  stratusApi,
   advancedApi,
 } from './client';

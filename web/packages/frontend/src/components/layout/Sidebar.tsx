@@ -14,6 +14,8 @@ import {
   Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
 
 import { useProjectStore, useUIStore } from '../../stores';
 
@@ -51,11 +53,23 @@ const Sidebar: React.FC = () => {
         <Typography variant="subtitle2" fontWeight={700}>
           Projects
         </Typography>
-        <Tooltip title="New Project">
-          <IconButton size="small" onClick={() => openDialogWith('newProject')}>
-            <AddIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          <Tooltip title="Stratus Settings">
+            <IconButton size="small" onClick={() => openDialogWith('stratusSettings')}>
+              <SettingsInputComponentIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Import Active Stratus Projects">
+            <IconButton size="small" onClick={() => openDialogWith('stratusProjectImport')}>
+              <CloudDownloadIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="New Project">
+            <IconButton size="small" onClick={() => openDialogWith('newProject')}>
+              <AddIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
       <Divider />
       <List dense sx={{ overflow: 'auto', flex: 1 }}>

@@ -18,6 +18,9 @@ const createSchema = z.object({
   projectType: z.string().nullable().optional(),
   sector: z.string().nullable().optional(),
   region: z.string().nullable().optional(),
+  stratusProjectId: z.string().nullable().optional(),
+  stratusModelId: z.string().nullable().optional(),
+  stratusPackageWhere: z.string().nullable().optional(),
 });
 
 const updateSchema = z.object({
@@ -30,6 +33,9 @@ const updateSchema = z.object({
   projectType: z.string().nullable().optional(),
   sector: z.string().nullable().optional(),
   region: z.string().nullable().optional(),
+  stratusProjectId: z.string().nullable().optional(),
+  stratusModelId: z.string().nullable().optional(),
+  stratusPackageWhere: z.string().nullable().optional(),
 });
 
 export default async function projectRoutes(app: FastifyInstance) {
@@ -45,6 +51,11 @@ export default async function projectRoutes(app: FastifyInstance) {
         projectType: true,
         sector: true,
         region: true,
+        stratusProjectId: true,
+        stratusModelId: true,
+        stratusPackageWhere: true,
+        stratusLastPullAt: true,
+        stratusLastPushAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -77,6 +88,9 @@ export default async function projectRoutes(app: FastifyInstance) {
         projectType: body.projectType ?? null,
         sector: body.sector ?? null,
         region: body.region ?? null,
+        stratusProjectId: body.stratusProjectId ?? null,
+        stratusModelId: body.stratusModelId ?? null,
+        stratusPackageWhere: body.stratusPackageWhere ?? null,
       },
     });
     await logProjectMutation(project.id, 'project_created', { after: project }, 'user');
@@ -103,6 +117,9 @@ export default async function projectRoutes(app: FastifyInstance) {
     if (body.projectType !== undefined) data.projectType = body.projectType;
     if (body.sector !== undefined) data.sector = body.sector;
     if (body.region !== undefined) data.region = body.region;
+    if (body.stratusProjectId !== undefined) data.stratusProjectId = body.stratusProjectId;
+    if (body.stratusModelId !== undefined) data.stratusModelId = body.stratusModelId;
+    if (body.stratusPackageWhere !== undefined) data.stratusPackageWhere = body.stratusPackageWhere;
 
     const project = await prisma.project.update({ where: { id }, data });
     await logProjectMutation(id, 'project_updated', { before, after: project }, 'user');

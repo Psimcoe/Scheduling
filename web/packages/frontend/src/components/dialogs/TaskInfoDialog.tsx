@@ -64,6 +64,41 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
   </Box>
 );
 
+function parseStratusAssemblyExternalKey(externalKey: string | null | undefined): {
+  packageKey: string;
+  assemblyId: string;
+} | null {
+  if (!externalKey) {
+    return null;
+  }
+
+  const marker = '::assembly:';
+  const markerIndex = externalKey.indexOf(marker);
+  if (markerIndex < 0) {
+    return null;
+  }
+
+  const packageKey = externalKey.slice(0, markerIndex);
+  const assemblyId = externalKey.slice(markerIndex + marker.length);
+  if (!assemblyId) {
+    return null;
+  }
+
+  return {
+    packageKey,
+    assemblyId,
+  };
+}
+
+function parseStratusProjectExternalKey(externalKey: string | null | undefined): string | null {
+  if (!externalKey?.startsWith('stratus-project:')) {
+    return null;
+  }
+
+  const projectId = externalKey.slice('stratus-project:'.length);
+  return projectId || null;
+}
+
 const TaskInfoDialog: React.FC = () => {
   const open = useUIStore((s) => s.openDialog === 'taskInfo');
   const payload = useUIStore((s) => s.dialogPayload) as TaskRow | null;
@@ -164,6 +199,14 @@ const TaskInfoDialog: React.FC = () => {
   const availablePredTasks = useMemo(
     () => (payload ? tasks.filter((t) => t.id !== payload.id) : []),
     [tasks, payload],
+  );
+  const stratusAssemblyRef = useMemo(
+    () => parseStratusAssemblyExternalKey(payload?.externalKey),
+    [payload?.externalKey],
+  );
+  const stratusProjectRef = useMemo(
+    () => parseStratusProjectExternalKey(payload?.externalKey),
+    [payload?.externalKey],
   );
 
   const handleSave = async () => {
@@ -342,6 +385,70 @@ const TaskInfoDialog: React.FC = () => {
                 )}
               </Box>
             </Grid>
+            {payload?.stratusSync && (
+              <Grid size={12}>
+                <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'grey.100' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                    Stratus
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Package: {payload.stratusSync.packageNumber || payload.stratusSync.packageId}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Package Id: {payload.stratusSync.packageId}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Name: {payload.stratusSync.packageName || '-'}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    External Key: {payload?.externalKey || '-'}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Tracking: {payload.stratusSync.trackingStatusName || payload.stratusSync.trackingStatusId || '-'}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Pulled dates: {payload.stratusSync.pulledStart || '-'} / {payload.stratusSync.pulledFinish || '-'} / {payload.stratusSync.pulledDeadline || '-'}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Last pull: {payload.stratusSync.lastPulledAt.slice(0, 10)}
+                    {payload.stratusSync.lastPushedAt ? ` | Last push: ${payload.stratusSync.lastPushedAt.slice(0, 10)}` : ''}
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
+            {!payload?.stratusSync && stratusAssemblyRef && (
+              <Grid size={12}>
+                <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'grey.100' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                    Stratus Assembly Reference
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Assembly Id: {stratusAssemblyRef.assemblyId}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Package Key: {stratusAssemblyRef.packageKey}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    External Key: {payload?.externalKey || '-'}
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
+            {!payload?.stratusSync && !stratusAssemblyRef && stratusProjectRef && (
+              <Grid size={12}>
+                <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'grey.100' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                    Stratus Project Reference
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    Project Id: {stratusProjectRef}
+                  </Typography>
+                  <Typography variant="caption" display="block">
+                    External Key: {payload?.externalKey || '-'}
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
           </Grid>
         </TabPanel>
 

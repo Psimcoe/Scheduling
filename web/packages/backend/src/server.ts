@@ -17,10 +17,12 @@ import importExportRoutes from './routes/importExport.js';
 import levelingRoutes from './routes/leveling.js';
 import projectRoutes from './routes/projects.js';
 import resourceRoutes from './routes/resources.js';
+import stratusRoutes from './routes/stratus.js';
 import taskRoutes from './routes/tasks.js';
 import { runtimeConfig } from './runtimeConfig.js';
 import { getAiConfig } from './services/aiService.js';
 import { initializeLearningSubsystem } from './services/aiLearningService.js';
+import { synchronizeDatabaseSchemaForDesktop } from './services/databaseSchemaSync.js';
 import { ensureModel, shutdown as shutdownModel } from './services/localModelManager.js';
 import { initializeScheduleKnowledge } from './services/scheduleKnowledgeService.js';
 
@@ -63,6 +65,7 @@ await server.register(baselineRoutes, { prefix: '/api/projects/:projectId/baseli
 await server.register(importExportRoutes, { prefix: '/api/projects/:projectId/import-export' });
 await server.register(customFieldRoutes, { prefix: '/api/projects/:projectId/custom-fields' });
 await server.register(aiRoutes, { prefix: '/api/ai' });
+await server.register(stratusRoutes, { prefix: '/api' });
 await server.register(levelingRoutes, { prefix: '/api/projects/:projectId/leveling' });
 await server.register(advancedRoutes, { prefix: '/api/projects/:projectId/advanced' });
 
@@ -91,6 +94,7 @@ if (runtimeConfig.staticDir) {
 
 const start = async () => {
   try {
+    await synchronizeDatabaseSchemaForDesktop(server.log);
     await server.listen({ port: runtimeConfig.port, host: runtimeConfig.host });
     server.log.info(`Server running on http://${runtimeConfig.host}:${runtimeConfig.port}`);
 

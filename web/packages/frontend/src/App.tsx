@@ -31,6 +31,10 @@ import {
   RecurringTaskDialog,
   AiSettingsDialog,
   BulkImportDialog,
+  StratusSettingsDialog,
+  StratusProjectImportDialog,
+  StratusPullPreviewDialog,
+  StratusPushPreviewDialog,
 } from './components/dialogs';
 import ChatPanel from './components/ai/ChatPanel';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -79,6 +83,10 @@ const App: React.FC = () => {
       <RecurringTaskDialog />
       <AiSettingsDialog />
       <BulkImportDialog />
+      <StratusSettingsDialog />
+      <StratusProjectImportDialog />
+      <StratusPullPreviewDialog />
+      <StratusPushPreviewDialog />
 
       {/* Global snackbar */}
       <Snackbar

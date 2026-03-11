@@ -516,6 +516,14 @@ Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\.pnpm\node_modu
 Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\.env')
 Remove-PathIfExists (Join-Path $backendRuntimeRoot 'node_modules\.pnpm\node_modules\@schedulesync\backend\ai-config.json')
 
+$backendPrismaSource = Join-Path $webRoot 'packages\backend\prisma'
+$backendPrismaRuntimeRoot = Join-Path $backendRuntimeRoot 'prisma'
+Ensure-EmptyDirectory $backendPrismaRuntimeRoot
+Copy-DirectoryContents -Source (Join-Path $backendPrismaSource 'migrations') -Destination (Join-Path $backendPrismaRuntimeRoot 'migrations')
+Copy-Item (Join-Path $backendPrismaSource 'schema.prisma') -Destination (Join-Path $backendPrismaRuntimeRoot 'schema.prisma') -Force
+Copy-Item (Join-Path $backendPrismaSource 'dev-template.db') -Destination (Join-Path $backendPrismaRuntimeRoot 'dev-template.db') -Force
+Remove-PathIfExists (Join-Path $backendPrismaRuntimeRoot 'dev.db')
+
 Sync-PrismaClientRuntime -SourceNodeModules (Join-Path $webRoot 'node_modules') -DestinationNodeModules (Join-Path $backendRuntimeRoot 'node_modules')
 Hoist-PnpmDependencies -NodeModulesRoot (Join-Path $backendRuntimeRoot 'node_modules')
 Materialize-PnpmPackageDependencies -NodeModulesRoot (Join-Path $backendRuntimeRoot 'node_modules')

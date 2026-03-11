@@ -46,7 +46,11 @@ export type DialogType =
   | 'bulkImport'
   | 'leveling'
   | 'aiSettings'
-  | 'recurringTask';
+  | 'recurringTask'
+  | 'stratusSettings'
+  | 'stratusProjectImport'
+  | 'stratusPullPreview'
+  | 'stratusPushPreview';
 
 export interface SortCriteria {
   field: string;

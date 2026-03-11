@@ -3,8 +3,8 @@
  * Contains: Project Info, Calendar, Baseline, Import/Export, Recalculate.
  */
 
-import React, { useCallback, useRef } from 'react';
-import { Box, IconButton, Button, Tooltip, Typography } from '@mui/material';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import FlagIcon from '@mui/icons-material/Flag';
@@ -20,9 +20,13 @@ import PrintIcon from '@mui/icons-material/Print';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import PreviewIcon from '@mui/icons-material/Preview';
 import GridOnIcon from '@mui/icons-material/GridOn';
+import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 import { useProjectStore, useUIStore } from '../../stores';
-import { importExportApi } from '../../api';
+import { importExportApi, stratusApi } from '../../api';
+import type { StratusStatusResponse } from '../../api/client';
 
 const RibbonGroup: React.FC<{ label: string; children: React.ReactNode }> = ({
   label,
@@ -54,6 +58,8 @@ const ProjectRibbon: React.FC = () => {
   const openDialogWith = useUIStore((s) => s.openDialogWith);
   const showSnackbar = useUIStore((s) => s.showSnackbar);
   const disabled = !activeProjectId;
+  const activeProject = useProjectStore((s) => s.activeProject);
+  const [stratusStatus, setStratusStatus] = useState<StratusStatusResponse | null>(null);
 
   const mspdiInputRef = useRef<HTMLInputElement>(null);
   const updateInputRef = useRef<HTMLInputElement>(null);
@@ -150,6 +156,37 @@ const ProjectRibbon: React.FC = () => {
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
+
+  useEffect(() => {
+    if (!activeProjectId) {
+      setStratusStatus(null);
+      return;
+    }
+
+    let cancelled = false;
+    stratusApi.getStatus(activeProjectId)
+      .then((status) => {
+        if (!cancelled) {
+          setStratusStatus(status);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStratusStatus(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeProjectId,
+    activeProject?.stratusProjectId,
+    activeProject?.stratusModelId,
+    activeProject?.stratusPackageWhere,
+    activeProject?.stratusLastPullAt,
+    activeProject?.stratusLastPushAt,
+  ]);
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
@@ -331,6 +368,42 @@ const ProjectRibbon: React.FC = () => {
               disabled={disabled}
             >
               <TuneIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+      </RibbonGroup>
+
+      <RibbonGroup label="Stratus">
+        <Tooltip title="Stratus Settings">
+          <span>
+            <IconButton
+              size="small"
+              onClick={() => openDialogWith('stratusSettings')}
+              disabled={disabled}
+            >
+              <SettingsInputComponentIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={stratusStatus?.warnings[0] ?? 'Pull packages from Stratus'}>
+          <span>
+            <IconButton
+              size="small"
+              onClick={() => openDialogWith('stratusPullPreview')}
+              disabled={disabled || !stratusStatus?.canPull}
+            >
+              <CloudDownloadIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={stratusStatus?.warnings[0] ?? 'Push adjusted dates to Stratus'}>
+          <span>
+            <IconButton
+              size="small"
+              onClick={() => openDialogWith('stratusPushPreview')}
+              disabled={disabled || !stratusStatus?.canPush}
+            >
+              <CloudUploadIcon fontSize="small" />
             </IconButton>
           </span>
         </Tooltip>
