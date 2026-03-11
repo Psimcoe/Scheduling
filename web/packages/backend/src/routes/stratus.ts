@@ -30,6 +30,7 @@ const configSchema = z.object({
   companyId: z.string().optional(),
   startDateFieldIdOverride: z.string().optional(),
   finishDateFieldIdOverride: z.string().optional(),
+  excludedProjectIds: z.array(z.string()).optional(),
 });
 
 export default async function stratusRoutes(app: FastifyInstance) {

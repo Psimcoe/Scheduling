@@ -11,6 +11,7 @@
         MinWidth="1200"
         MinHeight="720"
         WindowStartupLocation="CenterScreen"
+        Icon="Assets/AppIcon.ico"
         Background="#F4F1EA">
     <Grid>
         <wv2:WebView2 x:Name="Browser"
@@ -28,7 +29,13 @@
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
                 <StackPanel>
+                    <Image Source="Assets/AppLogo.png"
+                           Width="88"
+                           Height="88"
+                           Stretch="Uniform"
+                           HorizontalAlignment="Left" />
                     <TextBlock Text="ScheduleSync"
+                               Margin="0,20,0,0"
                                FontSize="34"
                                FontWeight="SemiBold"
                                Foreground="#24322B" />

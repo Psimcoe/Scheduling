@@ -5,8 +5,12 @@
     Version="$(var.ProductVersion)"
     UpgradeCode="6C34C289-51D3-448A-8D72-8296D2AE6E2A"
     Scope="perMachine">
-    <MajorUpgrade DowngradeErrorMessage="A newer version of ScheduleSync Desktop is already installed." />
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="A newer version of ScheduleSync Desktop is already installed." />
     <MediaTemplate EmbedCab="yes" />
+    <Icon Id="AppIcon" SourceFile="Assets\AppIcon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="ScheduleSync Desktop" />
@@ -37,6 +41,7 @@
           Id="StartMenuShortcut"
           Name="ScheduleSync Desktop"
           Target="[INSTALLFOLDER]ScheduleSync.Desktop.exe"
+          Icon="AppIcon"
           WorkingDirectory="INSTALLFOLDER" />
         <RemoveFolder Id="ProgramMenuShortcutFolder" On="uninstall" />
         <RegistryValue

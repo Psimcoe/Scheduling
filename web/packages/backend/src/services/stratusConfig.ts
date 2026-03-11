@@ -13,6 +13,7 @@ export interface StratusConfig {
   finishDateFieldIdOverride: string;
   cachedStartDateFieldId: string;
   cachedFinishDateFieldId: string;
+  excludedProjectIds: string[];
 }
 
 export interface SafeStratusConfig {
@@ -23,6 +24,7 @@ export interface SafeStratusConfig {
   finishDateFieldIdOverride: string;
   cachedStartDateFieldId: string;
   cachedFinishDateFieldId: string;
+  excludedProjectIds: string[];
 }
 
 const DEFAULT_CONFIG: StratusConfig = {
@@ -33,6 +35,7 @@ const DEFAULT_CONFIG: StratusConfig = {
   finishDateFieldIdOverride: '',
   cachedStartDateFieldId: '',
   cachedFinishDateFieldId: '',
+  excludedProjectIds: [],
 };
 
 const CONFIG_PATH = runtimeConfig.stratusConfigPath;
@@ -78,6 +81,7 @@ export function getSafeStratusConfig(): SafeStratusConfig {
     finishDateFieldIdOverride: config.finishDateFieldIdOverride,
     cachedStartDateFieldId: config.cachedStartDateFieldId,
     cachedFinishDateFieldId: config.cachedFinishDateFieldId,
+    excludedProjectIds: config.excludedProjectIds,
   };
 }
 
@@ -90,6 +94,7 @@ export function normalizeStratusConfig(raw?: Partial<StratusConfig> | null): Str
     finishDateFieldIdOverride: normalizeOptionalString(raw?.finishDateFieldIdOverride) ?? '',
     cachedStartDateFieldId: normalizeOptionalString(raw?.cachedStartDateFieldId) ?? '',
     cachedFinishDateFieldId: normalizeOptionalString(raw?.cachedFinishDateFieldId) ?? '',
+    excludedProjectIds: normalizeOptionalStringArray(raw?.excludedProjectIds),
   };
 }
 
@@ -101,6 +106,27 @@ export function normalizeBaseUrl(baseUrl?: string | null): string {
 export function normalizeOptionalString(value?: string | null): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function normalizeOptionalStringArray(values?: string[] | null): string[] {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  const normalized: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    const trimmed = normalizeOptionalString(value);
+    if (!trimmed || seen.has(trimmed)) {
+      continue;
+    }
+
+    seen.add(trimmed);
+    normalized.push(trimmed);
+  }
+
+  return normalized;
 }
 
 export function ensureStratusConfigured(config: StratusConfig): void {

@@ -16,11 +16,33 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { stratusApi, type StratusProjectImportPreviewResponse } from '../../api/client';
+import { stratusApi, type StratusProjectImportPreviewResponse, type StratusProjectImportPreviewRow } from '../../api/client';
 import { useProjectStore, useUIStore } from '../../stores';
 
 function formatDate(value: string | null): string {
   return value ? value.slice(0, 10) : '-';
+}
+
+function getExcludedProjectIds(preview: StratusProjectImportPreviewResponse | null): string[] {
+  return preview?.rows
+    .filter((row) => row.action === 'exclude')
+    .map((row) => row.stratusProjectId) ?? [];
+}
+
+function getActionChipColor(row: StratusProjectImportPreviewRow): 'default' | 'primary' | 'success' | 'warning' {
+  if (row.action === 'create') {
+    return 'success';
+  }
+
+  if (row.action === 'update') {
+    return 'primary';
+  }
+
+  if (row.action === 'exclude') {
+    return 'warning';
+  }
+
+  return 'default';
 }
 
 const StratusProjectImportDialog: React.FC = () => {
@@ -31,6 +53,7 @@ const StratusProjectImportDialog: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [savingOverrideProjectId, setSavingOverrideProjectId] = useState<string | null>(null);
   const [preview, setPreview] = useState<StratusProjectImportPreviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,7 +96,7 @@ const StratusProjectImportDialog: React.FC = () => {
       await useProjectStore.getState().fetchProjects();
       closeDialog();
       showSnackbar(
-        `Stratus project import complete. Created ${result.summary.created}, updated ${result.summary.updated}, skipped ${result.summary.skipped}, failed ${result.summary.failed}.`,
+        `Stratus project import complete. Created ${result.summary.created}, updated ${result.summary.updated}, skipped ${result.summary.skipped}, excluded ${result.summary.excluded}, failed ${result.summary.failed}.`,
         result.summary.failed > 0 ? 'warning' : 'success',
       );
     } catch (requestError: unknown) {
@@ -83,7 +106,38 @@ const StratusProjectImportDialog: React.FC = () => {
     }
   };
 
-  const actionableRows = preview?.rows.filter((row) => row.action !== 'skip').length ?? 0;
+  const handleOverrideToggle = async (row: StratusProjectImportPreviewRow) => {
+    const excludedProjectIds = new Set(getExcludedProjectIds(preview));
+    if (row.action === 'exclude') {
+      excludedProjectIds.delete(row.stratusProjectId);
+    } else {
+      excludedProjectIds.add(row.stratusProjectId);
+    }
+
+    setSavingOverrideProjectId(row.stratusProjectId);
+    try {
+      await stratusApi.updateConfig({
+        excludedProjectIds: [...excludedProjectIds],
+      });
+      const refreshedPreview = await stratusApi.previewProjectImport();
+      setPreview(refreshedPreview);
+      showSnackbar(
+        row.action === 'exclude'
+          ? 'Project restored for future Stratus imports'
+          : 'Project excluded from future Stratus imports',
+        'success',
+      );
+    } catch (requestError: unknown) {
+      showSnackbar(
+        requestError instanceof Error ? requestError.message : 'Failed to save Stratus import override',
+        'error',
+      );
+    } finally {
+      setSavingOverrideProjectId(null);
+    }
+  };
+
+  const importableRows = preview?.rows.filter((row) => row.action !== 'exclude').length ?? 0;
 
   return (
     <Dialog open={open} onClose={closeDialog} maxWidth="lg" fullWidth>
@@ -93,12 +147,16 @@ const StratusProjectImportDialog: React.FC = () => {
           <Alert severity="info">
             This imports active Stratus projects by project number and name, refreshes the master <strong>Prefab</strong> project, and updates each imported project with package and assembly reference rows tied to that Prefab data.
           </Alert>
+          <Alert severity="info">
+            Use <strong>Exclude</strong> to keep a Stratus project out of this import and future imports. Use <strong>Include</strong> later to restore it.
+          </Alert>
           {preview && (
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Chip label={`Projects ${preview.summary.totalProjects}`} size="small" />
               <Chip label={`Create ${preview.summary.createCount}`} size="small" color="success" />
               <Chip label={`Update ${preview.summary.updateCount}`} size="small" color="primary" />
               <Chip label={`Skip ${preview.summary.skipCount}`} size="small" />
+              <Chip label={`Excluded ${preview.summary.excludedCount}`} size="small" color="warning" />
             </Box>
           )}
 
@@ -122,11 +180,28 @@ const StratusProjectImportDialog: React.FC = () => {
                 {preview.rows.map((row) => (
                   <TableRow key={row.stratusProjectId}>
                     <TableCell>
-                      <Chip
-                        size="small"
-                        label={row.action}
-                        color={row.action === 'create' ? 'success' : row.action === 'update' ? 'primary' : 'default'}
-                      />
+                      <Stack spacing={1} alignItems="flex-start">
+                        <Chip
+                          size="small"
+                          label={row.action}
+                          color={getActionChipColor(row)}
+                        />
+                        <Button
+                          size="small"
+                          variant={row.action === 'exclude' ? 'contained' : 'outlined'}
+                          color={row.action === 'exclude' ? 'warning' : 'inherit'}
+                          disabled={loading || applying || savingOverrideProjectId !== null}
+                          onClick={() => {
+                            void handleOverrideToggle(row);
+                          }}
+                        >
+                          {savingOverrideProjectId === row.stratusProjectId
+                            ? 'Saving...'
+                            : row.action === 'exclude'
+                              ? 'Include'
+                              : 'Exclude'}
+                        </Button>
+                      </Stack>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -139,7 +214,12 @@ const StratusProjectImportDialog: React.FC = () => {
                         Stratus Id: {row.stratusProjectId}
                       </Typography>
                       {row.warnings.map((warning) => (
-                        <Typography key={warning} variant="caption" color="warning.main" display="block">
+                        <Typography
+                          key={warning}
+                          variant="caption"
+                          color={row.action === 'exclude' ? 'info.main' : 'warning.main'}
+                          display="block"
+                        >
                           {warning}
                         </Typography>
                       ))}
@@ -176,7 +256,7 @@ const StratusProjectImportDialog: React.FC = () => {
         <Button
           variant="contained"
           onClick={handleApply}
-          disabled={loading || applying || actionableRows === 0}
+          disabled={loading || applying || savingOverrideProjectId !== null || importableRows === 0}
         >
           {applying ? 'Importing...' : 'Import Projects'}
         </Button>

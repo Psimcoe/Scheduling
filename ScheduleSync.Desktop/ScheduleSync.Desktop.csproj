@@ -8,10 +8,17 @@
     <RootNamespace>ScheduleSync.Desktop</RootNamespace>
     <AssemblyName>ScheduleSync.Desktop</AssemblyName>
     <Platforms>x64</Platforms>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <StartupObject>ScheduleSync.Desktop.App</StartupObject>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3800.47" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Assets\AppIcon.ico" />
+    <None Remove="Assets\AppLogo.png" />
+    <Resource Include="Assets\AppIcon.ico" />
+    <Resource Include="Assets\AppLogo.png" />
   </ItemGroup>
 </Project>

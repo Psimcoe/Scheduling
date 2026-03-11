@@ -71,6 +71,33 @@ describe('stratusSyncService', () => {
     expect(rows[1]?.mappedProject.name).toBe('1002 - Hospital Tower');
   });
 
+  it('allows manual exclusion of specific Stratus projects from import preview', () => {
+    const rows = buildProjectImportPreviewRows(
+      [
+        {
+          id: 'stratus-1',
+          number: '1001',
+          name: 'Warehouse Expansion',
+          status: 'Active',
+          category: 'Industrial',
+          phase: 'Prefab',
+          description: null,
+          city: 'Boston',
+          state: 'MA',
+          startDate: '2026-03-01T00:00:00.000Z',
+          finishDate: '2026-04-01T00:00:00.000Z',
+          rawProject: {},
+        },
+      ],
+      [],
+      ['stratus-1'],
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.action).toBe('exclude');
+    expect(rows[0]?.warnings).toContain('Excluded from import by manual override.');
+  });
+
   it('skips package pull rows when external key matching is ambiguous and groups assemblies under packages', () => {
     const rows = buildPullPreviewRows(
       [

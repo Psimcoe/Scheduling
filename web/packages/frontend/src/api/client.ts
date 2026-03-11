@@ -8,12 +8,14 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (init.body != null && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const res = await fetch(`${BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init.headers as Record<string, string>),
-    },
     ...init,
+    headers,
   });
 
   if (res.status === 204) return undefined as unknown as T;
@@ -347,10 +349,11 @@ export interface SafeStratusConfigResponse {
   finishDateFieldIdOverride: string;
   cachedStartDateFieldId: string;
   cachedFinishDateFieldId: string;
+  excludedProjectIds: string[];
 }
 
 export interface StratusProjectImportPreviewRow {
-  action: 'create' | 'update' | 'skip';
+  action: 'create' | 'update' | 'skip' | 'exclude';
   stratusProjectId: string;
   projectNumber: string | null;
   projectName: string | null;
@@ -374,12 +377,13 @@ export interface StratusProjectImportPreviewResponse {
     createCount: number;
     updateCount: number;
     skipCount: number;
+    excludedCount: number;
   };
 }
 
 export interface StratusProjectImportApplyResponse {
   rows: Array<{
-    action: 'created' | 'updated' | 'skipped' | 'failed';
+    action: 'created' | 'updated' | 'skipped' | 'excluded' | 'failed';
     stratusProjectId: string;
     projectNumber: string | null;
     projectName: string | null;
@@ -392,6 +396,7 @@ export interface StratusProjectImportApplyResponse {
     created: number;
     updated: number;
     skipped: number;
+    excluded: number;
     failed: number;
   };
 }

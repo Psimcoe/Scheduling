@@ -44,10 +44,41 @@ const Sidebar: React.FC = () => {
     >
       <Box
         sx={{
+          px: 1.25,
+          py: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          bgcolor: '#FFFFFF',
+        }}
+      >
+        <Box
+          component="img"
+          src="/logo.png"
+          alt="ScheduleSync logo"
+          sx={{
+            width: 38,
+            height: 38,
+            flexShrink: 0,
+          }}
+        />
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle1" fontWeight={700} lineHeight={1.1} noWrap>
+            ScheduleSync
+          </Typography>
+          <Typography variant="caption" color="text.secondary" noWrap>
+            Desktop + web planning
+          </Typography>
+        </Box>
+      </Box>
+      <Divider />
+      <Box
+        sx={{
           p: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          bgcolor: '#FAFAFA',
         }}
       >
         <Typography variant="subtitle2" fontWeight={700}>

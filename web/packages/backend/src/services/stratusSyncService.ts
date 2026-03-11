@@ -41,7 +41,7 @@ export interface StratusSyncSummary {
 }
 
 export interface ProjectImportPreviewRow {
-  action: 'create' | 'update' | 'skip';
+  action: 'create' | 'update' | 'skip' | 'exclude';
   stratusProjectId: string;
   projectNumber: string | null;
   projectName: string | null;
@@ -65,12 +65,13 @@ export interface ProjectImportPreviewResult {
     createCount: number;
     updateCount: number;
     skipCount: number;
+    excludedCount: number;
   };
 }
 
 export interface ProjectImportApplyResult {
   rows: Array<{
-    action: 'created' | 'updated' | 'skipped' | 'failed';
+    action: 'created' | 'updated' | 'skipped' | 'excluded' | 'failed';
     stratusProjectId: string;
     projectNumber: string | null;
     projectName: string | null;
@@ -83,6 +84,7 @@ export interface ProjectImportApplyResult {
     created: number;
     updated: number;
     skipped: number;
+    excluded: number;
     failed: number;
   };
 }
@@ -501,16 +503,12 @@ export async function previewStratusProjectImport(config: StratusConfig): Promis
   const rows = buildProjectImportPreviewRows(
     rawProjects.map((rawProject) => normalizeStratusProject(rawProject)).sort(compareStratusProjects),
     localProjects,
+    config.excludedProjectIds,
   );
 
   return {
     rows,
-    summary: {
-      totalProjects: rows.length,
-      createCount: rows.filter((row) => row.action === 'create').length,
-      updateCount: rows.filter((row) => row.action === 'update').length,
-      skipCount: rows.filter((row) => row.action === 'skip').length,
-    },
+    summary: buildProjectImportPreviewSummary(rows),
   };
 }
 
@@ -533,23 +531,39 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
     },
     orderBy: { updatedAt: 'desc' },
   });
+  const previewRows = buildProjectImportPreviewRows(stratusProjects, localProjects, config.excludedProjectIds);
   const preview = {
-    rows: buildProjectImportPreviewRows(stratusProjects, localProjects),
-    summary: {
-      totalProjects: stratusProjects.length,
-      createCount: 0,
-      updateCount: 0,
-      skipCount: 0,
-    },
+    rows: previewRows,
+    summary: buildProjectImportPreviewSummary(previewRows),
   };
   const rows: ProjectImportApplyResult['rows'] = [];
   let created = 0;
   let updated = 0;
   let skipped = 0;
+  let excluded = 0;
   let failed = 0;
   const localProjectTargets = new Map<string, SyncProjectTarget>();
+  const excludedProjectIds = new Set(
+    preview.rows
+      .filter((row) => row.action === 'exclude')
+      .map((row) => row.stratusProjectId),
+  );
 
   for (const row of preview.rows) {
+    if (row.action === 'exclude') {
+      rows.push({
+        action: 'excluded',
+        stratusProjectId: row.stratusProjectId,
+        projectNumber: row.projectNumber,
+        projectName: row.projectName,
+        localProjectId: row.localProjectId,
+        localProjectName: row.localProjectName,
+        message: row.warnings.join('. ') || 'Project excluded by manual override.',
+      });
+      excluded++;
+      continue;
+    }
+
     if (row.action === 'skip') {
       rows.push({
         action: 'skipped',
@@ -663,48 +677,54 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
   }
 
   const now = new Date();
-  const prefabProject = await ensurePrefabProject(stratusProjects);
-  const prefabGroups: StratusProjectBundleGroup[] = [];
+  const includedStratusProjects = stratusProjects.filter(
+    (stratusProject) => !excludedProjectIds.has(stratusProject.id),
+  );
 
-  for (const stratusProject of stratusProjects) {
-    const targetProject = localProjectTargets.get(stratusProject.id);
-    if (!targetProject) {
-      continue;
+  if (includedStratusProjects.length > 0) {
+    const prefabProject = await ensurePrefabProject(includedStratusProjects);
+    const prefabGroups: StratusProjectBundleGroup[] = [];
+
+    for (const stratusProject of includedStratusProjects) {
+      const targetProject = localProjectTargets.get(stratusProject.id);
+      if (!targetProject) {
+        continue;
+      }
+
+      const syncTarget: LoadedProjectTarget = {
+        id: targetProject.id,
+        name: targetProject.name,
+        startDate: targetProject.startDate,
+        minutesPerDay: targetProject.minutesPerDay,
+        stratusProjectId: stratusProject.id,
+        stratusModelId: null,
+        stratusPackageWhere: null,
+        stratusLastPullAt: null,
+        stratusLastPushAt: null,
+      };
+      const bundles = await loadStratusPackageBundles(syncTarget, config);
+      prefabGroups.push({ stratusProject, bundles });
+
+      await syncStratusProjectGroupsToProject(targetProject, [{ stratusProject, bundles }], {
+        includeProjectSummaries: false,
+        canonicalPackageSync: false,
+        referenceSourceProjectName: 'Prefab',
+      });
+      await prisma.project.update({
+        where: { id: targetProject.id },
+        data: { stratusLastPullAt: now },
+      });
     }
 
-    const syncTarget: LoadedProjectTarget = {
-      id: targetProject.id,
-      name: targetProject.name,
-      startDate: targetProject.startDate,
-      minutesPerDay: targetProject.minutesPerDay,
-      stratusProjectId: stratusProject.id,
-      stratusModelId: null,
-      stratusPackageWhere: null,
-      stratusLastPullAt: null,
-      stratusLastPushAt: null,
-    };
-    const bundles = await loadStratusPackageBundles(syncTarget, config);
-    prefabGroups.push({ stratusProject, bundles });
-
-    await syncStratusProjectGroupsToProject(targetProject, [{ stratusProject, bundles }], {
-      includeProjectSummaries: false,
-      canonicalPackageSync: false,
-      referenceSourceProjectName: 'Prefab',
+    await syncStratusProjectGroupsToProject(prefabProject, prefabGroups, {
+      includeProjectSummaries: true,
+      canonicalPackageSync: true,
     });
     await prisma.project.update({
-      where: { id: targetProject.id },
+      where: { id: prefabProject.id },
       data: { stratusLastPullAt: now },
     });
   }
-
-  await syncStratusProjectGroupsToProject(prefabProject, prefabGroups, {
-    includeProjectSummaries: true,
-    canonicalPackageSync: true,
-  });
-  await prisma.project.update({
-    where: { id: prefabProject.id },
-    data: { stratusLastPullAt: now },
-  });
 
   return {
     rows,
@@ -713,6 +733,7 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
       created,
       updated,
       skipped,
+      excluded,
       failed,
     },
   };
@@ -1280,8 +1301,11 @@ export async function applyStratusRefreshFromPrefab(
 export function buildProjectImportPreviewRows(
   stratusProjects: NormalizedStratusProject[],
   localProjects: LocalProjectRecord[],
+  excludedProjectIds: readonly string[] = [],
 ): ProjectImportPreviewRow[] {
   const localProjectsByStratusId = new Map<string, LocalProjectRecord[]>();
+  const excludedProjectIdSet = new Set(excludedProjectIds);
+
   for (const project of localProjects) {
     if (!project.stratusProjectId) {
       continue;
@@ -1301,6 +1325,9 @@ export function buildProjectImportPreviewRows(
     if (!stratusProject.id) {
       action = 'skip';
       warnings.push('Stratus project id is missing.');
+    } else if (excludedProjectIdSet.has(stratusProject.id)) {
+      action = 'exclude';
+      warnings.push('Excluded from import by manual override.');
     } else if (matches.length > 1) {
       action = 'skip';
       warnings.push(`Stratus project ${stratusProject.id} matches multiple local projects.`);
@@ -1326,6 +1353,16 @@ export function buildProjectImportPreviewRows(
       mappedProject,
     };
   });
+}
+
+function buildProjectImportPreviewSummary(rows: ProjectImportPreviewRow[]): ProjectImportPreviewResult['summary'] {
+  return {
+    totalProjects: rows.length,
+    createCount: rows.filter((row) => row.action === 'create').length,
+    updateCount: rows.filter((row) => row.action === 'update').length,
+    skipCount: rows.filter((row) => row.action === 'skip').length,
+    excludedCount: rows.filter((row) => row.action === 'exclude').length,
+  };
 }
 
 export function buildPullPreviewRows(
