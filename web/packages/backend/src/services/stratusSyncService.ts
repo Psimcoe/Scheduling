@@ -370,8 +370,37 @@ interface AppliedPackageGroup {
   childTaskIds: string[];
 }
 
+const STRATUS_FETCH_CONCURRENCY = 6;
 const UNDEFINED_PACKAGE_NAME = "Undefined Package";
 const UNDEFINED_PACKAGE_PREFIX = "stratus-undefined-package:";
+
+async function mapWithConcurrency<T, TResult>(
+  items: readonly T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<TResult>,
+): Promise<TResult[]> {
+  const results = new Array<TResult>(items.length);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex++;
+      results[currentIndex] = await mapper(
+        items[currentIndex] as T,
+        currentIndex,
+      );
+    }
+  };
+
+  await Promise.all(
+    Array.from(
+      { length: Math.max(1, Math.min(concurrency, items.length)) },
+      () => worker(),
+    ),
+  );
+
+  return results;
+}
 
 export async function loadProjectStratusTarget(
   projectId: string,
@@ -739,31 +768,60 @@ export async function applyStratusProjectImport(
 
   if (includedStratusProjects.length > 0) {
     const prefabProject = await ensurePrefabProject(includedStratusProjects);
+    const loadedProjectGroups = (
+      await mapWithConcurrency(
+        includedStratusProjects,
+        Math.max(1, Math.min(4, STRATUS_FETCH_CONCURRENCY)),
+        async (stratusProject) => {
+          const targetProject = localProjectTargets.get(stratusProject.id);
+          if (!targetProject) {
+            return null;
+          }
+
+          const syncTarget: LoadedProjectTarget = {
+            id: targetProject.id,
+            name: targetProject.name,
+            startDate: targetProject.startDate,
+            minutesPerDay: targetProject.minutesPerDay,
+            stratusProjectId: stratusProject.id,
+            stratusModelId: null,
+            stratusPackageWhere: null,
+            stratusLastPullAt: null,
+            stratusLastPushAt: null,
+          };
+          const bundles = await loadStratusPackageBundles(syncTarget, config);
+          return {
+            stratusProject,
+            targetProject,
+            bundles,
+          };
+        },
+      )
+    ).filter(
+      (
+        value,
+      ): value is {
+        stratusProject: NormalizedStratusProject;
+        targetProject: SyncProjectTarget;
+        bundles: StratusPackageBundle[];
+      } => value !== null,
+    );
+
     const prefabGroups: StratusProjectBundleGroup[] = [];
-
-    for (const stratusProject of includedStratusProjects) {
-      const targetProject = localProjectTargets.get(stratusProject.id);
-      if (!targetProject) {
-        continue;
-      }
-
-      const syncTarget: LoadedProjectTarget = {
-        id: targetProject.id,
-        name: targetProject.name,
-        startDate: targetProject.startDate,
-        minutesPerDay: targetProject.minutesPerDay,
-        stratusProjectId: stratusProject.id,
-        stratusModelId: null,
-        stratusPackageWhere: null,
-        stratusLastPullAt: null,
-        stratusLastPushAt: null,
-      };
-      const bundles = await loadStratusPackageBundles(syncTarget, config);
-      prefabGroups.push({ stratusProject, bundles });
+    for (const loadedProjectGroup of loadedProjectGroups) {
+      prefabGroups.push({
+        stratusProject: loadedProjectGroup.stratusProject,
+        bundles: loadedProjectGroup.bundles,
+      });
 
       await syncStratusProjectGroupsToProject(
-        targetProject,
-        [{ stratusProject, bundles }],
+        loadedProjectGroup.targetProject,
+        [
+          {
+            stratusProject: loadedProjectGroup.stratusProject,
+            bundles: loadedProjectGroup.bundles,
+          },
+        ],
         config,
         {
           includeProjectSummaries: false,
@@ -772,7 +830,7 @@ export async function applyStratusProjectImport(
         },
       );
       await prisma.project.update({
-        where: { id: targetProject.id },
+        where: { id: loadedProjectGroup.targetProject.id },
         data: { stratusLastPullAt: now },
       });
     }
@@ -2029,6 +2087,80 @@ function toIsoSignature(date: Date | null) {
   return date ? date.toISOString() : null;
 }
 
+function isTaskDataEquivalent(
+  existingTask: TaskWithSync,
+  data: Pick<
+    Task,
+    | "name"
+    | "parentId"
+    | "outlineLevel"
+    | "type"
+    | "start"
+    | "finish"
+    | "deadline"
+    | "durationMinutes"
+    | "percentComplete"
+    | "isManuallyScheduled"
+    | "notes"
+    | "externalKey"
+    | "sortOrder"
+  >,
+) {
+  return (
+    existingTask.name === data.name &&
+    existingTask.parentId === data.parentId &&
+    existingTask.outlineLevel === data.outlineLevel &&
+    existingTask.type === data.type &&
+    toIsoSignature(existingTask.start) === toIsoSignature(data.start) &&
+    toIsoSignature(existingTask.finish) === toIsoSignature(data.finish) &&
+    toIsoSignature(existingTask.deadline) === toIsoSignature(data.deadline) &&
+    existingTask.durationMinutes === data.durationMinutes &&
+    existingTask.percentComplete === data.percentComplete &&
+    existingTask.isManuallyScheduled === data.isManuallyScheduled &&
+    existingTask.notes === data.notes &&
+    existingTask.externalKey === data.externalKey &&
+    existingTask.sortOrder === data.sortOrder
+  );
+}
+
+function isStratusTaskSyncEquivalent(
+  existingSync: StratusTaskSync,
+  taskId: string,
+  data: Pick<
+    StratusTaskSync,
+    | "localProjectId"
+    | "packageId"
+    | "projectId"
+    | "modelId"
+    | "externalKey"
+    | "packageNumber"
+    | "packageName"
+    | "trackingStatusId"
+    | "trackingStatusName"
+    | "rawPackageJson"
+    | "syncedStartSignature"
+    | "syncedFinishSignature"
+    | "syncedDeadlineSignature"
+  >,
+) {
+  return (
+    existingSync.taskId === taskId &&
+    existingSync.localProjectId === data.localProjectId &&
+    existingSync.packageId === data.packageId &&
+    existingSync.projectId === data.projectId &&
+    existingSync.modelId === data.modelId &&
+    existingSync.externalKey === data.externalKey &&
+    existingSync.packageNumber === data.packageNumber &&
+    existingSync.packageName === data.packageName &&
+    existingSync.trackingStatusId === data.trackingStatusId &&
+    existingSync.trackingStatusName === data.trackingStatusName &&
+    existingSync.rawPackageJson === data.rawPackageJson &&
+    existingSync.syncedStartSignature === data.syncedStartSignature &&
+    existingSync.syncedFinishSignature === data.syncedFinishSignature &&
+    existingSync.syncedDeadlineSignature === data.syncedDeadlineSignature
+  );
+}
+
 async function loadStratusPackageBundles(
   project: LoadedProjectTarget,
   config: StratusConfig,
@@ -2036,26 +2168,34 @@ async function loadStratusPackageBundles(
   const packages = (await fetchPackagesFromStratus(config, project))
     .map((pkg) => normalizeStratusPackage(pkg, config))
     .sort(compareStratusPackages);
-  const bundles: StratusPackageBundle[] = [];
   const assignedAssemblyIds = new Set<string>();
 
   for (const pkg of packages) {
     for (const assemblyId of pkg.assemblyIds ?? []) {
       assignedAssemblyIds.add(assemblyId);
     }
+  }
 
-    const rawAssemblies = pkg.id
-      ? await fetchAssembliesForPackage(config, pkg.id)
-      : [];
-    const assemblies = rawAssemblies
-      .map((rawAssembly) =>
-        normalizeStratusAssembly(pkg.id, pkg.externalKey, rawAssembly),
-      )
-      .sort(compareStratusAssemblies);
-    for (const assembly of assemblies) {
+  const bundles = await mapWithConcurrency(
+    packages,
+    STRATUS_FETCH_CONCURRENCY,
+    async (pkg) => {
+      const rawAssemblies = pkg.id
+        ? await fetchAssembliesForPackage(config, pkg.id)
+        : [];
+      const assemblies = rawAssemblies
+        .map((rawAssembly) =>
+          normalizeStratusAssembly(pkg.id, pkg.externalKey, rawAssembly),
+        )
+        .sort(compareStratusAssemblies);
+      return { package: pkg, assemblies };
+    },
+  );
+
+  for (const bundle of bundles) {
+    for (const assembly of bundle.assemblies) {
       assignedAssemblyIds.add(assembly.id);
     }
-    bundles.push({ package: pkg, assemblies });
   }
 
   const unpackagedAssemblies = await loadUnpackagedStratusAssemblies(
@@ -2085,7 +2225,6 @@ async function loadUnpackagedStratusAssemblies(
   assignedAssemblyIds: ReadonlySet<string>,
 ): Promise<NormalizedStratusAssembly[]> {
   const placeholderPackage = createUndefinedPackage(project);
-  const unpackagedAssemblies: NormalizedStratusAssembly[] = [];
   const seenAssemblyIds = new Set<string>(assignedAssemblyIds);
   const modelIds = await loadStratusModelIdsForAssemblyScan(
     project,
@@ -2093,8 +2232,14 @@ async function loadUnpackagedStratusAssemblies(
     packageModelIds,
   );
 
-  for (const modelId of modelIds) {
-    const rawAssemblies = await fetchAssembliesForModel(config, modelId);
+  const unpackagedAssemblies: NormalizedStratusAssembly[] = [];
+  const assembliesByModel = await mapWithConcurrency(
+    modelIds,
+    STRATUS_FETCH_CONCURRENCY,
+    async (modelId) => fetchAssembliesForModel(config, modelId),
+  );
+
+  for (const rawAssemblies of assembliesByModel) {
     for (const rawAssembly of rawAssemblies) {
       const assembly = normalizeStratusAssembly(
         placeholderPackage.id,
@@ -2184,27 +2329,28 @@ async function loadActiveStratusProjectGroupsForPrefab(
   const stratusProjects = rawProjects
     .map((rawProject) => normalizeStratusProject(rawProject))
     .sort(compareStratusProjects);
-  const groups: StratusProjectBundleGroup[] = [];
 
-  for (const stratusProject of stratusProjects) {
-    const bundles = await loadStratusPackageBundles(
-      {
-        id: prefabProject.id,
-        name: prefabProject.name,
-        startDate: prefabProject.startDate,
-        minutesPerDay: prefabProject.minutesPerDay,
-        stratusProjectId: stratusProject.id,
-        stratusModelId: null,
-        stratusPackageWhere: null,
-        stratusLastPullAt: prefabProject.stratusLastPullAt,
-        stratusLastPushAt: prefabProject.stratusLastPushAt,
-      },
-      config,
-    );
-    groups.push({ stratusProject, bundles });
-  }
-
-  return groups;
+  return mapWithConcurrency(
+    stratusProjects,
+    Math.max(1, Math.min(4, STRATUS_FETCH_CONCURRENCY)),
+    async (stratusProject) => {
+      const bundles = await loadStratusPackageBundles(
+        {
+          id: prefabProject.id,
+          name: prefabProject.name,
+          startDate: prefabProject.startDate,
+          minutesPerDay: prefabProject.minutesPerDay,
+          stratusProjectId: stratusProject.id,
+          stratusModelId: null,
+          stratusPackageWhere: null,
+          stratusLastPullAt: prefabProject.stratusLastPullAt,
+          stratusLastPushAt: prefabProject.stratusLastPushAt,
+        },
+        config,
+      );
+      return { stratusProject, bundles };
+    },
+  );
 }
 
 async function upsertStratusTaskSync(
@@ -2221,7 +2367,11 @@ async function upsertStratusTaskSync(
     finish: Date;
     deadline: Date | null;
   },
-) {
+  existing?: {
+    byPackage: StratusTaskSync | null;
+    byTask: StratusTaskSync | null;
+  },
+): Promise<StratusTaskSync> {
   const pulledStartSignature = toDateSignature(
     getConfiguredPackageFieldValue(pkg, config.startDateField),
   );
@@ -2262,19 +2412,21 @@ async function upsertStratusTaskSync(
       pulledDeadlineSignature ?? toDateSignature(scheduledDates?.deadline),
   };
 
-  const [existingByPackage, existingByTask] = await Promise.all([
-    prisma.stratusTaskSync.findUnique({
+  const existingByPackage =
+    existing?.byPackage ??
+    (await prisma.stratusTaskSync.findUnique({
       where: {
         localProjectId_packageId: {
           localProjectId,
           packageId: pkg.id,
         },
       },
-    }),
-    prisma.stratusTaskSync.findUnique({
+    }));
+  const existingByTask =
+    existing?.byTask ??
+    (await prisma.stratusTaskSync.findUnique({
       where: { taskId },
-    }),
-  ]);
+    }));
 
   if (existingByPackage) {
     if (existingByTask && existingByTask.id !== existingByPackage.id) {
@@ -2283,31 +2435,47 @@ async function upsertStratusTaskSync(
       });
     }
 
-    await prisma.stratusTaskSync.update({
+    if (isStratusTaskSyncEquivalent(existingByPackage, taskId, data)) {
+      return existingByPackage;
+    }
+
+    return prisma.stratusTaskSync.update({
       where: { id: existingByPackage.id },
       data: {
         taskId,
         ...data,
       },
     });
-    return;
   }
 
   if (existingByTask) {
-    await prisma.stratusTaskSync.update({
+    if (isStratusTaskSyncEquivalent(existingByTask, taskId, data)) {
+      return existingByTask;
+    }
+
+    return prisma.stratusTaskSync.update({
       where: { taskId },
       data,
     });
-    return;
   }
 
-  await prisma.stratusTaskSync.create({
+  return prisma.stratusTaskSync.create({
     data: { taskId, ...data },
   });
 }
 
-function resolveMappedTaskName(pkg: NormalizedStratusPackage): string {
-  return pkg.packageName ?? pkg.packageNumber ?? `Package ${pkg.id}`;
+function resolveMappedTaskName(
+  pkg: NormalizedStratusPackage,
+  config: Pick<StratusConfig, "taskNameField">,
+): string {
+  return (
+    normalizeNullableString(
+      getConfiguredPackageFieldValue(pkg, config.taskNameField),
+    ) ??
+    normalizeNullableString(pkg.packageName) ??
+    normalizeNullableString(pkg.packageNumber) ??
+    `Package ${pkg.id}`
+  );
 }
 
 function resolveMappedDurationMinutes(
@@ -2374,7 +2542,7 @@ function createMappedPackageTaskData(
     ) ?? new Date(start.getTime() + durationMinutes * 60_000);
 
   return {
-    name: resolveMappedTaskName(pkg),
+    name: resolveMappedTaskName(pkg, config),
     start,
     finish,
     deadline: parseDateValue(
@@ -2402,7 +2570,7 @@ function createMappedPackagePreviewData(
   statusLookup: StatusProgressLookup,
 ): PullPreviewRow["mappedTask"] {
   return {
-    name: resolveMappedTaskName(pkg),
+    name: resolveMappedTaskName(pkg, config),
     start: getConfiguredPackageFieldValue(pkg, config.startDateField),
     finish: getConfiguredPackageFieldValue(pkg, config.finishDateField),
     deadline: getConfiguredPackageFieldValue(pkg, config.deadlineField),
@@ -2705,11 +2873,13 @@ async function syncStratusProjectGroupsToProject(
 
     let task: TaskWithSync;
     if (existingTask) {
-      task = await prisma.task.update({
-        where: { id: existingTask.id },
-        data,
-        include: { stratusSync: true },
-      });
+      task = isTaskDataEquivalent(existingTask, data)
+        ? existingTask
+        : await prisma.task.update({
+            where: { id: existingTask.id },
+            data,
+            include: { stratusSync: true },
+          });
     } else {
       task = await prisma.task.create({
         data: {
@@ -2723,7 +2893,13 @@ async function syncStratusProjectGroupsToProject(
     }
 
     if (params.syncPackage) {
-      await upsertStratusTaskSync(
+      if (
+        existingTask?.stratusSync?.packageId &&
+        existingTask.stratusSync.packageId !== params.syncPackage.id
+      ) {
+        syncByPackageId.delete(existingTask.stratusSync.packageId);
+      }
+      const syncRecord = await upsertStratusTaskSync(
         task.id,
         targetProject.id,
         params.syncPackage,
@@ -2734,13 +2910,21 @@ async function syncStratusProjectGroupsToProject(
           finish: params.finish,
           deadline: params.deadline,
         },
+        {
+          byPackage:
+            bySync?.stratusSync?.packageId === params.syncPackage.id
+              ? bySync.stratusSync
+              : null,
+          byTask: existingTask?.stratusSync ?? null,
+        },
       );
-      task = await prisma.task.findUniqueOrThrow({
-        where: { id: task.id },
-        include: { stratusSync: true },
-      });
+      task = {
+        ...task,
+        stratusSync: syncRecord,
+      };
       syncByPackageId.set(params.syncPackage.id, task);
     } else if (task.stratusSync) {
+      syncByPackageId.delete(task.stratusSync.packageId);
       await prisma.stratusTaskSync.delete({ where: { taskId: task.id } });
       task = {
         ...task,
@@ -2748,6 +2932,18 @@ async function syncStratusProjectGroupsToProject(
       };
     }
 
+    if (
+      existingTask?.externalKey &&
+      existingTask.externalKey !== params.externalKey &&
+      tasksByExternalKey.has(existingTask.externalKey)
+    ) {
+      tasksByExternalKey.set(
+        existingTask.externalKey,
+        (tasksByExternalKey.get(existingTask.externalKey) ?? []).filter(
+          (candidate) => candidate.id !== task.id,
+        ),
+      );
+    }
     taskById.set(task.id, task);
     const updatedBucket = tasksByExternalKey.get(params.externalKey) ?? [];
     if (!updatedBucket.some((candidate) => candidate.id === task.id)) {
@@ -2896,6 +3092,7 @@ async function syncStratusProjectGroupsToProject(
       .filter((externalKey): externalKey is string => Boolean(externalKey)),
   );
 
+  const obsoleteTaskIds: string[] = [];
   for (const task of existingTasks) {
     if (managedTaskIds.has(task.id)) {
       continue;
@@ -2908,15 +3105,26 @@ async function syncStratusProjectGroupsToProject(
         options.includeProjectSummaries,
       )
     ) {
-      await prisma.task.delete({
-        where: { id: task.id },
-      });
+      obsoleteTaskIds.push(task.id);
       continue;
     }
 
-    await prisma.task.update({
-      where: { id: task.id },
-      data: { sortOrder: nextSortOrder++ },
+    const sortOrder = nextSortOrder++;
+    if (task.sortOrder !== sortOrder) {
+      await prisma.task.update({
+        where: { id: task.id },
+        data: { sortOrder },
+      });
+    }
+  }
+
+  if (obsoleteTaskIds.length > 0) {
+    await prisma.task.deleteMany({
+      where: {
+        id: {
+          in: obsoleteTaskIds,
+        },
+      },
     });
   }
 }

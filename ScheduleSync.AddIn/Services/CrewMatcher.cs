@@ -1,10 +1,9 @@
+using ScheduleSync.AddIn.Models;
+using ScheduleSync.Core.Parsers;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
-using ScheduleSync.Core.Parsers;
-using ScheduleSync.AddIn.Models;
 
 namespace ScheduleSync.AddIn.Services
 {

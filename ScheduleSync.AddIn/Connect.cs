@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.InteropServices;
 using ScheduleSync.AddIn.Adapters;
 using ScheduleSync.AddIn.Interop;
 using ScheduleSync.AddIn.UI;
@@ -10,6 +6,10 @@ using ScheduleSync.Core.Interfaces;
 using ScheduleSync.Core.Logging;
 using ScheduleSync.Core.Models;
 using ScheduleSync.Core.Parsers;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace ScheduleSync.AddIn
 {

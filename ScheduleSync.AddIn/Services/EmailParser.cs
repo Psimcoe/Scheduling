@@ -1,7 +1,7 @@
+using ScheduleSync.AddIn.Models;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using ScheduleSync.AddIn.Models;
 
 namespace ScheduleSync.AddIn.Services
 {

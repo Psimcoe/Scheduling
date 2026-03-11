@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using Xunit;
 using ScheduleSync.Core.Models;
 using ScheduleSync.Core.Validation;
 

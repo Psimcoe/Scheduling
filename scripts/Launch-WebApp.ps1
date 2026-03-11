@@ -339,6 +339,15 @@ function Test-PortListening {
     return [bool](Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)
 }
 
+function Convert-ToSingleQuotedPowerShellLiteral {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    return "'$($Value.Replace("'", "''"))'"
+}
+
 function Start-DevProcess {
     param(
         [Parameter(Mandatory = $true)]
@@ -348,11 +357,43 @@ function Start-DevProcess {
         [string]$ChildLogPath
     )
 
-    $quotedScriptPath = "`"$PSCommandPath`""
-    $quotedLogPath = "`"$ChildLogPath`""
-    $arguments = "-NoLogo -ExecutionPolicy Bypass -File $quotedScriptPath -Mode $ServiceMode -LogPath $quotedLogPath"
+    $parent = Split-Path -Path $ChildLogPath -Parent
+    if ($parent -and -not (Test-Path $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
 
-    Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden | Out-Null
+    $errorLogPath = [System.IO.Path]::ChangeExtension($ChildLogPath, '.err.log')
+    $webRootLiteral = Convert-ToSingleQuotedPowerShellLiteral -Value $paths.WebRoot
+    $pnpmCommandLiteral = Convert-ToSingleQuotedPowerShellLiteral -Value $script:PnpmCommand
+    $pnpmArguments = @($script:PnpmPrefixArguments)
+
+    switch ($ServiceMode) {
+        'Backend' {
+            $pnpmArguments += @('--filter', '@schedulesync/backend', 'dev')
+        }
+        'Frontend' {
+            $pnpmArguments += @('--filter', '@schedulesync/frontend', 'dev')
+        }
+    }
+
+    $pnpmArgumentLiterals = @($pnpmArguments | ForEach-Object {
+        Convert-ToSingleQuotedPowerShellLiteral -Value $_
+    }) -join ' '
+
+    $command = @(
+        '& {'
+        'Set-StrictMode -Version Latest'
+        '$ErrorActionPreference = ''Stop'''
+        "Set-Location $webRootLiteral"
+        "& $pnpmCommandLiteral $pnpmArgumentLiterals"
+        '}'
+    ) -join '; '
+
+    Start-Process -FilePath 'powershell.exe' `
+        -ArgumentList @('-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $command) `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $ChildLogPath `
+        -RedirectStandardError $errorLogPath | Out-Null
 }
 
 function Ensure-WebWorkspaceReady {
@@ -399,7 +440,9 @@ function Ensure-WebWorkspaceReady {
 $paths = Get-RepoPaths
 $backendHealthUrl = 'http://localhost:3001/api/health'
 $frontendUrl = 'http://localhost:5173/'
-Start-LauncherTranscript -Path $LogPath
+if ($Mode -eq 'Launch') {
+    Start-LauncherTranscript -Path $LogPath
+}
 
 try {
     $nodeCommand = Find-NodeCommand
@@ -415,11 +458,13 @@ try {
         'Backend' {
             Write-Host 'Starting backend dev server...'
             Invoke-Pnpm -WorkingDirectory $paths.WebRoot -Arguments @('--filter', '@schedulesync/backend', 'dev')
+
             exit 0
         }
         'Frontend' {
             Write-Host 'Starting frontend dev server...'
             Invoke-Pnpm -WorkingDirectory $paths.WebRoot -Arguments @('--filter', '@schedulesync/frontend', 'dev')
+
             exit 0
         }
     }
@@ -450,12 +495,12 @@ try {
 
     Write-Host 'Waiting for backend...'
     if (-not (Wait-ForUrl -Uri $backendHealthUrl -MustContain '"status":"ok"' -TimeoutSeconds 90)) {
-        throw "The backend did not become ready. Check $($paths.LogRoot)\web-backend.log."
+        throw "The backend did not become ready. Check $($paths.LogRoot)\web-backend.log and $($paths.LogRoot)\web-backend.err.log."
     }
 
     Write-Host 'Waiting for frontend...'
     if (-not (Wait-ForUrl -Uri $frontendUrl -MustContain '<title>ScheduleSync</title>' -TimeoutSeconds 90)) {
-        throw "The frontend did not become ready. Check $($paths.LogRoot)\web-frontend.log."
+        throw "The frontend did not become ready. Check $($paths.LogRoot)\web-frontend.log and $($paths.LogRoot)\web-frontend.err.log."
     }
 
     if (-not $SkipBrowser) {
@@ -471,5 +516,7 @@ catch {
     exit 1
 }
 finally {
-    Stop-LauncherTranscript
+    if ($Mode -eq 'Launch') {
+        Stop-LauncherTranscript
+    }
 }

@@ -217,7 +217,7 @@ describe("stratusSyncService", () => {
     expect(rows[0]?.mappedTask.percentComplete).toBe(50);
   });
 
-  it("keeps Stratus package task names package-based even when the config points at project name fields", () => {
+  it("uses the configured task name field for package tasks", () => {
     const rows = buildPullPreviewRows(
       [
         {
@@ -247,7 +247,40 @@ describe("stratusSyncService", () => {
     );
 
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.mappedTask.name).toBe("Package Seven");
+    expect(rows[0]?.mappedTask.name).toBe("Warehouse Expansion");
+  });
+
+  it("falls back to the package name when the configured task name field is blank", () => {
+    const rows = buildPullPreviewRows(
+      [
+        {
+          package: {
+            id: "pkg-task-name-fallback",
+            projectId: "stratus-project",
+            modelId: "model-1",
+            packageNumber: "PKG-8",
+            packageName: "Package Eight",
+            trackingStatusId: null,
+            trackingStatusName: null,
+            externalKey: "1001-PKG-8",
+            normalizedFields: {
+              "STRATUS.Package.Name": "Package Eight",
+              "STRATUS.Field.Project Name Override": "   ",
+            },
+            rawPackage: {},
+          },
+          assemblies: [],
+        },
+      ],
+      [],
+      480,
+      normalizeStratusConfig({
+        taskNameField: "STRATUS.Field.Project Name Override",
+      }),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.mappedTask.name).toBe("Package Eight");
   });
 
   it("supports an Undefined Package placeholder with only assembly children", () => {

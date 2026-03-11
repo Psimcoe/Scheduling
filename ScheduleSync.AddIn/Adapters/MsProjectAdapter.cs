@@ -1,9 +1,9 @@
+using ScheduleSync.Core.Interfaces;
+using ScheduleSync.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using ScheduleSync.Core.Interfaces;
-using ScheduleSync.Core.Models;
 
 namespace ScheduleSync.AddIn.Adapters
 {

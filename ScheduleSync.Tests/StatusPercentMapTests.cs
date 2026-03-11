@@ -1,4 +1,3 @@
-using Xunit;
 using ScheduleSync.Core.Mapping;
 
 namespace ScheduleSync.Tests

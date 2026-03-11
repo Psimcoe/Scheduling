@@ -1,8 +1,8 @@
+using Microsoft.Web.WebView2.Core;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using Microsoft.Web.WebView2.Core;
 
 namespace ScheduleSync.Desktop;
 

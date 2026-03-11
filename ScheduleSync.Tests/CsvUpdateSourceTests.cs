@@ -1,7 +1,4 @@
-using System;
-using Xunit;
 using ScheduleSync.Core.Parsers;
-using ScheduleSync.Core.Models;
 
 namespace ScheduleSync.Tests
 {

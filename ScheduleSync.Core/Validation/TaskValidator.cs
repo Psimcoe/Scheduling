@@ -1,6 +1,6 @@
+using ScheduleSync.Core.Models;
 using System;
 using System.Collections.Generic;
-using ScheduleSync.Core.Models;
 
 namespace ScheduleSync.Core.Validation
 {

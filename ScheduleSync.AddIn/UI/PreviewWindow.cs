@@ -1,9 +1,9 @@
+using ScheduleSync.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using ScheduleSync.Core.Models;
 
 namespace ScheduleSync.AddIn.UI
 {

@@ -1,10 +1,10 @@
+using ScheduleSync.Core.Interfaces;
+using ScheduleSync.Core.Mapping;
+using ScheduleSync.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using ScheduleSync.Core.Interfaces;
-using ScheduleSync.Core.Mapping;
-using ScheduleSync.Core.Models;
 
 namespace ScheduleSync.Core.Parsers
 {

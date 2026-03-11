@@ -1,4 +1,3 @@
-using Xunit;
 using ScheduleSync.Core.Logging;
 using ScheduleSync.Core.Models;
 

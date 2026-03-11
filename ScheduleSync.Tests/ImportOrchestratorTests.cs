@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Xunit;
 using ScheduleSync.Core;
 using ScheduleSync.Core.Interfaces;
 using ScheduleSync.Core.Models;

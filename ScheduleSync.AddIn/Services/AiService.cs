@@ -1,3 +1,6 @@
+using OpenAI;
+using OpenAI.Chat;
+using ScheduleSync.AddIn.Models;
 using System;
 using System.ClientModel;
 using System.Collections.Generic;
@@ -5,9 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using OpenAI;
-using OpenAI.Chat;
-using ScheduleSync.AddIn.Models;
 
 namespace ScheduleSync.AddIn.Services
 {

@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using ScheduleSync.Core.Interfaces;
 using ScheduleSync.Core.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ScheduleSync.Core.Parsers
 {

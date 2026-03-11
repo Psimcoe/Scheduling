@@ -1,5 +1,3 @@
-using System;
-using Xunit;
 using ScheduleSync.Core.Parsers;
 
 namespace ScheduleSync.Tests

@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Newtonsoft.Json;
 using ScheduleSync.Core.Models;
+using System.Text;
 
 namespace ScheduleSync.Core.Logging
 {

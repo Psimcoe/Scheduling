@@ -1,7 +1,20 @@
 <Solution>
-  <Project Path="ScheduleSync.Core/ScheduleSync.Core.csproj" />
-  <Project Path="ScheduleSync.Desktop/ScheduleSync.Desktop.csproj" />
-  <Project Path="installer/ScheduleSync.Desktop.Installer.wixproj" />
-  <Project Path="ScheduleSync.Tests/ScheduleSync.Tests.csproj" />
-  <Project Path="ScheduleSync.AddIn/ScheduleSync.AddIn.csproj" />
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="ScheduleSync.Core/ScheduleSync.Core.csproj">
+    <Platform Project="Any CPU" />
+  </Project>
+  <Project Path="ScheduleSync.Desktop/ScheduleSync.Desktop.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="installer/ScheduleSync.Desktop.Installer.wixproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="ScheduleSync.Tests/ScheduleSync.Tests.csproj">
+    <Platform Project="Any CPU" />
+  </Project>
+  <Project Path="ScheduleSync.AddIn/ScheduleSync.AddIn.csproj">
+    <Platform Project="Any CPU" />
+  </Project>
 </Solution>

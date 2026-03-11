@@ -15,6 +15,7 @@ const MAX_RETRIEVED_CHUNKS = 5;
 
 let ftsInitPromise: Promise<void> | null = null;
 const rebuildTimers = new Map<string, ReturnType<typeof setTimeout>>();
+let rebuildQueue: Promise<void> = Promise.resolve();
 
 interface ChunkRecord {
   id: string;
@@ -109,9 +110,15 @@ export function markProjectKnowledgeDirty(projectId: string): void {
     projectId,
     setTimeout(() => {
       rebuildTimers.delete(projectId);
-      rebuildProjectScheduleChunks(projectId).catch((err) => {
-        console.error(`[ScheduleKnowledgeService] Failed to rebuild chunks for ${projectId}:`, err);
-      });
+      rebuildQueue = rebuildQueue
+        .catch(() => undefined)
+        .then(() => rebuildProjectScheduleChunks(projectId))
+        .catch((err) => {
+          console.error(
+            `[ScheduleKnowledgeService] Failed to rebuild chunks for ${projectId}:`,
+            err,
+          );
+        });
     }, CHUNK_REBUILD_DEBOUNCE_MS),
   );
 }
