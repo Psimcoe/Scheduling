@@ -13,10 +13,14 @@ import {
   applyStratusProjectImport,
   applyStratusPull,
   applyStratusPush,
+  applyStratusRefreshFromPrefab,
+  applyStratusSyncToPrefab,
   buildProjectStratusStatus,
   previewStratusProjectImport,
   previewStratusPull,
   previewStratusPush,
+  previewStratusRefreshFromPrefab,
+  previewStratusSyncToPrefab,
 } from '../services/stratusSyncService.js';
 import { captureUndo } from '../services/undoService.js';
 
@@ -88,6 +92,66 @@ export default async function stratusRoutes(app: FastifyInstance) {
           failedAssemblies: result.summary.failedAssemblies,
         });
         markProjectKnowledgeDirty(projectId);
+      }
+      return result;
+    },
+  );
+
+  app.post<{ Params: { projectId: string } }>(
+    '/projects/:projectId/stratus/refresh-from-prefab/preview',
+    async (req) => {
+      return previewStratusRefreshFromPrefab(req.params.projectId);
+    },
+  );
+
+  app.post<{ Params: { projectId: string } }>(
+    '/projects/:projectId/stratus/refresh-from-prefab/apply',
+    async (req) => {
+      const preview = await previewStratusRefreshFromPrefab(req.params.projectId);
+      if (preview.summary.refreshCount > 0) {
+        await captureUndo(preview.sourceProjectId, `Refresh Stratus references from ${preview.prefabProjectName}`);
+      }
+
+      const result = await applyStratusRefreshFromPrefab(req.params.projectId);
+      if (result.summary.refreshed > 0) {
+        await logImportEvent(result.sourceProjectId, 'stratus-refresh-from-prefab', {
+          prefabProjectId: result.prefabProjectId,
+          prefabProjectName: result.prefabProjectName,
+          refreshed: result.summary.refreshed,
+          skipped: result.summary.skipped,
+          failed: result.summary.failed,
+        });
+        markProjectKnowledgeDirty(result.sourceProjectId);
+      }
+      return result;
+    },
+  );
+
+  app.post<{ Params: { projectId: string } }>(
+    '/projects/:projectId/stratus/sync-to-prefab/preview',
+    async (req) => {
+      return previewStratusSyncToPrefab(req.params.projectId);
+    },
+  );
+
+  app.post<{ Params: { projectId: string } }>(
+    '/projects/:projectId/stratus/sync-to-prefab/apply',
+    async (req) => {
+      const preview = await previewStratusSyncToPrefab(req.params.projectId);
+      if (preview.summary.syncCount > 0) {
+        await captureUndo(preview.prefabProjectId, `Sync Stratus dates from ${preview.sourceProjectName}`);
+      }
+
+      const result = await applyStratusSyncToPrefab(req.params.projectId);
+      if (result.summary.synced > 0) {
+        await logImportEvent(result.prefabProjectId, 'stratus-sync-to-prefab', {
+          sourceProjectId: result.sourceProjectId,
+          sourceProjectName: result.sourceProjectName,
+          synced: result.summary.synced,
+          skipped: result.summary.skipped,
+          failed: result.summary.failed,
+        });
+        markProjectKnowledgeDirty(result.prefabProjectId);
       }
       return result;
     },

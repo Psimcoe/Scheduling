@@ -23,6 +23,8 @@ import GridOnIcon from '@mui/icons-material/GridOn';
 import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import SyncAltIcon from '@mui/icons-material/SyncAlt';
+import PublishedWithChangesIcon from '@mui/icons-material/PublishedWithChanges';
 
 import { useProjectStore, useUIStore } from '../../stores';
 import { importExportApi, stratusApi } from '../../api';
@@ -60,6 +62,9 @@ const ProjectRibbon: React.FC = () => {
   const disabled = !activeProjectId;
   const activeProject = useProjectStore((s) => s.activeProject);
   const [stratusStatus, setStratusStatus] = useState<StratusStatusResponse | null>(null);
+  const isPrefabProject = activeProject?.name?.trim().toLowerCase() === 'prefab';
+  const canSyncToPrefab = !!activeProjectId && !!activeProject?.stratusProjectId && !isPrefabProject;
+  const canRefreshFromPrefab = canSyncToPrefab;
 
   const mspdiInputRef = useRef<HTMLInputElement>(null);
   const updateInputRef = useRef<HTMLInputElement>(null);
@@ -393,6 +398,28 @@ const ProjectRibbon: React.FC = () => {
               disabled={disabled || !stratusStatus?.canPull}
             >
               <CloudDownloadIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={canSyncToPrefab ? 'Sync changed package dates from this project back to Prefab' : 'Sync to Prefab is available only from project-specific Stratus references'}>
+          <span>
+            <IconButton
+              size="small"
+              onClick={() => openDialogWith('stratusSyncToPrefabPreview')}
+              disabled={!canSyncToPrefab}
+            >
+              <SyncAltIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={canRefreshFromPrefab ? 'Refresh matching reference task dates from Prefab' : 'Refresh from Prefab is available only from project-specific Stratus references'}>
+          <span>
+            <IconButton
+              size="small"
+              onClick={() => openDialogWith('stratusRefreshFromPrefabPreview')}
+              disabled={!canRefreshFromPrefab}
+            >
+              <PublishedWithChangesIcon fontSize="small" />
             </IconButton>
           </span>
         </Tooltip>

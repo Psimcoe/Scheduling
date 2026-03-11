@@ -213,6 +213,94 @@ export interface PushApplyResult {
   };
 }
 
+export interface SyncToPrefabPreviewResult {
+  sourceProjectId: string;
+  sourceProjectName: string;
+  prefabProjectId: string;
+  prefabProjectName: string;
+  rows: Array<{
+    action: 'sync' | 'skip';
+    sourceTaskId: string;
+    sourceTaskName: string;
+    prefabTaskId: string | null;
+    prefabTaskName: string | null;
+    externalKey: string;
+    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    warnings: string[];
+  }>;
+  summary: {
+    candidateTaskCount: number;
+    syncCount: number;
+    skipCount: number;
+  };
+}
+
+export interface SyncToPrefabApplyResult {
+  sourceProjectId: string;
+  sourceProjectName: string;
+  prefabProjectId: string;
+  prefabProjectName: string;
+  rows: Array<{
+    action: 'synced' | 'skipped' | 'failed';
+    sourceTaskId: string;
+    sourceTaskName: string;
+    prefabTaskId: string | null;
+    prefabTaskName: string | null;
+    externalKey: string;
+    message: string | null;
+  }>;
+  summary: {
+    processed: number;
+    synced: number;
+    skipped: number;
+    failed: number;
+  };
+}
+
+export interface RefreshFromPrefabPreviewResult {
+  sourceProjectId: string;
+  sourceProjectName: string;
+  prefabProjectId: string;
+  prefabProjectName: string;
+  rows: Array<{
+    action: 'refresh' | 'skip';
+    sourceTaskId: string;
+    sourceTaskName: string;
+    prefabTaskId: string | null;
+    prefabTaskName: string | null;
+    externalKey: string;
+    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    warnings: string[];
+  }>;
+  summary: {
+    candidateTaskCount: number;
+    refreshCount: number;
+    skipCount: number;
+  };
+}
+
+export interface RefreshFromPrefabApplyResult {
+  sourceProjectId: string;
+  sourceProjectName: string;
+  prefabProjectId: string;
+  prefabProjectName: string;
+  rows: Array<{
+    action: 'refreshed' | 'skipped' | 'failed';
+    sourceTaskId: string;
+    sourceTaskName: string;
+    prefabTaskId: string | null;
+    prefabTaskName: string | null;
+    externalKey: string;
+    message: string | null;
+  }>;
+  summary: {
+    processed: number;
+    refreshed: number;
+    skipped: number;
+    failed: number;
+  };
+}
+
 interface LoadedProjectTarget extends StratusProjectTarget {
   startDate: Date;
   stratusLastPullAt: Date | null;
@@ -288,6 +376,29 @@ export async function loadProjectStratusTarget(projectId: string): Promise<Loade
   }
 
   return project;
+}
+
+async function loadPrefabProjectOrThrow(): Promise<SyncProjectTarget> {
+  const prefabProject = await prisma.project.findFirst({
+    where: {
+      name: {
+        equals: 'Prefab',
+      },
+    },
+    orderBy: { updatedAt: 'desc' },
+    select: {
+      id: true,
+      name: true,
+      startDate: true,
+      minutesPerDay: true,
+    },
+  });
+
+  if (!prefabProject) {
+    throw new Error('Prefab project not found. Pull or import Stratus data first.');
+  }
+
+  return prefabProject;
 }
 
 export async function getResolvedPushFieldIds(config: StratusConfig): Promise<FieldIdResolution> {
@@ -898,6 +1009,274 @@ export async function applyStratusPush(projectId: string, config: StratusConfig)
   };
 }
 
+export async function previewStratusSyncToPrefab(projectId: string): Promise<SyncToPrefabPreviewResult> {
+  const sourceProject = await loadProjectStratusTarget(projectId);
+  if (isPrefabProjectName(sourceProject.name)) {
+    throw new Error('Sync to Prefab is only available from project-specific Stratus references.');
+  }
+
+  const prefabProject = await loadPrefabProjectOrThrow();
+  const [sourceTasks, prefabTasks] = await Promise.all([
+    prisma.task.findMany({
+      where: { projectId, externalKey: { not: null } },
+      orderBy: { sortOrder: 'asc' },
+      include: { stratusSync: true },
+    }),
+    prisma.task.findMany({
+      where: { projectId: prefabProject.id, externalKey: { not: null } },
+      orderBy: { sortOrder: 'asc' },
+      include: { stratusSync: true },
+    }),
+  ]);
+
+  const rows = buildSyncToPrefabPreviewRows(sourceTasks, prefabTasks);
+  return {
+    sourceProjectId: sourceProject.id,
+    sourceProjectName: sourceProject.name,
+    prefabProjectId: prefabProject.id,
+    prefabProjectName: prefabProject.name,
+    rows,
+    summary: {
+      candidateTaskCount: rows.length,
+      syncCount: rows.filter((row) => row.action === 'sync').length,
+      skipCount: rows.filter((row) => row.action === 'skip').length,
+    },
+  };
+}
+
+export async function applyStratusSyncToPrefab(projectId: string): Promise<SyncToPrefabApplyResult> {
+  const preview = await previewStratusSyncToPrefab(projectId);
+  const sourceTasks = await prisma.task.findMany({
+    where: {
+      id: {
+        in: preview.rows.map((row) => row.sourceTaskId),
+      },
+    },
+    include: { stratusSync: true },
+  });
+  const sourceTaskById = new Map(sourceTasks.map((task) => [task.id, task]));
+
+  const rows: SyncToPrefabApplyResult['rows'] = [];
+  let synced = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const row of preview.rows) {
+    if (row.action === 'skip' || !row.prefabTaskId) {
+      rows.push({
+        action: 'skipped',
+        sourceTaskId: row.sourceTaskId,
+        sourceTaskName: row.sourceTaskName,
+        prefabTaskId: row.prefabTaskId,
+        prefabTaskName: row.prefabTaskName,
+        externalKey: row.externalKey,
+        message: row.warnings.join('. ') || 'No Prefab sync changes to apply.',
+      });
+      skipped++;
+      continue;
+    }
+
+    const sourceTask = sourceTaskById.get(row.sourceTaskId);
+    if (!sourceTask) {
+      rows.push({
+        action: 'failed',
+        sourceTaskId: row.sourceTaskId,
+        sourceTaskName: row.sourceTaskName,
+        prefabTaskId: row.prefabTaskId,
+        prefabTaskName: row.prefabTaskName,
+        externalKey: row.externalKey,
+        message: 'Source task could not be loaded.',
+      });
+      failed++;
+      continue;
+    }
+
+    try {
+      await prisma.task.update({
+        where: { id: row.prefabTaskId },
+        data: {
+          start: sourceTask.start,
+          finish: sourceTask.finish,
+          deadline: sourceTask.deadline,
+          isManuallyScheduled: true,
+        },
+      });
+      rows.push({
+        action: 'synced',
+        sourceTaskId: row.sourceTaskId,
+        sourceTaskName: row.sourceTaskName,
+        prefabTaskId: row.prefabTaskId,
+        prefabTaskName: row.prefabTaskName,
+        externalKey: row.externalKey,
+        message: null,
+      });
+      synced++;
+    } catch (error) {
+      rows.push({
+        action: 'failed',
+        sourceTaskId: row.sourceTaskId,
+        sourceTaskName: row.sourceTaskName,
+        prefabTaskId: row.prefabTaskId,
+        prefabTaskName: row.prefabTaskName,
+        externalKey: row.externalKey,
+        message: error instanceof Error ? error.message : 'Sync to Prefab failed.',
+      });
+      failed++;
+    }
+  }
+
+  return {
+    sourceProjectId: preview.sourceProjectId,
+    sourceProjectName: preview.sourceProjectName,
+    prefabProjectId: preview.prefabProjectId,
+    prefabProjectName: preview.prefabProjectName,
+    rows,
+    summary: {
+      processed: preview.rows.length,
+      synced,
+      skipped,
+      failed,
+    },
+  };
+}
+
+export async function previewStratusRefreshFromPrefab(
+  projectId: string,
+): Promise<RefreshFromPrefabPreviewResult> {
+  const sourceProject = await loadProjectStratusTarget(projectId);
+  if (isPrefabProjectName(sourceProject.name)) {
+    throw new Error('Refresh from Prefab is only available from project-specific Stratus references.');
+  }
+
+  const prefabProject = await loadPrefabProjectOrThrow();
+  const [sourceTasks, prefabTasks] = await Promise.all([
+    prisma.task.findMany({
+      where: { projectId, externalKey: { not: null } },
+      orderBy: { sortOrder: 'asc' },
+      include: { stratusSync: true },
+    }),
+    prisma.task.findMany({
+      where: { projectId: prefabProject.id, externalKey: { not: null } },
+      orderBy: { sortOrder: 'asc' },
+      include: { stratusSync: true },
+    }),
+  ]);
+
+  const rows = buildRefreshFromPrefabPreviewRows(sourceTasks, prefabTasks);
+  return {
+    sourceProjectId: sourceProject.id,
+    sourceProjectName: sourceProject.name,
+    prefabProjectId: prefabProject.id,
+    prefabProjectName: prefabProject.name,
+    rows,
+    summary: {
+      candidateTaskCount: rows.length,
+      refreshCount: rows.filter((row) => row.action === 'refresh').length,
+      skipCount: rows.filter((row) => row.action === 'skip').length,
+    },
+  };
+}
+
+export async function applyStratusRefreshFromPrefab(
+  projectId: string,
+): Promise<RefreshFromPrefabApplyResult> {
+  const preview = await previewStratusRefreshFromPrefab(projectId);
+  const prefabTasks = await prisma.task.findMany({
+    where: {
+      id: {
+        in: preview.rows
+          .map((row) => row.prefabTaskId)
+          .filter((taskId): taskId is string => typeof taskId === 'string'),
+      },
+    },
+    include: { stratusSync: true },
+  });
+  const prefabTaskById = new Map(prefabTasks.map((task) => [task.id, task]));
+
+  const rows: RefreshFromPrefabApplyResult['rows'] = [];
+  let refreshed = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const row of preview.rows) {
+    if (row.action === 'skip' || !row.prefabTaskId) {
+      rows.push({
+        action: 'skipped',
+        sourceTaskId: row.sourceTaskId,
+        sourceTaskName: row.sourceTaskName,
+        prefabTaskId: row.prefabTaskId,
+        prefabTaskName: row.prefabTaskName,
+        externalKey: row.externalKey,
+        message: row.warnings.join('. ') || 'No Prefab changes to refresh.',
+      });
+      skipped++;
+      continue;
+    }
+
+    const prefabTask = prefabTaskById.get(row.prefabTaskId);
+    if (!prefabTask) {
+      rows.push({
+        action: 'failed',
+        sourceTaskId: row.sourceTaskId,
+        sourceTaskName: row.sourceTaskName,
+        prefabTaskId: row.prefabTaskId,
+        prefabTaskName: row.prefabTaskName,
+        externalKey: row.externalKey,
+        message: 'Prefab task could not be loaded.',
+      });
+      failed++;
+      continue;
+    }
+
+    try {
+      await prisma.task.update({
+        where: { id: row.sourceTaskId },
+        data: {
+          start: prefabTask.start,
+          finish: prefabTask.finish,
+          deadline: prefabTask.deadline,
+          isManuallyScheduled: true,
+        },
+      });
+      rows.push({
+        action: 'refreshed',
+        sourceTaskId: row.sourceTaskId,
+        sourceTaskName: row.sourceTaskName,
+        prefabTaskId: row.prefabTaskId,
+        prefabTaskName: row.prefabTaskName,
+        externalKey: row.externalKey,
+        message: null,
+      });
+      refreshed++;
+    } catch (error) {
+      rows.push({
+        action: 'failed',
+        sourceTaskId: row.sourceTaskId,
+        sourceTaskName: row.sourceTaskName,
+        prefabTaskId: row.prefabTaskId,
+        prefabTaskName: row.prefabTaskName,
+        externalKey: row.externalKey,
+        message: error instanceof Error ? error.message : 'Refresh from Prefab failed.',
+      });
+      failed++;
+    }
+  }
+
+  return {
+    sourceProjectId: preview.sourceProjectId,
+    sourceProjectName: preview.sourceProjectName,
+    prefabProjectId: preview.prefabProjectId,
+    prefabProjectName: preview.prefabProjectName,
+    rows,
+    summary: {
+      processed: preview.rows.length,
+      refreshed,
+      skipped,
+      failed,
+    },
+  };
+}
+
 export function buildProjectImportPreviewRows(
   stratusProjects: NormalizedStratusProject[],
   localProjects: LocalProjectRecord[],
@@ -1100,6 +1479,120 @@ export function buildPushPreviewRows(tasks: TaskWithSync[]) {
   });
 }
 
+export function buildSyncToPrefabPreviewRows(sourceTasks: TaskWithSync[], prefabTasks: TaskWithSync[]) {
+  const prefabTasksByExternalKey = new Map<string, TaskWithSync[]>();
+  for (const task of prefabTasks) {
+    if (!task.externalKey || !isPrefabSyncCandidate(task)) {
+      continue;
+    }
+    const bucket = prefabTasksByExternalKey.get(task.externalKey) ?? [];
+    bucket.push(task);
+    prefabTasksByExternalKey.set(task.externalKey, bucket);
+  }
+
+  return sourceTasks
+    .filter(isProjectReferenceSyncCandidate)
+    .map((sourceTask) => {
+      const warnings: string[] = [];
+      const matches = prefabTasksByExternalKey.get(sourceTask.externalKey) ?? [];
+      const prefabTask = matches.length === 1 ? matches[0] ?? null : null;
+
+      if (matches.length === 0) {
+        warnings.push('No matching Prefab package task was found.');
+      } else if (matches.length > 1) {
+        warnings.push(`External key ${sourceTask.externalKey} matches multiple Prefab tasks.`);
+      }
+
+      const changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }> = [];
+      if (prefabTask) {
+        const prefabStart = toIsoSignature(prefabTask.start);
+        const sourceStart = toIsoSignature(sourceTask.start);
+        const prefabFinish = toIsoSignature(prefabTask.finish);
+        const sourceFinish = toIsoSignature(sourceTask.finish);
+        const prefabDeadline = toIsoSignature(prefabTask.deadline);
+        const sourceDeadline = toIsoSignature(sourceTask.deadline);
+
+        if (prefabStart !== sourceStart) {
+          changes.push({ field: 'start', from: prefabStart, to: sourceStart });
+        }
+        if (prefabFinish !== sourceFinish) {
+          changes.push({ field: 'finish', from: prefabFinish, to: sourceFinish });
+        }
+        if (prefabDeadline !== sourceDeadline) {
+          changes.push({ field: 'deadline', from: prefabDeadline, to: sourceDeadline });
+        }
+      }
+
+      return {
+        action: warnings.length === 0 && changes.length > 0 ? 'sync' as const : 'skip' as const,
+        sourceTaskId: sourceTask.id,
+        sourceTaskName: sourceTask.name,
+        prefabTaskId: prefabTask?.id ?? null,
+        prefabTaskName: prefabTask?.name ?? null,
+        externalKey: sourceTask.externalKey ?? sourceTask.id,
+        changes,
+        warnings: warnings.length === 0 && changes.length === 0 ? ['No date changes to sync'] : warnings,
+      };
+    });
+}
+
+export function buildRefreshFromPrefabPreviewRows(sourceTasks: TaskWithSync[], prefabTasks: TaskWithSync[]) {
+  const prefabTasksByExternalKey = new Map<string, TaskWithSync[]>();
+  for (const task of prefabTasks) {
+    if (!task.externalKey || !isPrefabRefreshCandidate(task)) {
+      continue;
+    }
+    const bucket = prefabTasksByExternalKey.get(task.externalKey) ?? [];
+    bucket.push(task);
+    prefabTasksByExternalKey.set(task.externalKey, bucket);
+  }
+
+  return sourceTasks
+    .filter(isProjectReferenceRefreshCandidate)
+    .map((sourceTask) => {
+      const warnings: string[] = [];
+      const matches = prefabTasksByExternalKey.get(sourceTask.externalKey) ?? [];
+      const prefabTask = matches.length === 1 ? matches[0] ?? null : null;
+
+      if (matches.length === 0) {
+        warnings.push('No matching Prefab reference was found.');
+      } else if (matches.length > 1) {
+        warnings.push(`External key ${sourceTask.externalKey} matches multiple Prefab tasks.`);
+      }
+
+      const changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }> = [];
+      if (prefabTask) {
+        const sourceStart = toIsoSignature(sourceTask.start);
+        const prefabStart = toIsoSignature(prefabTask.start);
+        const sourceFinish = toIsoSignature(sourceTask.finish);
+        const prefabFinish = toIsoSignature(prefabTask.finish);
+        const sourceDeadline = toIsoSignature(sourceTask.deadline);
+        const prefabDeadline = toIsoSignature(prefabTask.deadline);
+
+        if (sourceStart !== prefabStart) {
+          changes.push({ field: 'start', from: sourceStart, to: prefabStart });
+        }
+        if (sourceFinish !== prefabFinish) {
+          changes.push({ field: 'finish', from: sourceFinish, to: prefabFinish });
+        }
+        if (sourceDeadline !== prefabDeadline) {
+          changes.push({ field: 'deadline', from: sourceDeadline, to: prefabDeadline });
+        }
+      }
+
+      return {
+        action: warnings.length === 0 && changes.length > 0 ? 'refresh' as const : 'skip' as const,
+        sourceTaskId: sourceTask.id,
+        sourceTaskName: sourceTask.name,
+        prefabTaskId: prefabTask?.id ?? null,
+        prefabTaskName: prefabTask?.name ?? null,
+        externalKey: sourceTask.externalKey ?? sourceTask.id,
+        changes,
+        warnings: warnings.length === 0 && changes.length === 0 ? ['No Prefab changes to refresh'] : warnings,
+      };
+    });
+}
+
 export function toStratusSyncSummary(sync: StratusTaskSync | null): StratusSyncSummary | null {
   if (!sync) {
     return null;
@@ -1117,6 +1610,45 @@ export function toStratusSyncSummary(sync: StratusTaskSync | null): StratusSyncS
     pulledFinish: sync.syncedFinishSignature,
     pulledDeadline: sync.syncedDeadlineSignature,
   };
+}
+
+function isProjectReferenceSyncCandidate(
+  task: TaskWithSync,
+): task is TaskWithSync & { externalKey: string } {
+  return (
+    typeof task.externalKey === 'string'
+    && task.externalKey.length > 0
+    && !task.externalKey.startsWith('stratus-project:')
+    && !task.externalKey.includes('::assembly:')
+  );
+}
+
+function isPrefabSyncCandidate(task: TaskWithSync) {
+  return isProjectReferenceSyncCandidate(task) && task.stratusSync !== null;
+}
+
+function isProjectReferenceRefreshCandidate(
+  task: TaskWithSync,
+): task is TaskWithSync & { externalKey: string } {
+  return (
+    typeof task.externalKey === 'string'
+    && task.externalKey.length > 0
+    && !task.externalKey.startsWith('stratus-project:')
+  );
+}
+
+function isPrefabRefreshCandidate(
+  task: TaskWithSync,
+): task is TaskWithSync & { externalKey: string } {
+  return (
+    typeof task.externalKey === 'string'
+    && task.externalKey.length > 0
+    && !task.externalKey.startsWith('stratus-project:')
+  );
+}
+
+function toIsoSignature(date: Date | null) {
+  return date ? date.toISOString() : null;
 }
 
 async function loadStratusPackageBundles(

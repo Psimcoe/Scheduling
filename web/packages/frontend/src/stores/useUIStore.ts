@@ -50,6 +50,8 @@ export type DialogType =
   | 'stratusSettings'
   | 'stratusProjectImport'
   | 'stratusPullPreview'
+  | 'stratusRefreshFromPrefabPreview'
+  | 'stratusSyncToPrefabPreview'
   | 'stratusPushPreview';
 
 export interface SortCriteria {

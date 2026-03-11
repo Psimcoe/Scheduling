@@ -541,6 +541,94 @@ export interface StratusPushApplyResponse {
   };
 }
 
+export interface StratusSyncToPrefabPreviewResponse {
+  sourceProjectId: string;
+  sourceProjectName: string;
+  prefabProjectId: string;
+  prefabProjectName: string;
+  rows: Array<{
+    action: 'sync' | 'skip';
+    sourceTaskId: string;
+    sourceTaskName: string;
+    prefabTaskId: string | null;
+    prefabTaskName: string | null;
+    externalKey: string;
+    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    warnings: string[];
+  }>;
+  summary: {
+    candidateTaskCount: number;
+    syncCount: number;
+    skipCount: number;
+  };
+}
+
+export interface StratusSyncToPrefabApplyResponse {
+  sourceProjectId: string;
+  sourceProjectName: string;
+  prefabProjectId: string;
+  prefabProjectName: string;
+  rows: Array<{
+    action: 'synced' | 'skipped' | 'failed';
+    sourceTaskId: string;
+    sourceTaskName: string;
+    prefabTaskId: string | null;
+    prefabTaskName: string | null;
+    externalKey: string;
+    message: string | null;
+  }>;
+  summary: {
+    processed: number;
+    synced: number;
+    skipped: number;
+    failed: number;
+  };
+}
+
+export interface StratusRefreshFromPrefabPreviewResponse {
+  sourceProjectId: string;
+  sourceProjectName: string;
+  prefabProjectId: string;
+  prefabProjectName: string;
+  rows: Array<{
+    action: 'refresh' | 'skip';
+    sourceTaskId: string;
+    sourceTaskName: string;
+    prefabTaskId: string | null;
+    prefabTaskName: string | null;
+    externalKey: string;
+    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    warnings: string[];
+  }>;
+  summary: {
+    candidateTaskCount: number;
+    refreshCount: number;
+    skipCount: number;
+  };
+}
+
+export interface StratusRefreshFromPrefabApplyResponse {
+  sourceProjectId: string;
+  sourceProjectName: string;
+  prefabProjectId: string;
+  prefabProjectName: string;
+  rows: Array<{
+    action: 'refreshed' | 'skipped' | 'failed';
+    sourceTaskId: string;
+    sourceTaskName: string;
+    prefabTaskId: string | null;
+    prefabTaskName: string | null;
+    externalKey: string;
+    message: string | null;
+  }>;
+  summary: {
+    processed: number;
+    refreshed: number;
+    skipped: number;
+    failed: number;
+  };
+}
+
 export const stratusApi = {
   getConfig: () => request<SafeStratusConfigResponse>('/stratus/config'),
   updateConfig: (data: Record<string, unknown>) =>
@@ -572,6 +660,22 @@ export const stratusApi = {
     }),
   previewPush: (projectId: string) =>
     request<StratusPushPreviewResponse>(`/projects/${projectId}/stratus/push/preview`, {
+      method: 'POST',
+    }),
+  previewSyncToPrefab: (projectId: string) =>
+    request<StratusSyncToPrefabPreviewResponse>(`/projects/${projectId}/stratus/sync-to-prefab/preview`, {
+      method: 'POST',
+    }),
+  previewRefreshFromPrefab: (projectId: string) =>
+    request<StratusRefreshFromPrefabPreviewResponse>(`/projects/${projectId}/stratus/refresh-from-prefab/preview`, {
+      method: 'POST',
+    }),
+  applySyncToPrefab: (projectId: string) =>
+    request<StratusSyncToPrefabApplyResponse>(`/projects/${projectId}/stratus/sync-to-prefab/apply`, {
+      method: 'POST',
+    }),
+  applyRefreshFromPrefab: (projectId: string) =>
+    request<StratusRefreshFromPrefabApplyResponse>(`/projects/${projectId}/stratus/refresh-from-prefab/apply`, {
       method: 'POST',
     }),
   applyPush: (projectId: string) =>

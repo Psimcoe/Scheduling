@@ -34,6 +34,8 @@ import {
   StratusSettingsDialog,
   StratusProjectImportDialog,
   StratusPullPreviewDialog,
+  StratusRefreshFromPrefabPreviewDialog,
+  StratusSyncToPrefabPreviewDialog,
   StratusPushPreviewDialog,
 } from './components/dialogs';
 import ChatPanel from './components/ai/ChatPanel';
@@ -86,6 +88,8 @@ const App: React.FC = () => {
       <StratusSettingsDialog />
       <StratusProjectImportDialog />
       <StratusPullPreviewDialog />
+      <StratusRefreshFromPrefabPreviewDialog />
+      <StratusSyncToPrefabPreviewDialog />
       <StratusPushPreviewDialog />
 
       {/* Global snackbar */}

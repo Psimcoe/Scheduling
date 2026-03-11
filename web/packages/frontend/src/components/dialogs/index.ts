@@ -23,4 +23,6 @@ export { default as BulkImportDialog } from './BulkImportDialog';
 export { default as StratusSettingsDialog } from './StratusSettingsDialog';
 export { default as StratusProjectImportDialog } from './StratusProjectImportDialog';
 export { default as StratusPullPreviewDialog } from './StratusPullPreviewDialog';
+export { default as StratusRefreshFromPrefabPreviewDialog } from './StratusRefreshFromPrefabPreviewDialog';
+export { default as StratusSyncToPrefabPreviewDialog } from './StratusSyncToPrefabPreviewDialog';
 export { default as StratusPushPreviewDialog } from './StratusPushPreviewDialog';
