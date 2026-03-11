@@ -1,12 +1,10 @@
-import type { StratusTaskSync, Task } from '@prisma/client';
-import { resolveStatus } from '@schedulesync/engine';
-import { prisma } from '../db.js';
+import type { StratusTaskSync, Task } from "@prisma/client";
+import { prisma } from "../db.js";
 import {
   type StratusConfig,
-  STRATUS_FINISH_DATE_FIELD_NAME,
-  STRATUS_START_DATE_FIELD_NAME,
+  type StratusStatusProgressMapping,
   setStratusConfig,
-} from './stratusConfig.js';
+} from "./stratusConfig.js";
 import {
   type FieldIdResolution,
   type NormalizedStratusAssembly,
@@ -17,6 +15,7 @@ import {
   fetchAssembliesForPackage,
   fetchCompanyFields,
   fetchPackagesFromStratus,
+  getConfiguredPackageFieldValue,
   normalizeStratusAssembly,
   normalizeStratusPackage,
   normalizeStratusProject,
@@ -25,7 +24,7 @@ import {
   resolveFieldIdsFromDefinitions,
   stratusRequestJson,
   toDateSignature,
-} from './stratusApi.js';
+} from "./stratusApi.js";
 
 export interface StratusSyncSummary {
   packageId: string;
@@ -41,7 +40,7 @@ export interface StratusSyncSummary {
 }
 
 export interface ProjectImportPreviewRow {
-  action: 'create' | 'update' | 'skip' | 'exclude';
+  action: "create" | "update" | "skip" | "exclude";
   stratusProjectId: string;
   projectNumber: string | null;
   projectName: string | null;
@@ -71,7 +70,7 @@ export interface ProjectImportPreviewResult {
 
 export interface ProjectImportApplyResult {
   rows: Array<{
-    action: 'created' | 'updated' | 'skipped' | 'excluded' | 'failed';
+    action: "created" | "updated" | "skipped" | "excluded" | "failed";
     stratusProjectId: string;
     projectNumber: string | null;
     projectName: string | null;
@@ -90,7 +89,7 @@ export interface ProjectImportApplyResult {
 }
 
 export interface PullPreviewAssemblyRow {
-  action: 'create' | 'update' | 'skip';
+  action: "create" | "update" | "skip";
   assemblyId: string;
   assemblyName: string | null;
   externalKey: string;
@@ -110,8 +109,8 @@ export interface PullPreviewAssemblyRow {
 }
 
 export interface PullPreviewRow {
-  action: 'create' | 'update' | 'skip';
-  matchStrategy: 'packageId' | 'externalKey' | 'none';
+  action: "create" | "update" | "skip";
+  matchStrategy: "packageId" | "externalKey" | "none";
   packageId: string;
   packageNumber: string | null;
   packageName: string | null;
@@ -152,7 +151,7 @@ export interface PullPreviewResult {
 
 export interface PullApplyResult {
   rows: Array<{
-    action: 'created' | 'updated' | 'skipped' | 'failed';
+    action: "created" | "updated" | "skipped" | "failed";
     packageId: string;
     packageNumber: string | null;
     packageName: string | null;
@@ -180,13 +179,17 @@ export interface PullApplyResult {
 
 export interface PushPreviewResult {
   rows: Array<{
-    action: 'push' | 'skip';
+    action: "push" | "skip";
     taskId: string;
     taskName: string;
     packageId: string;
     packageNumber: string | null;
     packageName: string | null;
-    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    changes: Array<{
+      field: "start" | "finish" | "deadline";
+      from: string | null;
+      to: string | null;
+    }>;
     warnings: string[];
   }>;
   summary: {
@@ -199,7 +202,7 @@ export interface PushPreviewResult {
 
 export interface PushApplyResult {
   rows: Array<{
-    action: 'pushed' | 'skipped' | 'failed';
+    action: "pushed" | "skipped" | "failed";
     taskId: string;
     taskName: string;
     packageId: string;
@@ -221,13 +224,17 @@ export interface SyncToPrefabPreviewResult {
   prefabProjectId: string;
   prefabProjectName: string;
   rows: Array<{
-    action: 'sync' | 'skip';
+    action: "sync" | "skip";
     sourceTaskId: string;
     sourceTaskName: string;
     prefabTaskId: string | null;
     prefabTaskName: string | null;
     externalKey: string;
-    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    changes: Array<{
+      field: "start" | "finish" | "deadline";
+      from: string | null;
+      to: string | null;
+    }>;
     warnings: string[];
   }>;
   summary: {
@@ -243,7 +250,7 @@ export interface SyncToPrefabApplyResult {
   prefabProjectId: string;
   prefabProjectName: string;
   rows: Array<{
-    action: 'synced' | 'skipped' | 'failed';
+    action: "synced" | "skipped" | "failed";
     sourceTaskId: string;
     sourceTaskName: string;
     prefabTaskId: string | null;
@@ -265,13 +272,17 @@ export interface RefreshFromPrefabPreviewResult {
   prefabProjectId: string;
   prefabProjectName: string;
   rows: Array<{
-    action: 'refresh' | 'skip';
+    action: "refresh" | "skip";
     sourceTaskId: string;
     sourceTaskName: string;
     prefabTaskId: string | null;
     prefabTaskName: string | null;
     externalKey: string;
-    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    changes: Array<{
+      field: "start" | "finish" | "deadline";
+      from: string | null;
+      to: string | null;
+    }>;
     warnings: string[];
   }>;
   summary: {
@@ -287,7 +298,7 @@ export interface RefreshFromPrefabApplyResult {
   prefabProjectId: string;
   prefabProjectName: string;
   rows: Array<{
-    action: 'refreshed' | 'skipped' | 'failed';
+    action: "refreshed" | "skipped" | "failed";
     sourceTaskId: string;
     sourceTaskName: string;
     prefabTaskId: string | null;
@@ -319,7 +330,7 @@ interface PreviewTaskRecord {
   externalKey: string | null;
   parentId: string | null;
   sortOrder: number;
-  stratusSync: Pick<StratusTaskSync, 'packageId'> | null;
+  stratusSync: Pick<StratusTaskSync, "packageId"> | null;
 }
 
 interface LocalProjectRecord {
@@ -357,7 +368,9 @@ interface AppliedPackageGroup {
   childTaskIds: string[];
 }
 
-export async function loadProjectStratusTarget(projectId: string): Promise<LoadedProjectTarget> {
+export async function loadProjectStratusTarget(
+  projectId: string,
+): Promise<LoadedProjectTarget> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: {
@@ -374,7 +387,7 @@ export async function loadProjectStratusTarget(projectId: string): Promise<Loade
   });
 
   if (!project) {
-    throw new Error('Project not found.');
+    throw new Error("Project not found.");
   }
 
   return project;
@@ -384,10 +397,10 @@ async function loadPrefabProjectOrThrow(): Promise<SyncProjectTarget> {
   const prefabProject = await prisma.project.findFirst({
     where: {
       name: {
-        equals: 'Prefab',
+        equals: "Prefab",
       },
     },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: { updatedAt: "desc" },
     select: {
       id: true,
       name: true,
@@ -397,26 +410,44 @@ async function loadPrefabProjectOrThrow(): Promise<SyncProjectTarget> {
   });
 
   if (!prefabProject) {
-    throw new Error('Prefab project not found. Pull or import Stratus data first.');
+    throw new Error(
+      "Prefab project not found. Pull or import Stratus data first.",
+    );
   }
 
   return prefabProject;
 }
 
-export async function getResolvedPushFieldIds(config: StratusConfig): Promise<FieldIdResolution> {
+export async function getResolvedPushFieldIds(
+  config: StratusConfig,
+): Promise<FieldIdResolution> {
   const fields = await fetchCompanyFields(config);
   const resolution = resolveFieldIdsFromDefinitions(fields, config, config);
-  if (resolution.canPush && resolution.startFieldId && resolution.finishFieldId) {
-    const patch: Partial<StratusConfig> = {};
-    if (config.cachedStartDateFieldId !== resolution.startFieldId) {
-      patch.cachedStartDateFieldId = resolution.startFieldId;
+  const patch: Partial<StratusConfig> = {};
+  if (
+    resolution.startFieldId &&
+    config.cachedStartDateFieldId !== resolution.startFieldId
+  ) {
+    patch.cachedStartDateFieldId = resolution.startFieldId;
+  }
+  if (
+    resolution.finishFieldId &&
+    config.cachedFinishDateFieldId !== resolution.finishFieldId
+  ) {
+    patch.cachedFinishDateFieldId = resolution.finishFieldId;
+  }
+  if (resolution.deadlineMode === "field") {
+    if (
+      resolution.deadlineFieldId &&
+      config.cachedDeadlineFieldId !== resolution.deadlineFieldId
+    ) {
+      patch.cachedDeadlineFieldId = resolution.deadlineFieldId;
     }
-    if (config.cachedFinishDateFieldId !== resolution.finishFieldId) {
-      patch.cachedFinishDateFieldId = resolution.finishFieldId;
-    }
-    if (Object.keys(patch).length > 0) {
-      setStratusConfig(patch);
-    }
+  } else if (config.cachedDeadlineFieldId) {
+    patch.cachedDeadlineFieldId = "";
+  }
+  if (Object.keys(patch).length > 0) {
+    setStratusConfig(patch);
   }
   return resolution;
 }
@@ -450,18 +481,20 @@ export async function buildProjectStratusStatus(
   const warnings: string[] = [];
   const prefabProject = isPrefabProjectName(project.name);
   if (!config.appKey) {
-    warnings.push('Set a Stratus app key in Stratus Settings.');
+    warnings.push("Set a Stratus app key in Stratus Settings.");
   }
   if (!prefabProject && !project.stratusProjectId && !project.stratusModelId) {
-    warnings.push('Set a Stratus project id or model id for this project.');
+    warnings.push("Set a Stratus project id or model id for this project.");
   }
 
   const pushPreview = buildPushPreviewRows(tasks);
   const configured = config.appKey.length > 0;
-  const projectConfigured = prefabProject ? true : !!(project.stratusProjectId || project.stratusModelId);
+  const projectConfigured = prefabProject
+    ? true
+    : !!(project.stratusProjectId || project.stratusModelId);
 
   if (!prefabProject && tasks.length > 0) {
-    warnings.push('Push is only enabled from the Prefab project.');
+    warnings.push("Push is only enabled from the Prefab project.");
   }
 
   return {
@@ -471,7 +504,7 @@ export async function buildProjectStratusStatus(
     canPull: configured && projectConfigured,
     canPush: configured && prefabProject && tasks.length > 0,
     linkedTaskCount: tasks.length,
-    changedTaskCount: pushPreview.filter((row) => row.action === 'push').length,
+    changedTaskCount: pushPreview.filter((row) => row.action === "push").length,
     stratusProjectId: project.stratusProjectId,
     stratusModelId: project.stratusModelId,
     stratusPackageWhere: project.stratusPackageWhere,
@@ -481,7 +514,9 @@ export async function buildProjectStratusStatus(
   };
 }
 
-export async function previewStratusProjectImport(config: StratusConfig): Promise<ProjectImportPreviewResult> {
+export async function previewStratusProjectImport(
+  config: StratusConfig,
+): Promise<ProjectImportPreviewResult> {
   const [rawProjects, localProjects] = await Promise.all([
     fetchActiveProjectsFromStratus(config),
     prisma.project.findMany({
@@ -496,12 +531,14 @@ export async function previewStratusProjectImport(config: StratusConfig): Promis
         region: true,
         stratusProjectId: true,
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
     }),
   ]);
 
   const rows = buildProjectImportPreviewRows(
-    rawProjects.map((rawProject) => normalizeStratusProject(rawProject)).sort(compareStratusProjects),
+    rawProjects
+      .map((rawProject) => normalizeStratusProject(rawProject))
+      .sort(compareStratusProjects),
     localProjects,
     config.excludedProjectIds,
   );
@@ -512,7 +549,9 @@ export async function previewStratusProjectImport(config: StratusConfig): Promis
   };
 }
 
-export async function applyStratusProjectImport(config: StratusConfig): Promise<ProjectImportApplyResult> {
+export async function applyStratusProjectImport(
+  config: StratusConfig,
+): Promise<ProjectImportApplyResult> {
   const rawProjects = await fetchActiveProjectsFromStratus(config);
   const stratusProjects = rawProjects
     .map((rawProject) => normalizeStratusProject(rawProject))
@@ -529,14 +568,18 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
       region: true,
       stratusProjectId: true,
     },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: { updatedAt: "desc" },
   });
-  const previewRows = buildProjectImportPreviewRows(stratusProjects, localProjects, config.excludedProjectIds);
+  const previewRows = buildProjectImportPreviewRows(
+    stratusProjects,
+    localProjects,
+    config.excludedProjectIds,
+  );
   const preview = {
     rows: previewRows,
     summary: buildProjectImportPreviewSummary(previewRows),
   };
-  const rows: ProjectImportApplyResult['rows'] = [];
+  const rows: ProjectImportApplyResult["rows"] = [];
   let created = 0;
   let updated = 0;
   let skipped = 0;
@@ -545,37 +588,40 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
   const localProjectTargets = new Map<string, SyncProjectTarget>();
   const excludedProjectIds = new Set(
     preview.rows
-      .filter((row) => row.action === 'exclude')
+      .filter((row) => row.action === "exclude")
       .map((row) => row.stratusProjectId),
   );
 
   for (const row of preview.rows) {
-    if (row.action === 'exclude') {
+    if (row.action === "exclude") {
       rows.push({
-        action: 'excluded',
+        action: "excluded",
         stratusProjectId: row.stratusProjectId,
         projectNumber: row.projectNumber,
         projectName: row.projectName,
         localProjectId: row.localProjectId,
         localProjectName: row.localProjectName,
-        message: row.warnings.join('. ') || 'Project excluded by manual override.',
+        message:
+          row.warnings.join(". ") || "Project excluded by manual override.",
       });
       excluded++;
       continue;
     }
 
-    if (row.action === 'skip') {
+    if (row.action === "skip") {
       rows.push({
-        action: 'skipped',
+        action: "skipped",
         stratusProjectId: row.stratusProjectId,
         projectNumber: row.projectNumber,
         projectName: row.projectName,
         localProjectId: row.localProjectId,
         localProjectName: row.localProjectName,
-        message: row.warnings.join('. ') || 'Project already matches Stratus.',
+        message: row.warnings.join(". ") || "Project already matches Stratus.",
       });
       if (row.localProjectId) {
-        const existingProject = localProjects.find((project) => project.id === row.localProjectId);
+        const existingProject = localProjects.find(
+          (project) => project.id === row.localProjectId,
+        );
         if (existingProject) {
           localProjectTargets.set(row.stratusProjectId, {
             id: existingProject.id,
@@ -590,13 +636,15 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
     }
 
     try {
-      if (row.action === 'create') {
+      if (row.action === "create") {
         const createdProject = await prisma.project.create({
           data: {
             name: row.mappedProject.name,
             startDate: new Date(row.mappedProject.startDate),
-            finishDate: row.mappedProject.finishDate ? new Date(row.mappedProject.finishDate) : null,
-            scheduleFrom: 'start',
+            finishDate: row.mappedProject.finishDate
+              ? new Date(row.mappedProject.finishDate)
+              : null,
+            scheduleFrom: "start",
             projectType: row.mappedProject.projectType,
             sector: row.mappedProject.sector,
             region: row.mappedProject.region,
@@ -612,7 +660,7 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
           minutesPerDay: createdProject.minutesPerDay,
         });
         rows.push({
-          action: 'created',
+          action: "created",
           stratusProjectId: row.stratusProjectId,
           projectNumber: row.projectNumber,
           projectName: row.projectName,
@@ -627,7 +675,9 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
           data: {
             name: row.mappedProject.name,
             startDate: new Date(row.mappedProject.startDate),
-            finishDate: row.mappedProject.finishDate ? new Date(row.mappedProject.finishDate) : null,
+            finishDate: row.mappedProject.finishDate
+              ? new Date(row.mappedProject.finishDate)
+              : null,
             projectType: row.mappedProject.projectType,
             sector: row.mappedProject.sector,
             region: row.mappedProject.region,
@@ -641,7 +691,7 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
           minutesPerDay: updatedProject.minutesPerDay,
         });
         rows.push({
-          action: 'updated',
+          action: "updated",
           stratusProjectId: row.stratusProjectId,
           projectNumber: row.projectNumber,
           projectName: row.projectName,
@@ -652,25 +702,26 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
         updated++;
       } else {
         rows.push({
-          action: 'skipped',
+          action: "skipped",
           stratusProjectId: row.stratusProjectId,
           projectNumber: row.projectNumber,
           projectName: row.projectName,
           localProjectId: null,
           localProjectName: null,
-          message: 'Preview row had no matching local project id.',
+          message: "Preview row had no matching local project id.",
         });
         skipped++;
       }
     } catch (error) {
       rows.push({
-        action: 'failed',
+        action: "failed",
         stratusProjectId: row.stratusProjectId,
         projectNumber: row.projectNumber,
         projectName: row.projectName,
         localProjectId: row.localProjectId,
         localProjectName: row.localProjectName,
-        message: error instanceof Error ? error.message : 'Project import failed.',
+        message:
+          error instanceof Error ? error.message : "Project import failed.",
       });
       failed++;
     }
@@ -705,21 +756,31 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
       const bundles = await loadStratusPackageBundles(syncTarget, config);
       prefabGroups.push({ stratusProject, bundles });
 
-      await syncStratusProjectGroupsToProject(targetProject, [{ stratusProject, bundles }], {
-        includeProjectSummaries: false,
-        canonicalPackageSync: false,
-        referenceSourceProjectName: 'Prefab',
-      });
+      await syncStratusProjectGroupsToProject(
+        targetProject,
+        [{ stratusProject, bundles }],
+        config,
+        {
+          includeProjectSummaries: false,
+          canonicalPackageSync: false,
+          referenceSourceProjectName: "Prefab",
+        },
+      );
       await prisma.project.update({
         where: { id: targetProject.id },
         data: { stratusLastPullAt: now },
       });
     }
 
-    await syncStratusProjectGroupsToProject(prefabProject, prefabGroups, {
-      includeProjectSummaries: true,
-      canonicalPackageSync: true,
-    });
+    await syncStratusProjectGroupsToProject(
+      prefabProject,
+      prefabGroups,
+      config,
+      {
+        includeProjectSummaries: true,
+        canonicalPackageSync: true,
+      },
+    );
     await prisma.project.update({
       where: { id: prefabProject.id },
       data: { stratusLastPullAt: now },
@@ -739,11 +800,14 @@ export async function applyStratusProjectImport(config: StratusConfig): Promise<
   };
 }
 
-export async function previewStratusPull(projectId: string, config: StratusConfig): Promise<PullPreviewResult> {
+export async function previewStratusPull(
+  projectId: string,
+  config: StratusConfig,
+): Promise<PullPreviewResult> {
   const project = await loadProjectStratusTarget(projectId);
   const tasks = await prisma.task.findMany({
     where: { projectId },
-    orderBy: { sortOrder: 'asc' },
+    orderBy: { sortOrder: "asc" },
     select: {
       id: true,
       name: true,
@@ -759,34 +823,61 @@ export async function previewStratusPull(projectId: string, config: StratusConfi
   });
 
   const bundles = isPrefabProjectName(project.name)
-    ? (await loadActiveStratusProjectGroupsForPrefab(project, config)).flatMap((group) => group.bundles)
+    ? (await loadActiveStratusProjectGroupsForPrefab(project, config)).flatMap(
+        (group) => group.bundles,
+      )
     : await loadStratusPackageBundles(project, config);
-  const rows = buildPullPreviewRows(bundles, tasks, project.minutesPerDay);
+  const rows = buildPullPreviewRows(
+    bundles,
+    tasks,
+    project.minutesPerDay,
+    config,
+  );
   return {
     rows,
     summary: {
       totalPackages: rows.length,
-      createCount: rows.filter((row) => row.action === 'create').length,
-      updateCount: rows.filter((row) => row.action === 'update').length,
-      skipCount: rows.filter((row) => row.action === 'skip').length,
+      createCount: rows.filter((row) => row.action === "create").length,
+      updateCount: rows.filter((row) => row.action === "update").length,
+      skipCount: rows.filter((row) => row.action === "skip").length,
       totalAssemblies: rows.reduce((sum, row) => sum + row.assemblyCount, 0),
-      createAssemblyCount: rows.reduce((sum, row) => sum + row.createAssemblyCount, 0),
-      updateAssemblyCount: rows.reduce((sum, row) => sum + row.updateAssemblyCount, 0),
-      skipAssemblyCount: rows.reduce((sum, row) => sum + row.skipAssemblyCount, 0),
+      createAssemblyCount: rows.reduce(
+        (sum, row) => sum + row.createAssemblyCount,
+        0,
+      ),
+      updateAssemblyCount: rows.reduce(
+        (sum, row) => sum + row.updateAssemblyCount,
+        0,
+      ),
+      skipAssemblyCount: rows.reduce(
+        (sum, row) => sum + row.skipAssemblyCount,
+        0,
+      ),
     },
   };
 }
 
-export async function applyStratusPull(projectId: string, config: StratusConfig): Promise<PullApplyResult> {
+export async function applyStratusPull(
+  projectId: string,
+  config: StratusConfig,
+): Promise<PullApplyResult> {
   const project = await loadProjectStratusTarget(projectId);
   if (isPrefabProjectName(project.name)) {
-    const groups = await loadActiveStratusProjectGroupsForPrefab(project, config);
+    const groups = await loadActiveStratusProjectGroupsForPrefab(
+      project,
+      config,
+    );
     const existingTasks = await prisma.task.findMany({
       where: { projectId },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
       include: { stratusSync: true },
     });
-    const previewRows = buildPullPreviewRows(groups.flatMap((group) => group.bundles), existingTasks, project.minutesPerDay);
+    const previewRows = buildPullPreviewRows(
+      groups.flatMap((group) => group.bundles),
+      existingTasks,
+      project.minutesPerDay,
+      config,
+    );
     await syncStratusProjectGroupsToProject(
       {
         id: project.id,
@@ -795,17 +886,26 @@ export async function applyStratusPull(projectId: string, config: StratusConfig)
         minutesPerDay: project.minutesPerDay,
       },
       groups,
+      config,
       {
         includeProjectSummaries: true,
         canonicalPackageSync: true,
       },
     );
     const now = new Date();
-    await prisma.project.update({ where: { id: projectId }, data: { stratusLastPullAt: now } });
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { stratusLastPullAt: now },
+    });
 
     return {
       rows: previewRows.map((row) => ({
-        action: row.action === 'skip' ? 'skipped' : row.action === 'create' ? 'created' : 'updated',
+        action:
+          row.action === "skip"
+            ? "skipped"
+            : row.action === "create"
+              ? "created"
+              : "updated",
         packageId: row.packageId,
         packageNumber: row.packageNumber,
         packageName: row.packageName,
@@ -815,18 +915,31 @@ export async function applyStratusPull(projectId: string, config: StratusConfig)
         updatedAssemblies: row.updateAssemblyCount,
         skippedAssemblies: row.skipAssemblyCount,
         failedAssemblies: 0,
-        message: row.action === 'skip' ? row.warnings.join('. ') || 'Skipped.' : null,
+        message:
+          row.action === "skip" ? row.warnings.join(". ") || "Skipped." : null,
       })),
       summary: {
         processed: previewRows.length,
-        created: previewRows.filter((row) => row.action === 'create').length,
-        updated: previewRows.filter((row) => row.action === 'update').length,
-        skipped: previewRows.filter((row) => row.action === 'skip').length,
+        created: previewRows.filter((row) => row.action === "create").length,
+        updated: previewRows.filter((row) => row.action === "update").length,
+        skipped: previewRows.filter((row) => row.action === "skip").length,
         failed: 0,
-        totalAssemblies: previewRows.reduce((sum, row) => sum + row.assemblyCount, 0),
-        createdAssemblies: previewRows.reduce((sum, row) => sum + row.createAssemblyCount, 0),
-        updatedAssemblies: previewRows.reduce((sum, row) => sum + row.updateAssemblyCount, 0),
-        skippedAssemblies: previewRows.reduce((sum, row) => sum + row.skipAssemblyCount, 0),
+        totalAssemblies: previewRows.reduce(
+          (sum, row) => sum + row.assemblyCount,
+          0,
+        ),
+        createdAssemblies: previewRows.reduce(
+          (sum, row) => sum + row.createAssemblyCount,
+          0,
+        ),
+        updatedAssemblies: previewRows.reduce(
+          (sum, row) => sum + row.updateAssemblyCount,
+          0,
+        ),
+        skippedAssemblies: previewRows.reduce(
+          (sum, row) => sum + row.skipAssemblyCount,
+          0,
+        ),
         failedAssemblies: 0,
       },
     };
@@ -835,10 +948,15 @@ export async function applyStratusPull(projectId: string, config: StratusConfig)
   const bundles = await loadStratusPackageBundles(project, config);
   const existingTasks = await prisma.task.findMany({
     where: { projectId },
-    orderBy: { sortOrder: 'asc' },
+    orderBy: { sortOrder: "asc" },
     include: { stratusSync: true },
   });
-  const previewRows = buildPullPreviewRows(bundles, existingTasks, project.minutesPerDay);
+  const previewRows = buildPullPreviewRows(
+    bundles,
+    existingTasks,
+    project.minutesPerDay,
+    config,
+  );
   const projectGroup: StratusProjectBundleGroup = {
     stratusProject: {
       id: project.stratusProjectId ?? project.id,
@@ -864,17 +982,21 @@ export async function applyStratusPull(projectId: string, config: StratusConfig)
       minutesPerDay: project.minutesPerDay,
     },
     [projectGroup],
+    config,
     {
       includeProjectSummaries: false,
       canonicalPackageSync: false,
-      referenceSourceProjectName: 'Prefab',
+      referenceSourceProjectName: "Prefab",
     },
   );
 
-  const prefabProject = await ensurePrefabProject([projectGroup.stratusProject]);
+  const prefabProject = await ensurePrefabProject([
+    projectGroup.stratusProject,
+  ]);
   await syncStratusProjectGroupsToProject(
     prefabProject,
     [projectGroup],
+    config,
     {
       includeProjectSummaries: true,
       canonicalPackageSync: true,
@@ -889,7 +1011,12 @@ export async function applyStratusPull(projectId: string, config: StratusConfig)
 
   return {
     rows: previewRows.map((row) => ({
-      action: row.action === 'skip' ? 'skipped' : row.action === 'create' ? 'created' : 'updated',
+      action:
+        row.action === "skip"
+          ? "skipped"
+          : row.action === "create"
+            ? "created"
+            : "updated",
       packageId: row.packageId,
       packageNumber: row.packageNumber,
       packageName: row.packageName,
@@ -899,32 +1026,48 @@ export async function applyStratusPull(projectId: string, config: StratusConfig)
       updatedAssemblies: row.updateAssemblyCount,
       skippedAssemblies: row.skipAssemblyCount,
       failedAssemblies: 0,
-      message: row.action === 'skip' ? row.warnings.join('. ') || 'Skipped.' : null,
+      message:
+        row.action === "skip" ? row.warnings.join(". ") || "Skipped." : null,
     })),
     summary: {
       processed: previewRows.length,
-      created: previewRows.filter((row) => row.action === 'create').length,
-      updated: previewRows.filter((row) => row.action === 'update').length,
-      skipped: previewRows.filter((row) => row.action === 'skip').length,
+      created: previewRows.filter((row) => row.action === "create").length,
+      updated: previewRows.filter((row) => row.action === "update").length,
+      skipped: previewRows.filter((row) => row.action === "skip").length,
       failed: 0,
-      totalAssemblies: previewRows.reduce((sum, row) => sum + row.assemblyCount, 0),
-      createdAssemblies: previewRows.reduce((sum, row) => sum + row.createAssemblyCount, 0),
-      updatedAssemblies: previewRows.reduce((sum, row) => sum + row.updateAssemblyCount, 0),
-      skippedAssemblies: previewRows.reduce((sum, row) => sum + row.skipAssemblyCount, 0),
+      totalAssemblies: previewRows.reduce(
+        (sum, row) => sum + row.assemblyCount,
+        0,
+      ),
+      createdAssemblies: previewRows.reduce(
+        (sum, row) => sum + row.createAssemblyCount,
+        0,
+      ),
+      updatedAssemblies: previewRows.reduce(
+        (sum, row) => sum + row.updateAssemblyCount,
+        0,
+      ),
+      skippedAssemblies: previewRows.reduce(
+        (sum, row) => sum + row.skipAssemblyCount,
+        0,
+      ),
       failedAssemblies: 0,
     },
   };
 }
 
-export async function previewStratusPush(projectId: string, config: StratusConfig): Promise<PushPreviewResult> {
+export async function previewStratusPush(
+  projectId: string,
+  config: StratusConfig,
+): Promise<PushPreviewResult> {
   const project = await loadProjectStratusTarget(projectId);
   if (!isPrefabProjectName(project.name)) {
-    throw new Error('Push is only available from the Prefab project.');
+    throw new Error("Push is only available from the Prefab project.");
   }
 
   const tasks = await prisma.task.findMany({
     where: { projectId, stratusSync: { isNot: null } },
-    orderBy: { sortOrder: 'asc' },
+    orderBy: { sortOrder: "asc" },
     include: { stratusSync: true },
   });
   const fieldResolution = await getResolvedPushFieldIds(config);
@@ -933,22 +1076,34 @@ export async function previewStratusPush(projectId: string, config: StratusConfi
     rows,
     summary: {
       linkedTaskCount: rows.length,
-      pushCount: rows.filter((row) => row.action === 'push').length,
-      skipCount: rows.filter((row) => row.action === 'skip').length,
+      pushCount: rows.filter((row) => row.action === "push").length,
+      skipCount: rows.filter((row) => row.action === "skip").length,
     },
     fieldResolution,
   };
 }
 
-export async function applyStratusPush(projectId: string, config: StratusConfig): Promise<PushApplyResult> {
+export async function applyStratusPush(
+  projectId: string,
+  config: StratusConfig,
+): Promise<PushApplyResult> {
   const project = await loadProjectStratusTarget(projectId);
   if (!isPrefabProjectName(project.name)) {
-    throw new Error('Push is only available from the Prefab project.');
+    throw new Error("Push is only available from the Prefab project.");
   }
 
   const preview = await previewStratusPush(projectId, config);
-  if (!preview.fieldResolution.canPush || !preview.fieldResolution.startFieldId || !preview.fieldResolution.finishFieldId) {
-    throw new Error(preview.fieldResolution.message ?? 'Unable to resolve Stratus package date field ids.');
+  if (
+    !preview.fieldResolution.canPush ||
+    !preview.fieldResolution.startFieldId ||
+    !preview.fieldResolution.finishFieldId ||
+    (preview.fieldResolution.deadlineMode === "field" &&
+      !preview.fieldResolution.deadlineFieldId)
+  ) {
+    throw new Error(
+      preview.fieldResolution.message ??
+        "Unable to resolve Stratus package date field ids.",
+    );
   }
 
   const tasks = await prisma.task.findMany({
@@ -958,7 +1113,7 @@ export async function applyStratusPush(projectId: string, config: StratusConfig)
   const taskById = new Map(tasks.map((task) => [task.id, task]));
   const now = new Date();
 
-  const rows: PushApplyResult['rows'] = [];
+  const rows: PushApplyResult["rows"] = [];
   let pushed = 0;
   let skipped = 0;
   let failed = 0;
@@ -966,32 +1121,57 @@ export async function applyStratusPush(projectId: string, config: StratusConfig)
   for (const row of preview.rows) {
     const task = taskById.get(row.taskId);
     if (!task?.stratusSync) {
-      rows.push({ ...pushRowResultBase(row), action: 'skipped', message: 'Task is not linked to a Stratus package.' });
+      rows.push({
+        ...pushRowResultBase(row),
+        action: "skipped",
+        message: "Task is not linked to a Stratus package.",
+      });
       skipped++;
       continue;
     }
 
-    if (row.action === 'skip' || row.changes.length === 0) {
-      rows.push({ ...pushRowResultBase(row), action: 'skipped', message: row.warnings.join('. ') || 'No changes to push.' });
+    if (row.action === "skip" || row.changes.length === 0) {
+      rows.push({
+        ...pushRowResultBase(row),
+        action: "skipped",
+        message: row.warnings.join(". ") || "No changes to push.",
+      });
       skipped++;
       continue;
     }
 
     try {
       const fieldUpdates: Array<{ key: string; value: string | null }> = [];
-      if (row.changes.some((change) => change.field === 'start')) {
-        fieldUpdates.push({ key: preview.fieldResolution.startFieldId, value: task.start.toISOString() });
-      }
-      if (row.changes.some((change) => change.field === 'finish')) {
-        fieldUpdates.push({ key: preview.fieldResolution.finishFieldId, value: task.finish.toISOString() });
-      }
-      if (row.changes.some((change) => change.field === 'deadline')) {
-        await patchPackageProperties(config, task.stratusSync.packageId, {
-          requiredDT: task.deadline ? task.deadline.toISOString() : null,
+      if (row.changes.some((change) => change.field === "start")) {
+        fieldUpdates.push({
+          key: preview.fieldResolution.startFieldId,
+          value: task.start.toISOString(),
         });
       }
+      if (row.changes.some((change) => change.field === "finish")) {
+        fieldUpdates.push({
+          key: preview.fieldResolution.finishFieldId,
+          value: task.finish.toISOString(),
+        });
+      }
+      if (row.changes.some((change) => change.field === "deadline")) {
+        if (preview.fieldResolution.deadlineMode === "property") {
+          await patchPackageProperties(config, task.stratusSync.packageId, {
+            requiredDT: task.deadline ? task.deadline.toISOString() : null,
+          });
+        } else if (preview.fieldResolution.deadlineFieldId) {
+          fieldUpdates.push({
+            key: preview.fieldResolution.deadlineFieldId,
+            value: task.deadline ? task.deadline.toISOString() : null,
+          });
+        }
+      }
       if (fieldUpdates.length > 0) {
-        await patchPackageFields(config, task.stratusSync.packageId, fieldUpdates);
+        await patchPackageFields(
+          config,
+          task.stratusSync.packageId,
+          fieldUpdates,
+        );
       }
 
       await prisma.stratusTaskSync.update({
@@ -1003,20 +1183,23 @@ export async function applyStratusPush(projectId: string, config: StratusConfig)
           syncedDeadlineSignature: toDateSignature(task.deadline),
         },
       });
-      rows.push({ ...pushRowResultBase(row), action: 'pushed', message: null });
+      rows.push({ ...pushRowResultBase(row), action: "pushed", message: null });
       pushed++;
     } catch (error) {
       rows.push({
         ...pushRowResultBase(row),
-        action: 'failed',
-        message: error instanceof Error ? error.message : 'Push failed.',
+        action: "failed",
+        message: error instanceof Error ? error.message : "Push failed.",
       });
       failed++;
     }
   }
 
   if (pushed > 0) {
-    await prisma.project.update({ where: { id: projectId }, data: { stratusLastPushAt: now } });
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { stratusLastPushAt: now },
+    });
   }
 
   return {
@@ -1030,22 +1213,26 @@ export async function applyStratusPush(projectId: string, config: StratusConfig)
   };
 }
 
-export async function previewStratusSyncToPrefab(projectId: string): Promise<SyncToPrefabPreviewResult> {
+export async function previewStratusSyncToPrefab(
+  projectId: string,
+): Promise<SyncToPrefabPreviewResult> {
   const sourceProject = await loadProjectStratusTarget(projectId);
   if (isPrefabProjectName(sourceProject.name)) {
-    throw new Error('Sync to Prefab is only available from project-specific Stratus references.');
+    throw new Error(
+      "Sync to Prefab is only available from project-specific Stratus references.",
+    );
   }
 
   const prefabProject = await loadPrefabProjectOrThrow();
   const [sourceTasks, prefabTasks] = await Promise.all([
     prisma.task.findMany({
       where: { projectId, externalKey: { not: null } },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
       include: { stratusSync: true },
     }),
     prisma.task.findMany({
       where: { projectId: prefabProject.id, externalKey: { not: null } },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
       include: { stratusSync: true },
     }),
   ]);
@@ -1059,13 +1246,15 @@ export async function previewStratusSyncToPrefab(projectId: string): Promise<Syn
     rows,
     summary: {
       candidateTaskCount: rows.length,
-      syncCount: rows.filter((row) => row.action === 'sync').length,
-      skipCount: rows.filter((row) => row.action === 'skip').length,
+      syncCount: rows.filter((row) => row.action === "sync").length,
+      skipCount: rows.filter((row) => row.action === "skip").length,
     },
   };
 }
 
-export async function applyStratusSyncToPrefab(projectId: string): Promise<SyncToPrefabApplyResult> {
+export async function applyStratusSyncToPrefab(
+  projectId: string,
+): Promise<SyncToPrefabApplyResult> {
   const preview = await previewStratusSyncToPrefab(projectId);
   const sourceTasks = await prisma.task.findMany({
     where: {
@@ -1077,21 +1266,21 @@ export async function applyStratusSyncToPrefab(projectId: string): Promise<SyncT
   });
   const sourceTaskById = new Map(sourceTasks.map((task) => [task.id, task]));
 
-  const rows: SyncToPrefabApplyResult['rows'] = [];
+  const rows: SyncToPrefabApplyResult["rows"] = [];
   let synced = 0;
   let skipped = 0;
   let failed = 0;
 
   for (const row of preview.rows) {
-    if (row.action === 'skip' || !row.prefabTaskId) {
+    if (row.action === "skip" || !row.prefabTaskId) {
       rows.push({
-        action: 'skipped',
+        action: "skipped",
         sourceTaskId: row.sourceTaskId,
         sourceTaskName: row.sourceTaskName,
         prefabTaskId: row.prefabTaskId,
         prefabTaskName: row.prefabTaskName,
         externalKey: row.externalKey,
-        message: row.warnings.join('. ') || 'No Prefab sync changes to apply.',
+        message: row.warnings.join(". ") || "No Prefab sync changes to apply.",
       });
       skipped++;
       continue;
@@ -1100,13 +1289,13 @@ export async function applyStratusSyncToPrefab(projectId: string): Promise<SyncT
     const sourceTask = sourceTaskById.get(row.sourceTaskId);
     if (!sourceTask) {
       rows.push({
-        action: 'failed',
+        action: "failed",
         sourceTaskId: row.sourceTaskId,
         sourceTaskName: row.sourceTaskName,
         prefabTaskId: row.prefabTaskId,
         prefabTaskName: row.prefabTaskName,
         externalKey: row.externalKey,
-        message: 'Source task could not be loaded.',
+        message: "Source task could not be loaded.",
       });
       failed++;
       continue;
@@ -1123,7 +1312,7 @@ export async function applyStratusSyncToPrefab(projectId: string): Promise<SyncT
         },
       });
       rows.push({
-        action: 'synced',
+        action: "synced",
         sourceTaskId: row.sourceTaskId,
         sourceTaskName: row.sourceTaskName,
         prefabTaskId: row.prefabTaskId,
@@ -1134,13 +1323,14 @@ export async function applyStratusSyncToPrefab(projectId: string): Promise<SyncT
       synced++;
     } catch (error) {
       rows.push({
-        action: 'failed',
+        action: "failed",
         sourceTaskId: row.sourceTaskId,
         sourceTaskName: row.sourceTaskName,
         prefabTaskId: row.prefabTaskId,
         prefabTaskName: row.prefabTaskName,
         externalKey: row.externalKey,
-        message: error instanceof Error ? error.message : 'Sync to Prefab failed.',
+        message:
+          error instanceof Error ? error.message : "Sync to Prefab failed.",
       });
       failed++;
     }
@@ -1166,19 +1356,21 @@ export async function previewStratusRefreshFromPrefab(
 ): Promise<RefreshFromPrefabPreviewResult> {
   const sourceProject = await loadProjectStratusTarget(projectId);
   if (isPrefabProjectName(sourceProject.name)) {
-    throw new Error('Refresh from Prefab is only available from project-specific Stratus references.');
+    throw new Error(
+      "Refresh from Prefab is only available from project-specific Stratus references.",
+    );
   }
 
   const prefabProject = await loadPrefabProjectOrThrow();
   const [sourceTasks, prefabTasks] = await Promise.all([
     prisma.task.findMany({
       where: { projectId, externalKey: { not: null } },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
       include: { stratusSync: true },
     }),
     prisma.task.findMany({
       where: { projectId: prefabProject.id, externalKey: { not: null } },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
       include: { stratusSync: true },
     }),
   ]);
@@ -1192,8 +1384,8 @@ export async function previewStratusRefreshFromPrefab(
     rows,
     summary: {
       candidateTaskCount: rows.length,
-      refreshCount: rows.filter((row) => row.action === 'refresh').length,
-      skipCount: rows.filter((row) => row.action === 'skip').length,
+      refreshCount: rows.filter((row) => row.action === "refresh").length,
+      skipCount: rows.filter((row) => row.action === "skip").length,
     },
   };
 }
@@ -1207,28 +1399,28 @@ export async function applyStratusRefreshFromPrefab(
       id: {
         in: preview.rows
           .map((row) => row.prefabTaskId)
-          .filter((taskId): taskId is string => typeof taskId === 'string'),
+          .filter((taskId): taskId is string => typeof taskId === "string"),
       },
     },
     include: { stratusSync: true },
   });
   const prefabTaskById = new Map(prefabTasks.map((task) => [task.id, task]));
 
-  const rows: RefreshFromPrefabApplyResult['rows'] = [];
+  const rows: RefreshFromPrefabApplyResult["rows"] = [];
   let refreshed = 0;
   let skipped = 0;
   let failed = 0;
 
   for (const row of preview.rows) {
-    if (row.action === 'skip' || !row.prefabTaskId) {
+    if (row.action === "skip" || !row.prefabTaskId) {
       rows.push({
-        action: 'skipped',
+        action: "skipped",
         sourceTaskId: row.sourceTaskId,
         sourceTaskName: row.sourceTaskName,
         prefabTaskId: row.prefabTaskId,
         prefabTaskName: row.prefabTaskName,
         externalKey: row.externalKey,
-        message: row.warnings.join('. ') || 'No Prefab changes to refresh.',
+        message: row.warnings.join(". ") || "No Prefab changes to refresh.",
       });
       skipped++;
       continue;
@@ -1237,13 +1429,13 @@ export async function applyStratusRefreshFromPrefab(
     const prefabTask = prefabTaskById.get(row.prefabTaskId);
     if (!prefabTask) {
       rows.push({
-        action: 'failed',
+        action: "failed",
         sourceTaskId: row.sourceTaskId,
         sourceTaskName: row.sourceTaskName,
         prefabTaskId: row.prefabTaskId,
         prefabTaskName: row.prefabTaskName,
         externalKey: row.externalKey,
-        message: 'Prefab task could not be loaded.',
+        message: "Prefab task could not be loaded.",
       });
       failed++;
       continue;
@@ -1260,7 +1452,7 @@ export async function applyStratusRefreshFromPrefab(
         },
       });
       rows.push({
-        action: 'refreshed',
+        action: "refreshed",
         sourceTaskId: row.sourceTaskId,
         sourceTaskName: row.sourceTaskName,
         prefabTaskId: row.prefabTaskId,
@@ -1271,13 +1463,16 @@ export async function applyStratusRefreshFromPrefab(
       refreshed++;
     } catch (error) {
       rows.push({
-        action: 'failed',
+        action: "failed",
         sourceTaskId: row.sourceTaskId,
         sourceTaskName: row.sourceTaskName,
         prefabTaskId: row.prefabTaskId,
         prefabTaskName: row.prefabTaskName,
         externalKey: row.externalKey,
-        message: error instanceof Error ? error.message : 'Refresh from Prefab failed.',
+        message:
+          error instanceof Error
+            ? error.message
+            : "Refresh from Prefab failed.",
       });
       failed++;
     }
@@ -1318,28 +1513,34 @@ export function buildProjectImportPreviewRows(
   return stratusProjects.map((stratusProject) => {
     const warnings: string[] = [];
     const mappedProject = mapStratusProjectToLocalProjectData(stratusProject);
-    const matches = stratusProject.id ? (localProjectsByStratusId.get(stratusProject.id) ?? []) : [];
+    const matches = stratusProject.id
+      ? (localProjectsByStratusId.get(stratusProject.id) ?? [])
+      : [];
     const localProject = matches[0] ?? null;
-    let action: ProjectImportPreviewRow['action'] = 'create';
+    let action: ProjectImportPreviewRow["action"] = "create";
 
     if (!stratusProject.id) {
-      action = 'skip';
-      warnings.push('Stratus project id is missing.');
+      action = "skip";
+      warnings.push("Stratus project id is missing.");
     } else if (excludedProjectIdSet.has(stratusProject.id)) {
-      action = 'exclude';
-      warnings.push('Excluded from import by manual override.');
+      action = "exclude";
+      warnings.push("Excluded from import by manual override.");
     } else if (matches.length > 1) {
-      action = 'skip';
-      warnings.push(`Stratus project ${stratusProject.id} matches multiple local projects.`);
+      action = "skip";
+      warnings.push(
+        `Stratus project ${stratusProject.id} matches multiple local projects.`,
+      );
     } else if (localProject) {
-      action = areProjectsEquivalent(localProject, mappedProject) ? 'skip' : 'update';
+      action = areProjectsEquivalent(localProject, mappedProject)
+        ? "skip"
+        : "update";
     }
 
     if (!stratusProject.number) {
-      warnings.push('Stratus project number is missing.');
+      warnings.push("Stratus project number is missing.");
     }
     if (!stratusProject.name) {
-      warnings.push('Stratus project name is missing.');
+      warnings.push("Stratus project name is missing.");
     }
 
     return {
@@ -1355,27 +1556,78 @@ export function buildProjectImportPreviewRows(
   });
 }
 
-function buildProjectImportPreviewSummary(rows: ProjectImportPreviewRow[]): ProjectImportPreviewResult['summary'] {
+function buildProjectImportPreviewSummary(
+  rows: ProjectImportPreviewRow[],
+): ProjectImportPreviewResult["summary"] {
   return {
     totalProjects: rows.length,
-    createCount: rows.filter((row) => row.action === 'create').length,
-    updateCount: rows.filter((row) => row.action === 'update').length,
-    skipCount: rows.filter((row) => row.action === 'skip').length,
-    excludedCount: rows.filter((row) => row.action === 'exclude').length,
+    createCount: rows.filter((row) => row.action === "create").length,
+    updateCount: rows.filter((row) => row.action === "update").length,
+    skipCount: rows.filter((row) => row.action === "skip").length,
+    excludedCount: rows.filter((row) => row.action === "exclude").length,
   };
+}
+
+type StratusTaskMappingConfig = Pick<
+  StratusConfig,
+  | "taskNameField"
+  | "durationDaysField"
+  | "durationHoursField"
+  | "startDateField"
+  | "finishDateField"
+  | "deadlineField"
+  | "statusProgressMappings"
+>;
+
+interface StatusProgressLookup {
+  byId: Map<string, number | null>;
+  byName: Map<string, number | null>;
+}
+
+function buildStatusProgressLookup(
+  mappings: StratusStatusProgressMapping[],
+): StatusProgressLookup {
+  const byId = new Map<string, number | null>();
+  const byName = new Map<string, number | null>();
+
+  for (const mapping of mappings) {
+    const statusId = normalizeLookupKey(mapping.statusId);
+    const statusName = normalizeLookupKey(mapping.statusName);
+    if (statusId) {
+      byId.set(statusId, mapping.percentCompleteShop);
+    }
+    if (statusName) {
+      byName.set(statusName, mapping.percentCompleteShop);
+    }
+  }
+
+  return { byId, byName };
+}
+
+function normalizeLookupKey(value: string | null | undefined): string | null {
+  const normalized = value?.trim().toLowerCase();
+  return normalized ? normalized : null;
 }
 
 export function buildPullPreviewRows(
   bundles: StratusPackageBundle[],
   tasks: PreviewTaskRecord[],
   minutesPerDay: number,
+  config: StratusTaskMappingConfig,
 ): PullPreviewRow[] {
   const syncByPackageId = new Map<string, { id: string; name: string }>();
-  const tasksByExternalKey = new Map<string, Array<{ id: string; name: string }>>();
+  const tasksByExternalKey = new Map<
+    string,
+    Array<{ id: string; name: string }>
+  >();
+  const statusLookup = buildStatusProgressLookup(config.statusProgressMappings);
 
   for (const task of tasks) {
     if (task.stratusSync?.packageId) {
-      syncByPackageId.set(task.stratusSync.packageId, { id: task.id, name: task.name });
+      syncByPackageId.set(task.stratusSync.packageId, {
+        id: task.id,
+        name: task.name,
+      });
     }
     if (task.externalKey) {
       const bucket = tasksByExternalKey.get(task.externalKey) ?? [];
@@ -1386,59 +1638,74 @@ export function buildPullPreviewRows(
 
   return bundles.map((bundle) => {
     const pkg = bundle.package;
-    const mappedPackage = createMappedPackagePreviewData(pkg, minutesPerDay);
+    const mappedPackage = createMappedPackagePreviewData(
+      pkg,
+      minutesPerDay,
+      config,
+      statusLookup,
+    );
     const byPackage = syncByPackageId.get(pkg.id) ?? null;
-    const byExternalKey = pkg.externalKey ? tasksByExternalKey.get(pkg.externalKey) ?? [] : [];
+    const byExternalKey = pkg.externalKey
+      ? (tasksByExternalKey.get(pkg.externalKey) ?? [])
+      : [];
     const warnings: string[] = [];
-    let action: PullPreviewRow['action'] = 'create';
-    let matchStrategy: PullPreviewRow['matchStrategy'] = 'none';
+    let action: PullPreviewRow["action"] = "create";
+    let matchStrategy: PullPreviewRow["matchStrategy"] = "none";
     let taskId: string | null = null;
     let taskName: string | null = null;
 
     if (byPackage) {
-      action = 'update';
-      matchStrategy = 'packageId';
+      action = "update";
+      matchStrategy = "packageId";
       taskId = byPackage.id;
       taskName = byPackage.name;
     } else if (byExternalKey.length === 1) {
-      action = 'update';
-      matchStrategy = 'externalKey';
+      action = "update";
+      matchStrategy = "externalKey";
       taskId = byExternalKey[0]?.id ?? null;
       taskName = byExternalKey[0]?.name ?? null;
     } else if (byExternalKey.length > 1) {
-      action = 'skip';
+      action = "skip";
       warnings.push(`External key ${pkg.externalKey} matches multiple tasks`);
     }
 
     if (!pkg.packageNumber) {
-      warnings.push('Package number is missing');
+      warnings.push("Package number is missing");
     }
     if (!pkg.externalKey) {
-      warnings.push('External key could not be derived');
+      warnings.push("External key could not be derived");
     }
 
     const assemblyRows = bundle.assemblies.map((assembly) => {
-      const assemblyMapped = createMappedAssemblyPreviewData(minutesPerDay, pkg, assembly);
+      const assemblyMapped = createMappedAssemblyPreviewData(
+        minutesPerDay,
+        pkg,
+        assembly,
+        config,
+        statusLookup,
+      );
       const assemblyWarnings: string[] = [];
       const matches = tasksByExternalKey.get(assembly.externalKey) ?? [];
-      let assemblyAction: PullPreviewAssemblyRow['action'] = 'create';
+      let assemblyAction: PullPreviewAssemblyRow["action"] = "create";
       let assemblyTaskId: string | null = null;
       let assemblyTaskName: string | null = null;
 
-      if (action === 'skip') {
-        assemblyAction = 'skip';
-        assemblyWarnings.push('Package row will be skipped.');
+      if (action === "skip") {
+        assemblyAction = "skip";
+        assemblyWarnings.push("Package row will be skipped.");
       } else if (matches.length === 1) {
-        assemblyAction = 'update';
+        assemblyAction = "update";
         assemblyTaskId = matches[0]?.id ?? null;
         assemblyTaskName = matches[0]?.name ?? null;
       } else if (matches.length > 1) {
-        assemblyAction = 'skip';
-        assemblyWarnings.push(`Assembly external key ${assembly.externalKey} matches multiple tasks`);
+        assemblyAction = "skip";
+        assemblyWarnings.push(
+          `Assembly external key ${assembly.externalKey} matches multiple tasks`,
+        );
       }
 
       if (!assembly.name) {
-        assemblyWarnings.push('Assembly name is missing');
+        assemblyWarnings.push("Assembly name is missing");
       }
 
       return {
@@ -1464,9 +1731,12 @@ export function buildPullPreviewRows(
       taskName,
       warnings,
       assemblyCount: assemblyRows.length,
-      createAssemblyCount: assemblyRows.filter((row) => row.action === 'create').length,
-      updateAssemblyCount: assemblyRows.filter((row) => row.action === 'update').length,
-      skipAssemblyCount: assemblyRows.filter((row) => row.action === 'skip').length,
+      createAssemblyCount: assemblyRows.filter((row) => row.action === "create")
+        .length,
+      updateAssemblyCount: assemblyRows.filter((row) => row.action === "update")
+        .length,
+      skipAssemblyCount: assemblyRows.filter((row) => row.action === "skip")
+        .length,
       assemblyRows,
       mappedTask: mappedPackage,
     };
@@ -1477,46 +1747,65 @@ export function buildPushPreviewRows(tasks: TaskWithSync[]) {
   return tasks.map((task) => {
     if (!task.stratusSync) {
       return {
-        action: 'skip' as const,
+        action: "skip" as const,
         taskId: task.id,
         taskName: task.name,
-        packageId: '',
+        packageId: "",
         packageNumber: null,
         packageName: null,
         changes: [],
-        warnings: ['Task is not linked to a Stratus package'],
+        warnings: ["Task is not linked to a Stratus package"],
       };
     }
 
-    const changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }> = [];
+    const changes: Array<{
+      field: "start" | "finish" | "deadline";
+      from: string | null;
+      to: string | null;
+    }> = [];
     const currentStart = toDateSignature(task.start);
     const currentFinish = toDateSignature(task.finish);
     const currentDeadline = toDateSignature(task.deadline);
 
     if (currentStart !== task.stratusSync.syncedStartSignature) {
-      changes.push({ field: 'start', from: task.stratusSync.syncedStartSignature, to: currentStart });
+      changes.push({
+        field: "start",
+        from: task.stratusSync.syncedStartSignature,
+        to: currentStart,
+      });
     }
     if (currentFinish !== task.stratusSync.syncedFinishSignature) {
-      changes.push({ field: 'finish', from: task.stratusSync.syncedFinishSignature, to: currentFinish });
+      changes.push({
+        field: "finish",
+        from: task.stratusSync.syncedFinishSignature,
+        to: currentFinish,
+      });
     }
     if (currentDeadline !== task.stratusSync.syncedDeadlineSignature) {
-      changes.push({ field: 'deadline', from: task.stratusSync.syncedDeadlineSignature, to: currentDeadline });
+      changes.push({
+        field: "deadline",
+        from: task.stratusSync.syncedDeadlineSignature,
+        to: currentDeadline,
+      });
     }
 
     return {
-      action: changes.length > 0 ? 'push' as const : 'skip' as const,
+      action: changes.length > 0 ? ("push" as const) : ("skip" as const),
       taskId: task.id,
       taskName: task.name,
       packageId: task.stratusSync.packageId,
       packageNumber: task.stratusSync.packageNumber,
       packageName: task.stratusSync.packageName,
       changes,
-      warnings: changes.length === 0 ? ['No date changes to push'] : [],
+      warnings: changes.length === 0 ? ["No date changes to push"] : [],
     };
   });
 }
 
-export function buildSyncToPrefabPreviewRows(sourceTasks: TaskWithSync[], prefabTasks: TaskWithSync[]) {
+export function buildSyncToPrefabPreviewRows(
+  sourceTasks: TaskWithSync[],
+  prefabTasks: TaskWithSync[],
+) {
   const prefabTasksByExternalKey = new Map<string, TaskWithSync[]>();
   for (const task of prefabTasks) {
     if (!task.externalKey || !isPrefabSyncCandidate(task)) {
@@ -1531,16 +1820,23 @@ export function buildSyncToPrefabPreviewRows(sourceTasks: TaskWithSync[], prefab
     .filter(isProjectReferenceSyncCandidate)
     .map((sourceTask) => {
       const warnings: string[] = [];
-      const matches = prefabTasksByExternalKey.get(sourceTask.externalKey) ?? [];
-      const prefabTask = matches.length === 1 ? matches[0] ?? null : null;
+      const matches =
+        prefabTasksByExternalKey.get(sourceTask.externalKey) ?? [];
+      const prefabTask = matches.length === 1 ? (matches[0] ?? null) : null;
 
       if (matches.length === 0) {
-        warnings.push('No matching Prefab package task was found.');
+        warnings.push("No matching Prefab package task was found.");
       } else if (matches.length > 1) {
-        warnings.push(`External key ${sourceTask.externalKey} matches multiple Prefab tasks.`);
+        warnings.push(
+          `External key ${sourceTask.externalKey} matches multiple Prefab tasks.`,
+        );
       }
 
-      const changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }> = [];
+      const changes: Array<{
+        field: "start" | "finish" | "deadline";
+        from: string | null;
+        to: string | null;
+      }> = [];
       if (prefabTask) {
         const prefabStart = toIsoSignature(prefabTask.start);
         const sourceStart = toIsoSignature(sourceTask.start);
@@ -1550,30 +1846,47 @@ export function buildSyncToPrefabPreviewRows(sourceTasks: TaskWithSync[], prefab
         const sourceDeadline = toIsoSignature(sourceTask.deadline);
 
         if (prefabStart !== sourceStart) {
-          changes.push({ field: 'start', from: prefabStart, to: sourceStart });
+          changes.push({ field: "start", from: prefabStart, to: sourceStart });
         }
         if (prefabFinish !== sourceFinish) {
-          changes.push({ field: 'finish', from: prefabFinish, to: sourceFinish });
+          changes.push({
+            field: "finish",
+            from: prefabFinish,
+            to: sourceFinish,
+          });
         }
         if (prefabDeadline !== sourceDeadline) {
-          changes.push({ field: 'deadline', from: prefabDeadline, to: sourceDeadline });
+          changes.push({
+            field: "deadline",
+            from: prefabDeadline,
+            to: sourceDeadline,
+          });
         }
       }
 
       return {
-        action: warnings.length === 0 && changes.length > 0 ? 'sync' as const : 'skip' as const,
+        action:
+          warnings.length === 0 && changes.length > 0
+            ? ("sync" as const)
+            : ("skip" as const),
         sourceTaskId: sourceTask.id,
         sourceTaskName: sourceTask.name,
         prefabTaskId: prefabTask?.id ?? null,
         prefabTaskName: prefabTask?.name ?? null,
         externalKey: sourceTask.externalKey ?? sourceTask.id,
         changes,
-        warnings: warnings.length === 0 && changes.length === 0 ? ['No date changes to sync'] : warnings,
+        warnings:
+          warnings.length === 0 && changes.length === 0
+            ? ["No date changes to sync"]
+            : warnings,
       };
     });
 }
 
-export function buildRefreshFromPrefabPreviewRows(sourceTasks: TaskWithSync[], prefabTasks: TaskWithSync[]) {
+export function buildRefreshFromPrefabPreviewRows(
+  sourceTasks: TaskWithSync[],
+  prefabTasks: TaskWithSync[],
+) {
   const prefabTasksByExternalKey = new Map<string, TaskWithSync[]>();
   for (const task of prefabTasks) {
     if (!task.externalKey || !isPrefabRefreshCandidate(task)) {
@@ -1588,16 +1901,23 @@ export function buildRefreshFromPrefabPreviewRows(sourceTasks: TaskWithSync[], p
     .filter(isProjectReferenceRefreshCandidate)
     .map((sourceTask) => {
       const warnings: string[] = [];
-      const matches = prefabTasksByExternalKey.get(sourceTask.externalKey) ?? [];
-      const prefabTask = matches.length === 1 ? matches[0] ?? null : null;
+      const matches =
+        prefabTasksByExternalKey.get(sourceTask.externalKey) ?? [];
+      const prefabTask = matches.length === 1 ? (matches[0] ?? null) : null;
 
       if (matches.length === 0) {
-        warnings.push('No matching Prefab reference was found.');
+        warnings.push("No matching Prefab reference was found.");
       } else if (matches.length > 1) {
-        warnings.push(`External key ${sourceTask.externalKey} matches multiple Prefab tasks.`);
+        warnings.push(
+          `External key ${sourceTask.externalKey} matches multiple Prefab tasks.`,
+        );
       }
 
-      const changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }> = [];
+      const changes: Array<{
+        field: "start" | "finish" | "deadline";
+        from: string | null;
+        to: string | null;
+      }> = [];
       if (prefabTask) {
         const sourceStart = toIsoSignature(sourceTask.start);
         const prefabStart = toIsoSignature(prefabTask.start);
@@ -1607,30 +1927,46 @@ export function buildRefreshFromPrefabPreviewRows(sourceTasks: TaskWithSync[], p
         const prefabDeadline = toIsoSignature(prefabTask.deadline);
 
         if (sourceStart !== prefabStart) {
-          changes.push({ field: 'start', from: sourceStart, to: prefabStart });
+          changes.push({ field: "start", from: sourceStart, to: prefabStart });
         }
         if (sourceFinish !== prefabFinish) {
-          changes.push({ field: 'finish', from: sourceFinish, to: prefabFinish });
+          changes.push({
+            field: "finish",
+            from: sourceFinish,
+            to: prefabFinish,
+          });
         }
         if (sourceDeadline !== prefabDeadline) {
-          changes.push({ field: 'deadline', from: sourceDeadline, to: prefabDeadline });
+          changes.push({
+            field: "deadline",
+            from: sourceDeadline,
+            to: prefabDeadline,
+          });
         }
       }
 
       return {
-        action: warnings.length === 0 && changes.length > 0 ? 'refresh' as const : 'skip' as const,
+        action:
+          warnings.length === 0 && changes.length > 0
+            ? ("refresh" as const)
+            : ("skip" as const),
         sourceTaskId: sourceTask.id,
         sourceTaskName: sourceTask.name,
         prefabTaskId: prefabTask?.id ?? null,
         prefabTaskName: prefabTask?.name ?? null,
         externalKey: sourceTask.externalKey ?? sourceTask.id,
         changes,
-        warnings: warnings.length === 0 && changes.length === 0 ? ['No Prefab changes to refresh'] : warnings,
+        warnings:
+          warnings.length === 0 && changes.length === 0
+            ? ["No Prefab changes to refresh"]
+            : warnings,
       };
     });
 }
 
-export function toStratusSyncSummary(sync: StratusTaskSync | null): StratusSyncSummary | null {
+export function toStratusSyncSummary(
+  sync: StratusTaskSync | null,
+): StratusSyncSummary | null {
   if (!sync) {
     return null;
   }
@@ -1653,10 +1989,10 @@ function isProjectReferenceSyncCandidate(
   task: TaskWithSync,
 ): task is TaskWithSync & { externalKey: string } {
   return (
-    typeof task.externalKey === 'string'
-    && task.externalKey.length > 0
-    && !task.externalKey.startsWith('stratus-project:')
-    && !task.externalKey.includes('::assembly:')
+    typeof task.externalKey === "string" &&
+    task.externalKey.length > 0 &&
+    !task.externalKey.startsWith("stratus-project:") &&
+    !task.externalKey.includes("::assembly:")
   );
 }
 
@@ -1668,9 +2004,9 @@ function isProjectReferenceRefreshCandidate(
   task: TaskWithSync,
 ): task is TaskWithSync & { externalKey: string } {
   return (
-    typeof task.externalKey === 'string'
-    && task.externalKey.length > 0
-    && !task.externalKey.startsWith('stratus-project:')
+    typeof task.externalKey === "string" &&
+    task.externalKey.length > 0 &&
+    !task.externalKey.startsWith("stratus-project:")
   );
 }
 
@@ -1678,9 +2014,9 @@ function isPrefabRefreshCandidate(
   task: TaskWithSync,
 ): task is TaskWithSync & { externalKey: string } {
   return (
-    typeof task.externalKey === 'string'
-    && task.externalKey.length > 0
-    && !task.externalKey.startsWith('stratus-project:')
+    typeof task.externalKey === "string" &&
+    task.externalKey.length > 0 &&
+    !task.externalKey.startsWith("stratus-project:")
   );
 }
 
@@ -1693,14 +2029,18 @@ async function loadStratusPackageBundles(
   config: StratusConfig,
 ): Promise<StratusPackageBundle[]> {
   const packages = (await fetchPackagesFromStratus(config, project))
-    .map((pkg) => normalizeStratusPackage(pkg, project.minutesPerDay))
+    .map((pkg) => normalizeStratusPackage(pkg, config))
     .sort(compareStratusPackages);
 
   const bundles: StratusPackageBundle[] = [];
   for (const pkg of packages) {
-    const rawAssemblies = pkg.id ? await fetchAssembliesForPackage(config, pkg.id) : [];
+    const rawAssemblies = pkg.id
+      ? await fetchAssembliesForPackage(config, pkg.id)
+      : [];
     const assemblies = rawAssemblies
-      .map((rawAssembly) => normalizeStratusAssembly(pkg.id, pkg.externalKey, rawAssembly))
+      .map((rawAssembly) =>
+        normalizeStratusAssembly(pkg.id, pkg.externalKey, rawAssembly),
+      )
       .sort(compareStratusAssemblies);
     bundles.push({ package: pkg, assemblies });
   }
@@ -1743,6 +2083,10 @@ async function upsertStratusTaskSync(
   taskId: string,
   localProjectId: string,
   pkg: NormalizedStratusPackage,
+  config: Pick<
+    StratusConfig,
+    "startDateField" | "finishDateField" | "deadlineField"
+  >,
   now: Date,
   scheduledDates?: {
     start: Date;
@@ -1750,9 +2094,15 @@ async function upsertStratusTaskSync(
     deadline: Date | null;
   },
 ) {
-  const pulledStartSignature = toDateSignature(pkg.normalizedFields[STRATUS_START_DATE_FIELD_NAME]);
-  const pulledFinishSignature = toDateSignature(pkg.normalizedFields[STRATUS_FINISH_DATE_FIELD_NAME]);
-  const pulledDeadlineSignature = toDateSignature(pkg.normalizedFields['STRATUS.Package.RequiredDT']);
+  const pulledStartSignature = toDateSignature(
+    getConfiguredPackageFieldValue(pkg, config.startDateField),
+  );
+  const pulledFinishSignature = toDateSignature(
+    getConfiguredPackageFieldValue(pkg, config.finishDateField),
+  );
+  const pulledDeadlineSignature = toDateSignature(
+    getConfiguredPackageFieldValue(pkg, config.deadlineField),
+  );
   const data = {
     localProjectId,
     packageId: pkg.id,
@@ -1776,9 +2126,12 @@ async function upsertStratusTaskSync(
       rawPackage: pkg.rawPackage,
     }),
     lastPulledAt: now,
-    syncedStartSignature: pulledStartSignature ?? toDateSignature(scheduledDates?.start),
-    syncedFinishSignature: pulledFinishSignature ?? toDateSignature(scheduledDates?.finish),
-    syncedDeadlineSignature: pulledDeadlineSignature ?? toDateSignature(scheduledDates?.deadline),
+    syncedStartSignature:
+      pulledStartSignature ?? toDateSignature(scheduledDates?.start),
+    syncedFinishSignature:
+      pulledFinishSignature ?? toDateSignature(scheduledDates?.finish),
+    syncedDeadlineSignature:
+      pulledDeadlineSignature ?? toDateSignature(scheduledDates?.deadline),
   };
 
   await prisma.stratusTaskSync.upsert({
@@ -1788,24 +2141,98 @@ async function upsertStratusTaskSync(
   });
 }
 
-function createMappedPackageTaskData(project: LoadedProjectTarget, pkg: NormalizedStratusPackage) {
-  const workDays = parseNumberValue(pkg.normalizedFields['Work Days (Reference)']);
-  const durationMinutes = workDays !== null ? workDays * project.minutesPerDay : project.minutesPerDay;
-  const start = parseDateValue(pkg.normalizedFields[STRATUS_START_DATE_FIELD_NAME]) ?? project.startDate;
+function resolveMappedTaskName(
+  config: StratusTaskMappingConfig,
+  pkg: NormalizedStratusPackage,
+): string {
+  return (
+    getConfiguredPackageFieldValue(pkg, config.taskNameField) ??
+    pkg.packageName ??
+    `Package ${pkg.id}`
+  );
+}
+
+function resolveMappedDurationMinutes(
+  minutesPerDay: number,
+  config: StratusTaskMappingConfig,
+  pkg: NormalizedStratusPackage,
+): number {
+  const durationDays = parseNumberValue(
+    getConfiguredPackageFieldValue(pkg, config.durationDaysField),
+  );
+  if (durationDays !== null) {
+    return durationDays * minutesPerDay;
+  }
+
+  const durationHours = parseNumberValue(
+    getConfiguredPackageFieldValue(pkg, config.durationHoursField),
+  );
+  if (durationHours !== null) {
+    return durationHours * 60;
+  }
+
+  return minutesPerDay;
+}
+
+function resolveMappedProgress(
+  lookup: StatusProgressLookup,
+  status: {
+    trackingStatusId: string | null;
+    trackingStatusName: string | null;
+  },
+  fallback = 0,
+): number {
+  const byId = normalizeLookupKey(status.trackingStatusId);
+  if (byId && lookup.byId.has(byId)) {
+    return lookup.byId.get(byId) ?? fallback;
+  }
+
+  const byName = normalizeLookupKey(status.trackingStatusName);
+  if (byName && lookup.byName.has(byName)) {
+    return lookup.byName.get(byName) ?? fallback;
+  }
+
+  return fallback;
+}
+
+function createMappedPackageTaskData(
+  project: LoadedProjectTarget,
+  pkg: NormalizedStratusPackage,
+  config: StratusTaskMappingConfig,
+  statusLookup: StatusProgressLookup,
+) {
+  const durationMinutes = resolveMappedDurationMinutes(
+    project.minutesPerDay,
+    config,
+    pkg,
+  );
+  const start =
+    parseDateValue(
+      getConfiguredPackageFieldValue(pkg, config.startDateField),
+    ) ?? project.startDate;
   const finish =
-    parseDateValue(pkg.normalizedFields[STRATUS_FINISH_DATE_FIELD_NAME])
-    ?? new Date(start.getTime() + durationMinutes * 60_000);
+    parseDateValue(
+      getConfiguredPackageFieldValue(pkg, config.finishDateField),
+    ) ?? new Date(start.getTime() + durationMinutes * 60_000);
 
   return {
-    name: pkg.normalizedFields['STRATUS.Field.Project Name Override'] ?? pkg.packageName ?? `Package ${pkg.id}`,
+    name: resolveMappedTaskName(config, pkg),
     start,
     finish,
-    deadline: parseDateValue(pkg.normalizedFields['STRATUS.Package.RequiredDT']),
+    deadline: parseDateValue(
+      getConfiguredPackageFieldValue(pkg, config.deadlineField),
+    ),
     durationMinutes,
-    percentComplete: resolveStatus(pkg.normalizedFields['STRATUS.Package.TrackingStatus'] ?? pkg.normalizedFields['STRATUS.Package.Status']) ?? 0,
-    notes: [pkg.normalizedFields['STRATUS.Package.Description'], pkg.normalizedFields['STRATUS.Package.Notes']]
-      .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
-      .join('\n'),
+    percentComplete: resolveMappedProgress(statusLookup, pkg),
+    notes: [
+      pkg.normalizedFields["STRATUS.Package.Description"],
+      pkg.normalizedFields["STRATUS.Package.Notes"],
+    ]
+      .filter(
+        (part): part is string =>
+          typeof part === "string" && part.trim().length > 0,
+      )
+      .join("\n"),
     externalKey: pkg.externalKey,
   };
 }
@@ -1813,21 +2240,25 @@ function createMappedPackageTaskData(project: LoadedProjectTarget, pkg: Normaliz
 function createMappedPackagePreviewData(
   pkg: NormalizedStratusPackage,
   minutesPerDay: number,
-): PullPreviewRow['mappedTask'] {
-  const workDays = parseNumberValue(pkg.normalizedFields['Work Days (Reference)']);
+  config: StratusTaskMappingConfig,
+  statusLookup: StatusProgressLookup,
+): PullPreviewRow["mappedTask"] {
   return {
-    name: pkg.normalizedFields['STRATUS.Field.Project Name Override'] ?? pkg.packageName ?? `Package ${pkg.id}`,
-    start: pkg.normalizedFields[STRATUS_START_DATE_FIELD_NAME],
-    finish: pkg.normalizedFields[STRATUS_FINISH_DATE_FIELD_NAME],
-    deadline: pkg.normalizedFields['STRATUS.Package.RequiredDT'],
-    durationMinutes: workDays !== null ? workDays * minutesPerDay : minutesPerDay,
-    percentComplete:
-      resolveStatus(
-        pkg.normalizedFields['STRATUS.Package.TrackingStatus'] ?? pkg.normalizedFields['STRATUS.Package.Status'],
-      ) ?? 0,
-    notes: [pkg.normalizedFields['STRATUS.Package.Description'], pkg.normalizedFields['STRATUS.Package.Notes']]
-      .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
-      .join('\n'),
+    name: resolveMappedTaskName(config, pkg),
+    start: getConfiguredPackageFieldValue(pkg, config.startDateField),
+    finish: getConfiguredPackageFieldValue(pkg, config.finishDateField),
+    deadline: getConfiguredPackageFieldValue(pkg, config.deadlineField),
+    durationMinutes: resolveMappedDurationMinutes(minutesPerDay, config, pkg),
+    percentComplete: resolveMappedProgress(statusLookup, pkg),
+    notes: [
+      pkg.normalizedFields["STRATUS.Package.Description"],
+      pkg.normalizedFields["STRATUS.Package.Notes"],
+    ]
+      .filter(
+        (part): part is string =>
+          typeof part === "string" && part.trim().length > 0,
+      )
+      .join("\n"),
     externalKey: pkg.externalKey,
   };
 }
@@ -1836,10 +2267,19 @@ function createMappedAssemblyTaskData(
   project: LoadedProjectTarget,
   pkg: NormalizedStratusPackage,
   assembly: NormalizedStratusAssembly,
+  config: StratusTaskMappingConfig,
+  statusLookup: StatusProgressLookup,
 ) {
-  const packageTask = createMappedPackageTaskData(project, pkg);
+  const packageTask = createMappedPackageTaskData(
+    project,
+    pkg,
+    config,
+    statusLookup,
+  );
   const start = packageTask.start;
-  const finish = packageTask.finish ?? new Date(start.getTime() + project.minutesPerDay * 60_000);
+  const finish =
+    packageTask.finish ??
+    new Date(start.getTime() + project.minutesPerDay * 60_000);
 
   return {
     name: assembly.name ?? `Assembly ${assembly.id}`,
@@ -1847,7 +2287,11 @@ function createMappedAssemblyTaskData(
     finish,
     deadline: packageTask.deadline,
     durationMinutes: project.minutesPerDay,
-    percentComplete: resolveStatus(assembly.trackingStatusName) ?? packageTask.percentComplete,
+    percentComplete: resolveMappedProgress(
+      statusLookup,
+      assembly,
+      packageTask.percentComplete,
+    ),
     notes: buildAssemblyNotes(assembly),
     externalKey: assembly.externalKey,
   };
@@ -1857,15 +2301,26 @@ function createMappedAssemblyPreviewData(
   minutesPerDay: number,
   pkg: NormalizedStratusPackage,
   assembly: NormalizedStratusAssembly,
-): PullPreviewAssemblyRow['mappedTask'] {
-  const packagePreview = createMappedPackagePreviewData(pkg, minutesPerDay);
+  config: StratusTaskMappingConfig,
+  statusLookup: StatusProgressLookup,
+): PullPreviewAssemblyRow["mappedTask"] {
+  const packagePreview = createMappedPackagePreviewData(
+    pkg,
+    minutesPerDay,
+    config,
+    statusLookup,
+  );
   return {
     name: assembly.name ?? `Assembly ${assembly.id}`,
     start: packagePreview.start,
     finish: packagePreview.finish,
     deadline: packagePreview.deadline,
     durationMinutes: minutesPerDay,
-    percentComplete: resolveStatus(assembly.trackingStatusName) ?? packagePreview.percentComplete,
+    percentComplete: resolveMappedProgress(
+      statusLookup,
+      assembly,
+      packagePreview.percentComplete,
+    ),
     notes: buildAssemblyNotes(assembly),
     externalKey: assembly.externalKey,
   };
@@ -1876,8 +2331,8 @@ async function patchPackageProperties(
   packageId: string,
   data: { requiredDT: string | null },
 ) {
-  await stratusRequestJson(config, '/v2/package/properties', {
-    method: 'PATCH',
+  await stratusRequestJson(config, "/v2/package/properties", {
+    method: "PATCH",
     body: JSON.stringify({ id: packageId, requiredDT: data.requiredDT }),
   });
 }
@@ -1887,10 +2342,14 @@ async function patchPackageFields(
   packageId: string,
   fieldUpdates: Array<{ key: string; value: string | null }>,
 ) {
-  await stratusRequestJson(config, `/v2/package/${encodeURIComponent(packageId)}/fields`, {
-    method: 'PATCH',
-    body: JSON.stringify(fieldUpdates),
-  });
+  await stratusRequestJson(
+    config,
+    `/v2/package/${encodeURIComponent(packageId)}/fields`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(fieldUpdates),
+    },
+  );
 }
 
 async function reorderTasksAfterStratusPull(
@@ -1950,14 +2409,16 @@ async function reorderTasksAfterStratusPull(
   );
 }
 
-async function ensurePrefabProject(stratusProjects: NormalizedStratusProject[]): Promise<SyncProjectTarget> {
+async function ensurePrefabProject(
+  stratusProjects: NormalizedStratusProject[],
+): Promise<SyncProjectTarget> {
   const existingPrefab = await prisma.project.findFirst({
     where: {
       name: {
-        equals: 'Prefab',
+        equals: "Prefab",
       },
     },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: { updatedAt: "desc" },
     select: {
       id: true,
       name: true,
@@ -1970,15 +2431,17 @@ async function ensurePrefabProject(stratusProjects: NormalizedStratusProject[]):
     stratusProjects
       .map((project) => parseDateValue(project.startDate))
       .filter((value): value is Date => value instanceof Date)
-      .sort((left, right) => left.getTime() - right.getTime())[0]
-    ?? new Date();
+      .sort((left, right) => left.getTime() - right.getTime())[0] ?? new Date();
 
   if (existingPrefab) {
     const desiredStart =
       existingPrefab.startDate.getTime() <= earliestStart.getTime()
         ? existingPrefab.startDate
         : earliestStart;
-    if (toDateSignature(existingPrefab.startDate) !== toDateSignature(desiredStart)) {
+    if (
+      toDateSignature(existingPrefab.startDate) !==
+      toDateSignature(desiredStart)
+    ) {
       const updatedPrefab = await prisma.project.update({
         where: { id: existingPrefab.id },
         data: { startDate: desiredStart },
@@ -1996,9 +2459,9 @@ async function ensurePrefabProject(stratusProjects: NormalizedStratusProject[]):
 
   return prisma.project.create({
     data: {
-      name: 'Prefab',
+      name: "Prefab",
       startDate: earliestStart,
-      scheduleFrom: 'start',
+      scheduleFrom: "start",
     },
     select: {
       id: true,
@@ -2012,6 +2475,7 @@ async function ensurePrefabProject(stratusProjects: NormalizedStratusProject[]):
 async function syncStratusProjectGroupsToProject(
   targetProject: SyncProjectTarget,
   groups: StratusProjectBundleGroup[],
+  config: StratusTaskMappingConfig,
   options: {
     includeProjectSummaries: boolean;
     canonicalPackageSync: boolean;
@@ -2020,7 +2484,7 @@ async function syncStratusProjectGroupsToProject(
 ) {
   const existingTasks = await prisma.task.findMany({
     where: { projectId: targetProject.id },
-    orderBy: { sortOrder: 'asc' },
+    orderBy: { sortOrder: "asc" },
     include: { stratusSync: true },
   });
 
@@ -2040,6 +2504,7 @@ async function syncStratusProjectGroupsToProject(
   }
 
   const managedTaskIds = new Set<string>();
+  const statusLookup = buildStatusProgressLookup(config.statusProgressMappings);
   let nextSortOrder = 0;
 
   const upsertTask = async (params: {
@@ -2048,7 +2513,7 @@ async function syncStratusProjectGroupsToProject(
     name: string;
     parentId: string | null;
     outlineLevel: number;
-    type: 'summary' | 'task';
+    type: "summary" | "task";
     start: Date;
     finish: Date;
     deadline: Date | null;
@@ -2057,9 +2522,12 @@ async function syncStratusProjectGroupsToProject(
     notes: string;
     syncPackage?: NormalizedStratusPackage;
   }) => {
-    const bySync = params.packageId ? syncByPackageId.get(params.packageId) ?? null : null;
+    const bySync = params.packageId
+      ? (syncByPackageId.get(params.packageId) ?? null)
+      : null;
     const byExternalKey = tasksByExternalKey.get(params.externalKey) ?? [];
-    const existingTask = bySync ?? (byExternalKey.length > 0 ? byExternalKey[0] ?? null : null);
+    const existingTask =
+      bySync ?? (byExternalKey.length > 0 ? (byExternalKey[0] ?? null) : null);
 
     const data = {
       name: params.name,
@@ -2088,7 +2556,7 @@ async function syncStratusProjectGroupsToProject(
       task = await prisma.task.create({
         data: {
           projectId: targetProject.id,
-          wbsCode: '',
+          wbsCode: "",
           constraintType: 0,
           ...data,
         },
@@ -2097,11 +2565,18 @@ async function syncStratusProjectGroupsToProject(
     }
 
     if (params.syncPackage) {
-      await upsertStratusTaskSync(task.id, targetProject.id, params.syncPackage, new Date(), {
-        start: params.start,
-        finish: params.finish,
-        deadline: params.deadline,
-      });
+      await upsertStratusTaskSync(
+        task.id,
+        targetProject.id,
+        params.syncPackage,
+        config,
+        new Date(),
+        {
+          start: params.start,
+          finish: params.finish,
+          deadline: params.deadline,
+        },
+      );
       task = await prisma.task.findUniqueOrThrow({
         where: { id: task.id },
         include: { stratusSync: true },
@@ -2123,7 +2598,9 @@ async function syncStratusProjectGroupsToProject(
     } else {
       tasksByExternalKey.set(
         params.externalKey,
-        updatedBucket.map((candidate) => (candidate.id === task.id ? task : candidate)),
+        updatedBucket.map((candidate) =>
+          candidate.id === task.id ? task : candidate,
+        ),
       );
     }
     managedTaskIds.add(task.id);
@@ -2134,9 +2611,9 @@ async function syncStratusProjectGroupsToProject(
     let projectSummaryTaskId: string | null = null;
     let packageOutlineLevel = 0;
     const fallbackProjectStart =
-      parseDateValue(group.stratusProject.startDate)
-      ?? parseDateValue(group.stratusProject.finishDate)
-      ?? targetProject.startDate;
+      parseDateValue(group.stratusProject.startDate) ??
+      parseDateValue(group.stratusProject.finishDate) ??
+      targetProject.startDate;
     const mappedProjectContext = {
       id: targetProject.id,
       name: targetProject.name,
@@ -2152,12 +2629,19 @@ async function syncStratusProjectGroupsToProject(
     if (options.includeProjectSummaries) {
       const projectStart = fallbackProjectStart;
       const projectFinish =
-        parseDateValue(group.stratusProject.finishDate)
-        ?? group.bundles
-          .map((bundle) => parseDateValue(bundle.package.normalizedFields[STRATUS_FINISH_DATE_FIELD_NAME]))
+        parseDateValue(group.stratusProject.finishDate) ??
+        group.bundles
+          .map((bundle) =>
+            parseDateValue(
+              getConfiguredPackageFieldValue(
+                bundle.package,
+                config.finishDateField,
+              ),
+            ),
+          )
           .filter((value): value is Date => value instanceof Date)
-          .sort((left, right) => right.getTime() - left.getTime())[0]
-        ?? projectStart;
+          .sort((left, right) => right.getTime() - left.getTime())[0] ??
+        projectStart;
       const projectSummary = await upsertTask({
         externalKey: `stratus-project:${group.stratusProject.id}`,
         name: buildImportedProjectName(
@@ -2167,7 +2651,7 @@ async function syncStratusProjectGroupsToProject(
         ),
         parentId: null,
         outlineLevel: 0,
-        type: 'summary',
+        type: "summary",
         start: projectStart,
         finish: projectFinish,
         deadline: null,
@@ -2176,14 +2660,19 @@ async function syncStratusProjectGroupsToProject(
           (projectFinish.getTime() - projectStart.getTime()) / 60_000,
         ),
         percentComplete: 0,
-        notes: group.stratusProject.description ?? '',
+        notes: group.stratusProject.description ?? "",
       });
       projectSummaryTaskId = projectSummary.id;
       packageOutlineLevel = 1;
     }
 
     for (const bundle of group.bundles) {
-      const mappedPackage = createMappedPackageTaskData(mappedProjectContext, bundle.package);
+      const mappedPackage = createMappedPackageTaskData(
+        mappedProjectContext,
+        bundle.package,
+        config,
+        statusLookup,
+      );
 
       const packageTask = await upsertTask({
         externalKey: bundle.package.externalKey ?? bundle.package.id,
@@ -2191,13 +2680,17 @@ async function syncStratusProjectGroupsToProject(
         name: mappedPackage.name,
         parentId: projectSummaryTaskId,
         outlineLevel: packageOutlineLevel,
-        type: 'summary',
+        type: "summary",
         start: mappedPackage.start,
         finish: mappedPackage.finish,
         deadline: mappedPackage.deadline,
         durationMinutes: mappedPackage.durationMinutes,
         percentComplete: mappedPackage.percentComplete,
-        notes: appendReferenceNote(mappedPackage.notes, options.referenceSourceProjectName, bundle.package.externalKey),
+        notes: appendReferenceNote(
+          mappedPackage.notes,
+          options.referenceSourceProjectName,
+          bundle.package.externalKey,
+        ),
         syncPackage: options.canonicalPackageSync ? bundle.package : undefined,
       });
 
@@ -2206,6 +2699,8 @@ async function syncStratusProjectGroupsToProject(
           mappedProjectContext,
           bundle.package,
           assembly,
+          config,
+          statusLookup,
         );
 
         await upsertTask({
@@ -2213,13 +2708,17 @@ async function syncStratusProjectGroupsToProject(
           name: mappedAssembly.name,
           parentId: packageTask.id,
           outlineLevel: packageOutlineLevel + 1,
-          type: 'task',
+          type: "task",
           start: mappedAssembly.start,
           finish: mappedAssembly.finish,
           deadline: mappedAssembly.deadline,
           durationMinutes: mappedAssembly.durationMinutes,
           percentComplete: mappedAssembly.percentComplete,
-          notes: appendReferenceNote(mappedAssembly.notes, options.referenceSourceProjectName, assembly.externalKey),
+          notes: appendReferenceNote(
+            mappedAssembly.notes,
+            options.referenceSourceProjectName,
+            assembly.externalKey,
+          ),
         });
       }
     }
@@ -2237,10 +2736,19 @@ async function syncStratusProjectGroupsToProject(
   }
 }
 
-function mapStratusProjectToLocalProjectData(stratusProject: NormalizedStratusProject) {
+function mapStratusProjectToLocalProjectData(
+  stratusProject: NormalizedStratusProject,
+) {
   return {
-    name: buildImportedProjectName(stratusProject.number, stratusProject.name, stratusProject.id),
-    startDate: stratusProject.startDate ?? stratusProject.finishDate ?? new Date().toISOString(),
+    name: buildImportedProjectName(
+      stratusProject.number,
+      stratusProject.name,
+      stratusProject.id,
+    ),
+    startDate:
+      stratusProject.startDate ??
+      stratusProject.finishDate ??
+      new Date().toISOString(),
     finishDate: stratusProject.finishDate,
     projectType: stratusProject.category,
     sector: stratusProject.phase,
@@ -2250,19 +2758,28 @@ function mapStratusProjectToLocalProjectData(stratusProject: NormalizedStratusPr
 
 function areProjectsEquivalent(
   localProject: LocalProjectRecord,
-  mappedProject: ProjectImportPreviewRow['mappedProject'],
+  mappedProject: ProjectImportPreviewRow["mappedProject"],
 ) {
   return (
     localProject.name === mappedProject.name &&
-    toDateSignature(localProject.startDate) === toDateSignature(mappedProject.startDate) &&
-    toDateSignature(localProject.finishDate) === toDateSignature(mappedProject.finishDate) &&
-    normalizeNullableString(localProject.projectType) === normalizeNullableString(mappedProject.projectType) &&
-    normalizeNullableString(localProject.sector) === normalizeNullableString(mappedProject.sector) &&
-    normalizeNullableString(localProject.region) === normalizeNullableString(mappedProject.region)
+    toDateSignature(localProject.startDate) ===
+      toDateSignature(mappedProject.startDate) &&
+    toDateSignature(localProject.finishDate) ===
+      toDateSignature(mappedProject.finishDate) &&
+    normalizeNullableString(localProject.projectType) ===
+      normalizeNullableString(mappedProject.projectType) &&
+    normalizeNullableString(localProject.sector) ===
+      normalizeNullableString(mappedProject.sector) &&
+    normalizeNullableString(localProject.region) ===
+      normalizeNullableString(mappedProject.region)
   );
 }
 
-function buildImportedProjectName(number: string | null, name: string | null, projectId: string) {
+function buildImportedProjectName(
+  number: string | null,
+  name: string | null,
+  projectId: string,
+) {
   const trimmedNumber = normalizeNullableString(number);
   const trimmedName = normalizeNullableString(name);
   if (trimmedNumber && trimmedName) {
@@ -2281,18 +2798,29 @@ function buildProjectRegion(stratusProject: NormalizedStratusProject) {
 }
 
 function buildAssemblyNotes(assembly: NormalizedStratusAssembly) {
-  const rawQrCodeUrl = typeof assembly.rawAssembly.qrCodeUrl === 'string' ? assembly.rawAssembly.qrCodeUrl : null;
-  const rawCadId = typeof assembly.rawAssembly.cadId === 'string' ? assembly.rawAssembly.cadId : null;
+  const rawQrCodeUrl =
+    typeof assembly.rawAssembly.qrCodeUrl === "string"
+      ? assembly.rawAssembly.qrCodeUrl
+      : null;
+  const rawCadId =
+    typeof assembly.rawAssembly.cadId === "string"
+      ? assembly.rawAssembly.cadId
+      : null;
 
   return [
     assembly.notes,
-    assembly.trackingStatusName ? `Tracking Status: ${assembly.trackingStatusName}` : null,
+    assembly.trackingStatusName
+      ? `Tracking Status: ${assembly.trackingStatusName}`
+      : null,
     rawCadId ? `CAD Id: ${rawCadId}` : null,
     rawQrCodeUrl ? `QR Code: ${rawQrCodeUrl}` : null,
     assembly.id ? `Stratus Assembly Id: ${assembly.id}` : null,
   ]
-    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-    .join('\n');
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0,
+    )
+    .join("\n");
 }
 
 function appendReferenceNote(
@@ -2304,21 +2832,33 @@ function appendReferenceNote(
     return notes;
   }
 
-  const referenceLine = `Reference source: ${referenceSourceProjectName}${referenceKey ? ` (${referenceKey})` : ''}`;
+  const referenceLine = `Reference source: ${referenceSourceProjectName}${referenceKey ? ` (${referenceKey})` : ""}`;
   return [notes, referenceLine]
-    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-    .join('\n');
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0,
+    )
+    .join("\n");
 }
 
 function isPrefabProjectName(name: string) {
-  return name.trim().toLowerCase() === 'prefab';
+  return name.trim().toLowerCase() === "prefab";
 }
 
-function compareStratusProjects(left: NormalizedStratusProject, right: NormalizedStratusProject) {
-  return compareNullableStrings(left.number, right.number) || compareNullableStrings(left.name, right.name);
+function compareStratusProjects(
+  left: NormalizedStratusProject,
+  right: NormalizedStratusProject,
+) {
+  return (
+    compareNullableStrings(left.number, right.number) ||
+    compareNullableStrings(left.name, right.name)
+  );
 }
 
-function compareStratusPackages(left: NormalizedStratusPackage, right: NormalizedStratusPackage) {
+function compareStratusPackages(
+  left: NormalizedStratusPackage,
+  right: NormalizedStratusPackage,
+) {
   return (
     compareNullableStrings(left.packageNumber, right.packageNumber) ||
     compareNullableStrings(left.packageName, right.packageName) ||
@@ -2326,12 +2866,21 @@ function compareStratusPackages(left: NormalizedStratusPackage, right: Normalize
   );
 }
 
-function compareStratusAssemblies(left: NormalizedStratusAssembly, right: NormalizedStratusAssembly) {
-  return compareNullableStrings(left.name, right.name) || compareNullableStrings(left.id, right.id);
+function compareStratusAssemblies(
+  left: NormalizedStratusAssembly,
+  right: NormalizedStratusAssembly,
+) {
+  return (
+    compareNullableStrings(left.name, right.name) ||
+    compareNullableStrings(left.id, right.id)
+  );
 }
 
 function compareNullableStrings(left: string | null, right: string | null) {
-  return (left ?? '').localeCompare(right ?? '', undefined, { numeric: true, sensitivity: 'base' });
+  return (left ?? "").localeCompare(right ?? "", undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 function normalizeNullableString(value: string | null | undefined) {
@@ -2349,7 +2898,7 @@ function rowResultBase(row: PullPreviewRow) {
   };
 }
 
-function pushRowResultBase(row: PushPreviewResult['rows'][number]) {
+function pushRowResultBase(row: PushPreviewResult["rows"][number]) {
   return {
     taskId: row.taskId,
     taskName: row.taskName,

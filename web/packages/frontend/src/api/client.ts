@@ -2,15 +2,12 @@
  * API client — thin wrapper around fetch for the backend REST API.
  */
 
-const BASE = '/api';
+const BASE = "/api";
 
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.body != null && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  if (init.body != null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
   const res = await fetch(`${BASE}${path}`, {
@@ -59,34 +56,42 @@ export interface ProjectDetailResponse extends ProjectSummaryResponse {
 }
 
 export const projectsApi = {
-  list: () => request<ProjectSummaryResponse[]>('/projects'),
+  list: () => request<ProjectSummaryResponse[]>("/projects"),
   get: (id: string) => request<ProjectDetailResponse>(`/projects/${id}`),
-  create: (data: { name: string; startDate: string; projectType?: string | null; sector?: string | null; region?: string | null }) =>
-    request<ProjectDetailResponse>('/projects', { method: 'POST', body: JSON.stringify(data) }),
+  create: (data: {
+    name: string;
+    startDate: string;
+    projectType?: string | null;
+    sector?: string | null;
+    region?: string | null;
+  }) =>
+    request<ProjectDetailResponse>("/projects", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   update: (id: string, data: Record<string, unknown>) =>
     request<ProjectDetailResponse>(`/projects/${id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
   delete: (id: string) =>
-    request<void>(`/projects/${id}`, { method: 'DELETE' }),
+    request<void>(`/projects/${id}`, { method: "DELETE" }),
 };
 
 // ---------- Tasks ----------
 
 export const tasksApi = {
-  list: (projectId: string) =>
-    request<any[]>(`/projects/${projectId}/tasks`),
+  list: (projectId: string) => request<any[]>(`/projects/${projectId}/tasks`),
   get: (projectId: string, taskId: string) =>
     request<any>(`/projects/${projectId}/tasks/${taskId}`),
   create: (projectId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/tasks`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     }),
   update: (projectId: string, taskId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/tasks/${taskId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
   batchUpdate: (
@@ -95,16 +100,16 @@ export const tasksApi = {
     recalc = true,
   ) =>
     request<{ updated: number }>(`/projects/${projectId}/tasks/batch`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ updates, recalculate: recalc }),
     }),
   delete: (projectId: string, taskId: string) =>
     request<void>(`/projects/${projectId}/tasks/${taskId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
   recalculate: (projectId: string) =>
     request<{ ok: boolean }>(`/projects/${projectId}/tasks/recalculate`, {
-      method: 'POST',
+      method: "POST",
     }),
 };
 
@@ -115,17 +120,17 @@ export const dependenciesApi = {
     request<any[]>(`/projects/${projectId}/dependencies`),
   create: (projectId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/dependencies`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     }),
   update: (projectId: string, depId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/dependencies/${depId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
   delete: (projectId: string, depId: string) =>
     request<void>(`/projects/${projectId}/dependencies/${depId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
 };
 
@@ -138,17 +143,17 @@ export const calendarsApi = {
     request<any>(`/projects/${projectId}/calendars/${calId}`),
   create: (projectId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/calendars`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     }),
   update: (projectId: string, calId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/calendars/${calId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
   delete: (projectId: string, calId: string) =>
     request<void>(`/projects/${projectId}/calendars/${calId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
   addException: (
     projectId: string,
@@ -156,13 +161,13 @@ export const calendarsApi = {
     data: Record<string, unknown>,
   ) =>
     request<any>(`/projects/${projectId}/calendars/${calId}/exceptions`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     }),
   deleteException: (projectId: string, calId: string, excId: string) =>
     request<void>(
       `/projects/${projectId}/calendars/${calId}/exceptions/${excId}`,
-      { method: 'DELETE' },
+      { method: "DELETE" },
     ),
 };
 
@@ -173,21 +178,17 @@ export const resourcesApi = {
     request<any[]>(`/projects/${projectId}/resources`),
   create: (projectId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/resources`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     }),
-  update: (
-    projectId: string,
-    resId: string,
-    data: Record<string, unknown>,
-  ) =>
+  update: (projectId: string, resId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/resources/${resId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
   delete: (projectId: string, resId: string) =>
     request<void>(`/projects/${projectId}/resources/${resId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
 };
 
@@ -198,7 +199,7 @@ export const assignmentsApi = {
     request<any[]>(`/projects/${projectId}/assignments`),
   create: (projectId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/assignments`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     }),
   update: (
@@ -207,12 +208,12 @@ export const assignmentsApi = {
     data: Record<string, unknown>,
   ) =>
     request<any>(`/projects/${projectId}/assignments/${assignId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
   delete: (projectId: string, assignId: string) =>
     request<void>(`/projects/${projectId}/assignments/${assignId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
 };
 
@@ -224,11 +225,11 @@ export const baselinesApi = {
   capture: (projectId: string, baselineIndex: number) =>
     request<{ baselineIndex: number; taskCount: number }>(
       `/projects/${projectId}/baselines`,
-      { method: 'POST', body: JSON.stringify({ baselineIndex }) },
+      { method: "POST", body: JSON.stringify({ baselineIndex }) },
     ),
   clear: (projectId: string, index: number) =>
     request<void>(`/projects/${projectId}/baselines/${index}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
 };
 
@@ -237,12 +238,12 @@ export const baselinesApi = {
 export const importExportApi = {
   importMspdi: async (projectId: string, file: File) => {
     const form = new FormData();
-    form.append('file', file);
+    form.append("file", file);
     const res = await fetch(
       `${BASE}/projects/${projectId}/import-export/import/mspdi`,
-      { method: 'POST', body: form },
+      { method: "POST", body: form },
     );
-    if (!res.ok) throw new Error('Import failed');
+    if (!res.ok) throw new Error("Import failed");
     return res.json();
   },
 
@@ -250,18 +251,18 @@ export const importExportApi = {
     const res = await fetch(
       `${BASE}/projects/${projectId}/import-export/export/mspdi`,
     );
-    if (!res.ok) throw new Error('Export failed');
+    if (!res.ok) throw new Error("Export failed");
     return res.blob();
   },
 
   previewUpdates: async (projectId: string, file: File) => {
     const form = new FormData();
-    form.append('file', file);
+    form.append("file", file);
     const res = await fetch(
       `${BASE}/projects/${projectId}/import-export/import/preview`,
-      { method: 'POST', body: form },
+      { method: "POST", body: form },
     );
-    if (!res.ok) throw new Error('Preview failed');
+    if (!res.ok) throw new Error("Preview failed");
     return res.json();
   },
 
@@ -271,58 +272,73 @@ export const importExportApi = {
     options?: Record<string, unknown>,
   ) => {
     const form = new FormData();
-    form.append('file', file);
-    if (options) form.append('options', JSON.stringify(options));
+    form.append("file", file);
+    if (options) form.append("options", JSON.stringify(options));
     const res = await fetch(
       `${BASE}/projects/${projectId}/import-export/import/apply`,
-      { method: 'POST', body: form },
+      { method: "POST", body: form },
     );
-    if (!res.ok) throw new Error('Apply failed');
+    if (!res.ok) throw new Error("Apply failed");
     return res.json();
   },
 
   undo: (projectId: string) =>
     request<{ success: boolean }>(`/projects/${projectId}/import-export/undo`, {
-      method: 'POST',
+      method: "POST",
     }),
   redo: (projectId: string) =>
     request<{ success: boolean }>(`/projects/${projectId}/import-export/redo`, {
-      method: 'POST',
+      method: "POST",
     }),
 
   undoHistory: (projectId: string) =>
     request<{
-      entries: { id: string; description: string; position: number; createdAt: string }[];
+      entries: {
+        id: string;
+        description: string;
+        position: number;
+        createdAt: string;
+      }[];
       currentPointer: number | null;
     }>(`/projects/${projectId}/import-export/undo-history`),
 
   exportCsv: async (projectId: string) => {
-    const res = await fetch(`${BASE}/projects/${projectId}/import-export/export/csv`);
-    if (!res.ok) throw new Error('CSV export failed');
+    const res = await fetch(
+      `${BASE}/projects/${projectId}/import-export/export/csv`,
+    );
+    if (!res.ok) throw new Error("CSV export failed");
     return res.blob();
   },
 
   exportJson: async (projectId: string) => {
-    const res = await fetch(`${BASE}/projects/${projectId}/import-export/export/json`);
-    if (!res.ok) throw new Error('JSON export failed');
+    const res = await fetch(
+      `${BASE}/projects/${projectId}/import-export/export/json`,
+    );
+    if (!res.ok) throw new Error("JSON export failed");
     return res.blob();
   },
 
   exportExcel: async (projectId: string) => {
-    const res = await fetch(`${BASE}/projects/${projectId}/import-export/export/excel`);
-    if (!res.ok) throw new Error('Excel export failed');
+    const res = await fetch(
+      `${BASE}/projects/${projectId}/import-export/export/excel`,
+    );
+    if (!res.ok) throw new Error("Excel export failed");
     return res.blob();
   },
 
   bulkCsvImport: async (projectId: string, file: File) => {
     const form = new FormData();
-    form.append('file', file);
+    form.append("file", file);
     const res = await fetch(
       `${BASE}/projects/${projectId}/import-export/import/bulk-csv`,
-      { method: 'POST', body: form },
+      { method: "POST", body: form },
     );
-    if (!res.ok) throw new Error('Bulk CSV import failed');
-    return res.json() as Promise<{ created: number; updated: number; errors: string[] }>;
+    if (!res.ok) throw new Error("Bulk CSV import failed");
+    return res.json() as Promise<{
+      created: number;
+      updated: number;
+      errors: string[];
+    }>;
   },
 };
 
@@ -341,19 +357,34 @@ export interface StratusSyncSummary {
   pulledDeadline: string | null;
 }
 
+export interface StratusStatusProgressMapping {
+  statusId: string;
+  statusName: string;
+  percentCompleteShop: number | null;
+}
+
 export interface SafeStratusConfigResponse {
   baseUrl: string;
   appKeySet: boolean;
   companyId: string;
+  taskNameField: string;
+  durationDaysField: string;
+  durationHoursField: string;
+  startDateField: string;
+  finishDateField: string;
+  deadlineField: string;
   startDateFieldIdOverride: string;
   finishDateFieldIdOverride: string;
+  deadlineFieldIdOverride: string;
   cachedStartDateFieldId: string;
   cachedFinishDateFieldId: string;
+  cachedDeadlineFieldId: string;
+  statusProgressMappings: StratusStatusProgressMapping[];
   excludedProjectIds: string[];
 }
 
 export interface StratusProjectImportPreviewRow {
-  action: 'create' | 'update' | 'skip' | 'exclude';
+  action: "create" | "update" | "skip" | "exclude";
   stratusProjectId: string;
   projectNumber: string | null;
   projectName: string | null;
@@ -383,7 +414,7 @@ export interface StratusProjectImportPreviewResponse {
 
 export interface StratusProjectImportApplyResponse {
   rows: Array<{
-    action: 'created' | 'updated' | 'skipped' | 'excluded' | 'failed';
+    action: "created" | "updated" | "skipped" | "excluded" | "failed";
     stratusProjectId: string;
     projectNumber: string | null;
     projectName: string | null;
@@ -418,8 +449,8 @@ export interface StratusStatusResponse {
 }
 
 export interface StratusPullPreviewRow {
-  action: 'create' | 'update' | 'skip';
-  matchStrategy: 'packageId' | 'externalKey' | 'none';
+  action: "create" | "update" | "skip";
+  matchStrategy: "packageId" | "externalKey" | "none";
   packageId: string;
   packageNumber: string | null;
   packageName: string | null;
@@ -432,7 +463,7 @@ export interface StratusPullPreviewRow {
   updateAssemblyCount: number;
   skipAssemblyCount: number;
   assemblyRows: Array<{
-    action: 'create' | 'update' | 'skip';
+    action: "create" | "update" | "skip";
     assemblyId: string;
     assemblyName: string | null;
     externalKey: string;
@@ -478,7 +509,7 @@ export interface StratusPullPreviewResponse {
 
 export interface StratusPullApplyResponse {
   rows: Array<{
-    action: 'created' | 'updated' | 'skipped' | 'failed';
+    action: "created" | "updated" | "skipped" | "failed";
     packageId: string;
     packageNumber: string | null;
     packageName: string | null;
@@ -506,13 +537,17 @@ export interface StratusPullApplyResponse {
 
 export interface StratusPushPreviewResponse {
   rows: Array<{
-    action: 'push' | 'skip';
+    action: "push" | "skip";
     taskId: string;
     taskName: string;
     packageId: string;
     packageNumber: string | null;
     packageName: string | null;
-    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    changes: Array<{
+      field: "start" | "finish" | "deadline";
+      from: string | null;
+      to: string | null;
+    }>;
     warnings: string[];
   }>;
   summary: {
@@ -523,6 +558,8 @@ export interface StratusPushPreviewResponse {
   fieldResolution: {
     startFieldId: string | null;
     finishFieldId: string | null;
+    deadlineFieldId: string | null;
+    deadlineMode: "property" | "field";
     canPush: boolean;
     message: string | null;
   };
@@ -530,7 +567,7 @@ export interface StratusPushPreviewResponse {
 
 export interface StratusPushApplyResponse {
   rows: Array<{
-    action: 'pushed' | 'skipped' | 'failed';
+    action: "pushed" | "skipped" | "failed";
     taskId: string;
     taskName: string;
     packageId: string;
@@ -552,13 +589,17 @@ export interface StratusSyncToPrefabPreviewResponse {
   prefabProjectId: string;
   prefabProjectName: string;
   rows: Array<{
-    action: 'sync' | 'skip';
+    action: "sync" | "skip";
     sourceTaskId: string;
     sourceTaskName: string;
     prefabTaskId: string | null;
     prefabTaskName: string | null;
     externalKey: string;
-    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    changes: Array<{
+      field: "start" | "finish" | "deadline";
+      from: string | null;
+      to: string | null;
+    }>;
     warnings: string[];
   }>;
   summary: {
@@ -574,7 +615,7 @@ export interface StratusSyncToPrefabApplyResponse {
   prefabProjectId: string;
   prefabProjectName: string;
   rows: Array<{
-    action: 'synced' | 'skipped' | 'failed';
+    action: "synced" | "skipped" | "failed";
     sourceTaskId: string;
     sourceTaskName: string;
     prefabTaskId: string | null;
@@ -596,13 +637,17 @@ export interface StratusRefreshFromPrefabPreviewResponse {
   prefabProjectId: string;
   prefabProjectName: string;
   rows: Array<{
-    action: 'refresh' | 'skip';
+    action: "refresh" | "skip";
     sourceTaskId: string;
     sourceTaskName: string;
     prefabTaskId: string | null;
     prefabTaskName: string | null;
     externalKey: string;
-    changes: Array<{ field: 'start' | 'finish' | 'deadline'; from: string | null; to: string | null }>;
+    changes: Array<{
+      field: "start" | "finish" | "deadline";
+      from: string | null;
+      to: string | null;
+    }>;
     warnings: string[];
   }>;
   summary: {
@@ -618,7 +663,7 @@ export interface StratusRefreshFromPrefabApplyResponse {
   prefabProjectId: string;
   prefabProjectName: string;
   rows: Array<{
-    action: 'refreshed' | 'skipped' | 'failed';
+    action: "refreshed" | "skipped" | "failed";
     sourceTaskId: string;
     sourceTaskName: string;
     prefabTaskId: string | null;
@@ -635,64 +680,88 @@ export interface StratusRefreshFromPrefabApplyResponse {
 }
 
 export const stratusApi = {
-  getConfig: () => request<SafeStratusConfigResponse>('/stratus/config'),
+  getConfig: () => request<SafeStratusConfigResponse>("/stratus/config"),
   updateConfig: (data: Record<string, unknown>) =>
-    request<SafeStratusConfigResponse>('/stratus/config', {
-      method: 'PUT',
+    request<SafeStratusConfigResponse>("/stratus/config", {
+      method: "PUT",
       body: JSON.stringify(data),
     }),
   testConnection: () =>
-    request<{ ok: boolean; message: string }>('/stratus/test', {
-      method: 'POST',
+    request<{ ok: boolean; message: string }>("/stratus/test", {
+      method: "POST",
     }),
   previewProjectImport: () =>
-    request<StratusProjectImportPreviewResponse>('/stratus/projects/preview', {
-      method: 'POST',
+    request<StratusProjectImportPreviewResponse>("/stratus/projects/preview", {
+      method: "POST",
     }),
   applyProjectImport: () =>
-    request<StratusProjectImportApplyResponse>('/stratus/projects/apply', {
-      method: 'POST',
+    request<StratusProjectImportApplyResponse>("/stratus/projects/apply", {
+      method: "POST",
     }),
   getStatus: (projectId: string) =>
     request<StratusStatusResponse>(`/projects/${projectId}/stratus/status`),
   previewPull: (projectId: string) =>
-    request<StratusPullPreviewResponse>(`/projects/${projectId}/stratus/pull/preview`, {
-      method: 'POST',
-    }),
+    request<StratusPullPreviewResponse>(
+      `/projects/${projectId}/stratus/pull/preview`,
+      {
+        method: "POST",
+      },
+    ),
   applyPull: (projectId: string) =>
-    request<StratusPullApplyResponse>(`/projects/${projectId}/stratus/pull/apply`, {
-      method: 'POST',
-    }),
+    request<StratusPullApplyResponse>(
+      `/projects/${projectId}/stratus/pull/apply`,
+      {
+        method: "POST",
+      },
+    ),
   previewPush: (projectId: string) =>
-    request<StratusPushPreviewResponse>(`/projects/${projectId}/stratus/push/preview`, {
-      method: 'POST',
-    }),
+    request<StratusPushPreviewResponse>(
+      `/projects/${projectId}/stratus/push/preview`,
+      {
+        method: "POST",
+      },
+    ),
   previewSyncToPrefab: (projectId: string) =>
-    request<StratusSyncToPrefabPreviewResponse>(`/projects/${projectId}/stratus/sync-to-prefab/preview`, {
-      method: 'POST',
-    }),
+    request<StratusSyncToPrefabPreviewResponse>(
+      `/projects/${projectId}/stratus/sync-to-prefab/preview`,
+      {
+        method: "POST",
+      },
+    ),
   previewRefreshFromPrefab: (projectId: string) =>
-    request<StratusRefreshFromPrefabPreviewResponse>(`/projects/${projectId}/stratus/refresh-from-prefab/preview`, {
-      method: 'POST',
-    }),
+    request<StratusRefreshFromPrefabPreviewResponse>(
+      `/projects/${projectId}/stratus/refresh-from-prefab/preview`,
+      {
+        method: "POST",
+      },
+    ),
   applySyncToPrefab: (projectId: string) =>
-    request<StratusSyncToPrefabApplyResponse>(`/projects/${projectId}/stratus/sync-to-prefab/apply`, {
-      method: 'POST',
-    }),
+    request<StratusSyncToPrefabApplyResponse>(
+      `/projects/${projectId}/stratus/sync-to-prefab/apply`,
+      {
+        method: "POST",
+      },
+    ),
   applyRefreshFromPrefab: (projectId: string) =>
-    request<StratusRefreshFromPrefabApplyResponse>(`/projects/${projectId}/stratus/refresh-from-prefab/apply`, {
-      method: 'POST',
-    }),
+    request<StratusRefreshFromPrefabApplyResponse>(
+      `/projects/${projectId}/stratus/refresh-from-prefab/apply`,
+      {
+        method: "POST",
+      },
+    ),
   applyPush: (projectId: string) =>
-    request<StratusPushApplyResponse>(`/projects/${projectId}/stratus/push/apply`, {
-      method: 'POST',
-    }),
+    request<StratusPushApplyResponse>(
+      `/projects/${projectId}/stratus/push/apply`,
+      {
+        method: "POST",
+      },
+    ),
 };
 
 // ---------- AI ----------
 
-export type AiProvider = 'local' | 'openai' | 'gemini' | 'groq' | 'openrouter';
-export type LocalModelId = 'qwen3-14b' | 'phi-3.5-mini';
+export type AiProvider = "local" | "openai" | "gemini" | "groq" | "openrouter";
+export type LocalModelId = "qwen3-14b" | "phi-3.5-mini";
 
 export interface AiCitation {
   chunkId: string;
@@ -722,7 +791,13 @@ export interface AiHealthResponse {
 }
 
 export interface ModelStatus {
-  state: 'not-downloaded' | 'downloading' | 'ready' | 'loading' | 'loaded' | 'error';
+  state:
+    | "not-downloaded"
+    | "downloading"
+    | "ready"
+    | "loading"
+    | "loaded"
+    | "error";
   progress?: number;
   modelId: LocalModelId;
   modelName: string;
@@ -801,23 +876,23 @@ export interface AiMemoryStats {
 }
 
 export const aiApi = {
-  health: () => request<AiHealthResponse>('/ai/health'),
+  health: () => request<AiHealthResponse>("/ai/health"),
 
-  modelStatus: () => request<ModelStatus>('/ai/model-status'),
+  modelStatus: () => request<ModelStatus>("/ai/model-status"),
 
   chat: (projectId: string, message: string, conversationId?: string) =>
-    request<AiChatResponse>('/ai/chat', {
-      method: 'POST',
+    request<AiChatResponse>("/ai/chat", {
+      method: "POST",
       body: JSON.stringify({ projectId, message, conversationId }),
     }),
 
   suggest: (
     projectId: string,
-    type: 'duration' | 'dependency' | 'name' | 'resource' | 'general',
+    type: "duration" | "dependency" | "name" | "resource" | "general",
     context: Record<string, unknown>,
   ) =>
-    request<AiSuggestionResponse>('/ai/suggest', {
-      method: 'POST',
+    request<AiSuggestionResponse>("/ai/suggest", {
+      method: "POST",
       body: JSON.stringify({ projectId, type, context }),
     }),
 
@@ -828,8 +903,8 @@ export const aiApi = {
     accepted: boolean,
     correctedValue?: string,
   ) =>
-    request<void>('/ai/feedback', {
-      method: 'POST',
+    request<void>("/ai/feedback", {
+      method: "POST",
       body: JSON.stringify({
         projectId,
         suggestionType,
@@ -852,32 +927,32 @@ export const aiApi = {
     }>(`/ai/conversations/${id}`),
 
   deleteConversation: (id: string) =>
-    request<void>(`/ai/conversations/${id}`, { method: 'DELETE' }),
+    request<void>(`/ai/conversations/${id}`, { method: "DELETE" }),
 
-  getPatterns: () => request<AiPatternEntry[]>('/ai/patterns'),
+  getPatterns: () => request<AiPatternEntry[]>("/ai/patterns"),
 
   getFeedbackStats: () =>
     request<{ total: number; accepted: number; acceptanceRate: number }>(
-      '/ai/feedback/stats',
+      "/ai/feedback/stats",
     ),
 
-  getConfig: () => request<AiConfigResponse>('/ai/config'),
+  getConfig: () => request<AiConfigResponse>("/ai/config"),
 
   updateConfig: (config: Record<string, unknown>) =>
-    request<AiConfigResponse>('/ai/config', {
-      method: 'PUT',
+    request<AiConfigResponse>("/ai/config", {
+      method: "PUT",
       body: JSON.stringify(config),
     }),
 
-  getPresets: () => request<Record<string, AiPreset>>('/ai/presets'),
+  getPresets: () => request<Record<string, AiPreset>>("/ai/presets"),
 
   // Memory endpoints
   listMemories: (projectId?: string) =>
     request<AiMemoryEntry[]>(
-      `/ai/memories${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
+      `/ai/memories${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`,
     ),
 
-  getMemoryStats: () => request<AiMemoryStats>('/ai/memories/stats'),
+  getMemoryStats: () => request<AiMemoryStats>("/ai/memories/stats"),
 
   createMemory: (data: {
     projectId?: string | null;
@@ -886,18 +961,18 @@ export const aiApi = {
     value: string;
     importance?: number;
   }) =>
-    request<AiMemoryEntry>('/ai/memories', {
-      method: 'POST',
+    request<AiMemoryEntry>("/ai/memories", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
 
   deleteMemory: (id: string) =>
-    request<void>(`/ai/memories/${id}`, { method: 'DELETE' }),
+    request<void>(`/ai/memories/${id}`, { method: "DELETE" }),
 
   clearMemories: (projectId?: string) =>
     request<{ deleted: number }>(
-      `/ai/memories${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
-      { method: 'DELETE' },
+      `/ai/memories${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`,
+      { method: "DELETE" },
     ),
 };
 
@@ -905,50 +980,58 @@ export const aiApi = {
 
 export const advancedApi = {
   recalculateCosts: (projectId: string) =>
-    request<{ tasks: number }>(`/projects/${projectId}/advanced/costs/recalculate`, {
-      method: 'POST',
-    }),
+    request<{ tasks: number }>(
+      `/projects/${projectId}/advanced/costs/recalculate`,
+      {
+        method: "POST",
+      },
+    ),
 
   computeEarnedValue: (projectId: string) =>
     request<any>(`/projects/${projectId}/advanced/earned-value`, {
-      method: 'POST',
+      method: "POST",
     }),
 
   // Interim plans
   captureInterimPlan: (projectId: string, planIndex: number) =>
     request<{ saved: number; planIndex: number }>(
       `/projects/${projectId}/advanced/interim-plans`,
-      { method: 'POST', body: JSON.stringify({ planIndex }) },
+      { method: "POST", body: JSON.stringify({ planIndex }) },
     ),
 
   getInterimPlans: (projectId: string, planIndex?: number) =>
     request<any[]>(
-      `/projects/${projectId}/advanced/interim-plans${planIndex !== undefined ? `?planIndex=${planIndex}` : ''}`,
+      `/projects/${projectId}/advanced/interim-plans${planIndex !== undefined ? `?planIndex=${planIndex}` : ""}`,
     ),
 
   // Task splits
-  splitTask: (projectId: string, taskId: string, splitDate: string, resumeDate: string) =>
-    request<any[]>(
-      `/projects/${projectId}/advanced/tasks/${taskId}/split`,
-      { method: 'POST', body: JSON.stringify({ splitDate, resumeDate }) },
-    ),
+  splitTask: (
+    projectId: string,
+    taskId: string,
+    splitDate: string,
+    resumeDate: string,
+  ) =>
+    request<any[]>(`/projects/${projectId}/advanced/tasks/${taskId}/split`, {
+      method: "POST",
+      body: JSON.stringify({ splitDate, resumeDate }),
+    }),
 
   getTaskSplits: (projectId: string, taskId: string) =>
     request<any[]>(`/projects/${projectId}/advanced/tasks/${taskId}/splits`),
 
   // Recurring tasks
   createRecurringTask: (projectId: string, data: Record<string, unknown>) =>
-    request<any>(
-      `/projects/${projectId}/advanced/recurring-tasks`,
-      { method: 'POST', body: JSON.stringify(data) },
-    ),
+    request<any>(`/projects/${projectId}/advanced/recurring-tasks`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   // Auto-link
   autoLink: (projectId: string, taskIds?: string[]) =>
-    request<{ linked: number }>(
-      `/projects/${projectId}/advanced/auto-link`,
-      { method: 'POST', body: JSON.stringify({ taskIds }) },
-    ),
+    request<{ linked: number }>(`/projects/${projectId}/advanced/auto-link`, {
+      method: "POST",
+      body: JSON.stringify({ taskIds }),
+    }),
 
   // Project statistics
   getStatistics: (projectId: string) =>
@@ -965,11 +1048,11 @@ export interface LevelingResult {
 export const levelingApi = {
   level: (projectId: string) =>
     request<LevelingResult>(`/projects/${projectId}/leveling/level`, {
-      method: 'POST',
+      method: "POST",
     }),
   clear: (projectId: string) =>
     request<{ ok: boolean }>(`/projects/${projectId}/leveling/clear`, {
-      method: 'POST',
+      method: "POST",
     }),
 };
 
@@ -1001,23 +1084,32 @@ export const customFieldsApi = {
     request<CustomFieldDef[]>(`/projects/${projectId}/custom-fields`),
   create: (projectId: string, data: Record<string, unknown>) =>
     request<CustomFieldDef>(`/projects/${projectId}/custom-fields`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
     }),
   update: (projectId: string, fieldId: string, data: Record<string, unknown>) =>
     request<CustomFieldDef>(`/projects/${projectId}/custom-fields/${fieldId}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
   delete: (projectId: string, fieldId: string) =>
     request<void>(`/projects/${projectId}/custom-fields/${fieldId}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
   getValues: (projectId: string, fieldId: string) =>
-    request<CustomFieldValue[]>(`/projects/${projectId}/custom-fields/${fieldId}/values`),
-  setValue: (projectId: string, fieldId: string, data: Record<string, unknown>) =>
-    request<CustomFieldValue>(`/projects/${projectId}/custom-fields/${fieldId}/values`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+    request<CustomFieldValue[]>(
+      `/projects/${projectId}/custom-fields/${fieldId}/values`,
+    ),
+  setValue: (
+    projectId: string,
+    fieldId: string,
+    data: Record<string, unknown>,
+  ) =>
+    request<CustomFieldValue>(
+      `/projects/${projectId}/custom-fields/${fieldId}/values`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      },
+    ),
 };
