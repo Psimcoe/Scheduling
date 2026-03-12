@@ -357,7 +357,7 @@ function generateOccurrences(
   const start = new Date(startDate);
   const rangeEnd = pattern.rangeEnd ? new Date(pattern.rangeEnd).getTime() : Infinity;
 
-  let current = new Date(start);
+  const current = new Date(start);
   let count = 0;
 
   while (count < maxOccurrences && current.getTime() <= rangeEnd) {

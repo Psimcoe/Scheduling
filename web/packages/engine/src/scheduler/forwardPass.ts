@@ -88,7 +88,7 @@ export function forwardPass(
           if (depDate.isAfter(earlyStart)) earlyStart = depDate;
           break;
 
-        case DependencyType.FF:
+        case DependencyType.FF: {
           // Successor finish >= predecessor finish + lag
           // So successor earlyStart = predecessorEarlyFinish + lag - duration
           depDate =
@@ -98,8 +98,9 @@ export function forwardPass(
           const ffStart = subWM(depDate, task.durationMinutes);
           if (ffStart.isAfter(earlyStart)) earlyStart = ffStart;
           break;
+        }
 
-        case DependencyType.SF:
+        case DependencyType.SF: {
           // Successor finish >= predecessor start + lag
           depDate =
             dep.lagMinutes !== 0
@@ -108,6 +109,7 @@ export function forwardPass(
           const sfStart = subWM(depDate, task.durationMinutes);
           if (sfStart.isAfter(earlyStart)) earlyStart = sfStart;
           break;
+        }
       }
     }
 

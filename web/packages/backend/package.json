@@ -18,8 +18,11 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.0.0",
+    "@fastify/helmet": "^13.0.2",
     "@fastify/multipart": "^9.0.0",
+    "@fastify/rate-limit": "^10.3.0",
     "@fastify/static": "^8.0.0",
     "@prisma/client": "^6.3.0",
     "@schedulesync/engine": "workspace:*",

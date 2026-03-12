@@ -42,8 +42,8 @@ function tryParseDate(value: string): Date | null {
 
   // Try US date formats: M/d/yyyy, MM/dd/yyyy, M-d-yyyy, MM-dd-yyyy
   const usPatterns = [
-    /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/,
-    /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/,
+    /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/,
+    /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/,
   ];
 
   for (const pattern of usPatterns) {

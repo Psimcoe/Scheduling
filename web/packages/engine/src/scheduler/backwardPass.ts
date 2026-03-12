@@ -81,7 +81,7 @@ export function backwardPass(
           if (depDate.isBefore(lateFinish)) lateFinish = depDate;
           break;
 
-        case DependencyType.SS:
+        case DependencyType.SS: {
           // Predecessor must start before successor late start - lag
           depDate =
             dep.lagMinutes !== 0
@@ -93,6 +93,7 @@ export function backwardPass(
           const ssLF = addWM(depDate, task.durationMinutes);
           if (ssLF.isBefore(lateFinish)) lateFinish = ssLF;
           break;
+        }
 
         case DependencyType.FF:
           // Predecessor finish <= successor late finish - lag
@@ -103,7 +104,7 @@ export function backwardPass(
           if (depDate.isBefore(lateFinish)) lateFinish = depDate;
           break;
 
-        case DependencyType.SF:
+        case DependencyType.SF: {
           // Predecessor start <= successor late finish - lag
           depDate =
             dep.lagMinutes !== 0
@@ -113,6 +114,7 @@ export function backwardPass(
           const sfLF = addWM(depDate, task.durationMinutes);
           if (sfLF.isBefore(lateFinish)) lateFinish = sfLF;
           break;
+        }
       }
     }
 

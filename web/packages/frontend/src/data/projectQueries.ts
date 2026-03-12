@@ -14,11 +14,19 @@ export function useProjectsQuery() {
   });
 }
 
-export function useProjectSnapshotQuery(projectId: string | null) {
+export function useProjectsQueryEnabled(enabled: boolean) {
+  return useQuery<ProjectSummaryResponse[]>({
+    queryKey: projectQueryKeys.list(),
+    queryFn: () => projectsApi.list(),
+    enabled,
+  });
+}
+
+export function useProjectSnapshotQuery(projectId: string | null, enabled = true) {
   return useQuery<ProjectSnapshotResponse>({
     queryKey: projectId ? projectQueryKeys.snapshot(projectId) : ['projects', 'snapshot', 'idle'],
     queryFn: () => projectsApi.snapshot(projectId!),
-    enabled: !!projectId,
+    enabled: !!projectId && enabled,
     placeholderData: keepPreviousData,
   });
 }

@@ -52,8 +52,10 @@ const ImportPreviewDialog: React.FC = () => {
     try {
       setLoading(true);
       const result = await importExportApi.applyUpdates(activeProjectId, file);
+      const updatedCount = result.updated ?? result.applied;
+      const createdCount = result.created ?? 0;
       showSnackbar(
-        `Applied: ${result.updated} updated, ${result.created} created, ${result.skipped} skipped`,
+        `Applied: ${updatedCount} updated, ${createdCount} created, ${result.skipped} skipped`,
         'success',
       );
       await useProjectStore.getState().fetchTasks();

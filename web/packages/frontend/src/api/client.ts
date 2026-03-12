@@ -2,36 +2,147 @@
  * API client — thin wrapper around fetch for the backend REST API.
  */
 
-const BASE = "/api";
+import {
+  clearCsrfTokenCache,
+  ensureCsrfToken,
+  notifyAuthEvent,
+} from "../auth/clientAuth";
+import type { AuthSessionResponse } from "../auth/types";
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+const API_BASE = "/api";
+
+interface RequestOptions {
+  base?: string;
+  authHandling?: "notify" | "ignore";
+  csrf?: "auto" | "skip";
+  responseType?: "json" | "blob";
+}
+
+interface ErrorBody {
+  code?: string;
+  message?: string;
+  error?: string;
+}
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+
+  constructor(status: number, code: string | null, message: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+}
+
+function isMutatingMethod(method: string): boolean {
+  return !["GET", "HEAD", "OPTIONS"].includes(method);
+}
+
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  options: RequestOptions = {},
+): Promise<T> {
+  const base = options.base ?? API_BASE;
+  const authHandling = options.authHandling ?? "notify";
+  const csrfMode = options.csrf ?? "auto";
+  const responseType = options.responseType ?? "json";
+  const method = (init.method ?? "GET").toUpperCase();
   const headers = new Headers(init.headers);
-  if (init.body != null && !headers.has("Content-Type")) {
+  const isFormDataBody =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (init.body != null && !isFormDataBody && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  const res = await fetch(`${BASE}${path}`, {
+  if (csrfMode !== "skip" && isMutatingMethod(method)) {
+    const csrfToken = await ensureCsrfToken(() =>
+      request<{ csrfToken: string }>(
+        "/auth/csrf",
+        { method: "GET" },
+        { base: "", authHandling, csrf: "skip" },
+      ),
+    );
+    headers.set("X-CSRF-Token", csrfToken);
+  }
+
+  const res = await fetch(`${base}${path}`, {
     ...init,
+    method,
+    credentials: "include",
     headers,
   });
 
   if (res.status === 204) return undefined as unknown as T;
 
   if (!res.ok) {
-    const body = await res
+    if (res.status === 401) {
+      clearCsrfTokenCache();
+    }
+
+    const body = (await res
       .json()
-      .catch(() => ({ message: res.statusText, error: res.statusText }));
+      .catch(() => ({ message: res.statusText, error: res.statusText }))) as ErrorBody;
     const message =
       typeof body?.message === "string" && body.message.trim().length > 0
         ? body.message
         : typeof body?.error === "string" && body.error.trim().length > 0
           ? body.error
           : `Request failed: ${res.status}`;
-    throw new Error(message);
+    const code = typeof body?.code === "string" ? body.code : null;
+    const error = new ApiError(res.status, code, message);
+
+    if (
+      authHandling === "notify" &&
+      (error.code === "AUTH_REQUIRED" || error.code === "FORBIDDEN")
+    ) {
+      notifyAuthEvent({
+        status: error.status as 401 | 403,
+        code: error.code,
+        method,
+        path: `${base}${path}`,
+        message: error.message,
+      });
+    }
+
+    throw error;
+  }
+
+  if (responseType === "blob") {
+    return (await res.blob()) as T;
   }
 
   return res.json();
 }
+
+export interface AuthCsrfResponse {
+  csrfToken: string;
+}
+
+export type AuthSessionStateResponse = AuthSessionResponse;
+
+export const authApi = {
+  session: () =>
+    request<AuthSessionStateResponse>("/auth/session", undefined, {
+      base: "",
+      authHandling: "ignore",
+      csrf: "skip",
+    }),
+  csrf: () =>
+    request<AuthCsrfResponse>("/auth/csrf", undefined, {
+      base: "",
+      csrf: "skip",
+    }),
+  logout: () =>
+    request<{ ok: true }>(
+      "/auth/logout",
+      {
+        method: "POST",
+      },
+      { base: "" },
+    ),
+};
 
 // ---------- Projects ----------
 
@@ -187,6 +298,31 @@ export interface DependencyBatchResponse {
   deletedDependencyIds: string[];
   revision: number;
   snapshot: ProjectSnapshotResponse;
+}
+
+export interface ImportMspdiResponse {
+  imported: {
+    tasks: number;
+    dependencies: number;
+    calendars: number;
+    resources: number;
+    assignments: number;
+  };
+}
+
+export interface ImportPreviewResponse {
+  diffs: unknown[];
+  totalUpdates: number;
+}
+
+export interface ImportApplyResponse {
+  totalProcessed: number;
+  applied: number;
+  skipped: number;
+  failed: number;
+  details: unknown[];
+  created?: number;
+  updated?: number;
 }
 
 export interface TaskRecalculateResponse {
@@ -396,31 +532,26 @@ export const importExportApi = {
   importMspdi: async (projectId: string, file: File) => {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch(
-      `${BASE}/projects/${projectId}/import-export/import/mspdi`,
-      { method: "POST", body: form },
-    );
-    if (!res.ok) throw new Error("Import failed");
-    return res.json();
+    return request<ImportMspdiResponse>(`/projects/${projectId}/import-export/import/mspdi`, {
+      method: "POST",
+      body: form,
+    });
   },
 
-  exportMspdi: async (projectId: string) => {
-    const res = await fetch(
-      `${BASE}/projects/${projectId}/import-export/export/mspdi`,
-    );
-    if (!res.ok) throw new Error("Export failed");
-    return res.blob();
-  },
+  exportMspdi: (projectId: string) =>
+    request<Blob>(
+      `/projects/${projectId}/import-export/export/mspdi`,
+      undefined,
+      { responseType: "blob" },
+    ),
 
   previewUpdates: async (projectId: string, file: File) => {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch(
-      `${BASE}/projects/${projectId}/import-export/import/preview`,
-      { method: "POST", body: form },
-    );
-    if (!res.ok) throw new Error("Preview failed");
-    return res.json();
+    return request<ImportPreviewResponse>(`/projects/${projectId}/import-export/import/preview`, {
+      method: "POST",
+      body: form,
+    });
   },
 
   applyUpdates: async (
@@ -431,12 +562,10 @@ export const importExportApi = {
     const form = new FormData();
     form.append("file", file);
     if (options) form.append("options", JSON.stringify(options));
-    const res = await fetch(
-      `${BASE}/projects/${projectId}/import-export/import/apply`,
-      { method: "POST", body: form },
-    );
-    if (!res.ok) throw new Error("Apply failed");
-    return res.json();
+    return request<ImportApplyResponse>(`/projects/${projectId}/import-export/import/apply`, {
+      method: "POST",
+      body: form,
+    });
   },
 
   undo: (projectId: string) =>
@@ -459,43 +588,38 @@ export const importExportApi = {
       currentPointer: number | null;
     }>(`/projects/${projectId}/import-export/undo-history`),
 
-  exportCsv: async (projectId: string) => {
-    const res = await fetch(
-      `${BASE}/projects/${projectId}/import-export/export/csv`,
-    );
-    if (!res.ok) throw new Error("CSV export failed");
-    return res.blob();
-  },
+  exportCsv: (projectId: string) =>
+    request<Blob>(
+      `/projects/${projectId}/import-export/export/csv`,
+      undefined,
+      { responseType: "blob" },
+    ),
 
-  exportJson: async (projectId: string) => {
-    const res = await fetch(
-      `${BASE}/projects/${projectId}/import-export/export/json`,
-    );
-    if (!res.ok) throw new Error("JSON export failed");
-    return res.blob();
-  },
+  exportJson: (projectId: string) =>
+    request<Blob>(
+      `/projects/${projectId}/import-export/export/json`,
+      undefined,
+      { responseType: "blob" },
+    ),
 
-  exportExcel: async (projectId: string) => {
-    const res = await fetch(
-      `${BASE}/projects/${projectId}/import-export/export/excel`,
-    );
-    if (!res.ok) throw new Error("Excel export failed");
-    return res.blob();
-  },
+  exportExcel: (projectId: string) =>
+    request<Blob>(
+      `/projects/${projectId}/import-export/export/excel`,
+      undefined,
+      { responseType: "blob" },
+    ),
 
   bulkCsvImport: async (projectId: string, file: File) => {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch(
-      `${BASE}/projects/${projectId}/import-export/import/bulk-csv`,
-      { method: "POST", body: form },
-    );
-    if (!res.ok) throw new Error("CSV import failed");
-    return res.json() as Promise<{
+    return request<{
       created: number;
       updated: number;
       errors: string[];
-    }>;
+    }>(`/projects/${projectId}/import-export/import/bulk-csv`, {
+      method: "POST",
+      body: form,
+    });
   },
 };
 

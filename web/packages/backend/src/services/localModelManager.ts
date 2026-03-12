@@ -350,6 +350,7 @@ export async function invalidateConversationChatSession(conversationId?: string)
   try {
     session.dispose?.();
   } catch {
+    // Ignore disposal errors when the local model session is already torn down.
   }
 }
 

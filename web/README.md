@@ -65,6 +65,45 @@ pnpm dev:windows
 The backend runs on **http://localhost:3001** and the frontend on **http://localhost:5173**
 (with API requests proxied to the backend).
 
+## Launch Security Configuration
+
+The web app now assumes a hardened launch posture:
+
+- Browser auth uses **OIDC authorization-code + PKCE** against a standards-compliant provider.
+- Backend sessions are stored server-side with an opaque `HttpOnly` cookie.
+- Mutating API requests require both the session cookie and `X-CSRF-Token`.
+- All browser origins must be explicitly allowlisted through `SCHEDULESYNC_ALLOWED_ORIGINS`.
+- RBAC is enforced server-side with `viewer`, `editor`, and `admin` roles.
+
+If you do not already have an organization identity provider, the default low-cost deployment path is a self-hosted **Keycloak** realm configured as the OIDC issuer. The backend stays provider-agnostic; any standards-compliant OIDC issuer should work.
+
+### Required Environment Variables
+
+The backend reads these values from process environment. `web/.env.example` is a reference file only; export the variables through your shell, service manager, or deployment platform.
+
+| Variable | Required | Notes |
+|---------|----------|-------|
+| `SCHEDULESYNC_ALLOWED_ORIGINS` | Yes for non-local deployment | Comma-separated allowlist for credentialed browser requests. In local development it defaults to `http://localhost:5173`. |
+| `SESSION_COOKIE_SECRET` | Yes | Long random secret used to sign auth cookies. |
+| `OIDC_ISSUER_URL` | Yes | Base issuer URL for the OIDC provider. |
+| `OIDC_CLIENT_ID` | Yes | OIDC client/application ID. |
+| `OIDC_CLIENT_SECRET` | Provider-dependent | Needed when the provider requires a confidential client. |
+| `OIDC_REDIRECT_URI` | Yes in production | Local development defaults to `http://localhost:5173/auth/callback`. |
+| `OIDC_SCOPES` | No | Defaults to `openid profile email`. |
+| `OIDC_ADMIN_EMAILS` | No | Comma-separated bootstrap admin allowlist. The first authenticated user becomes admin if no admin is configured yet. |
+
+### Auth Endpoints
+
+The backend exposes these auth endpoints:
+
+- `GET /auth/login`
+- `GET /auth/callback`
+- `GET /auth/session`
+- `GET /auth/csrf`
+- `POST /auth/logout`
+
+All other `/api/*` routes require an authenticated session except `/api/health`.
+
 ## Scripts
 
 | Command | Description |

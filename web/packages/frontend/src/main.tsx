@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 
 import App from './App';
+import AuthGate from './auth/AuthGate';
 import { queryClient } from './queryClient';
 import { theme } from './theme';
 
@@ -12,7 +13,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <App />
+        <AuthGate>
+          <App />
+        </AuthGate>
       </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>,

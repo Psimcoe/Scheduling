@@ -132,6 +132,7 @@ interface ProjectState {
 }
 
 const projectQueues = new Map<string, ProjectQueueState>();
+let authPauseState = false;
 
 function getProjectSnapshot(projectId: string): ProjectSnapshotResponse | null {
   return (
@@ -143,6 +144,22 @@ function getProjectSnapshot(projectId: string): ProjectSnapshotResponse | null {
 
 function setProjectSnapshot(projectId: string, snapshot: ProjectSnapshotResponse): void {
   queryClient.setQueryData(projectQueryKeys.snapshot(projectId), snapshot);
+}
+
+function syncActiveProjectFromSnapshot(snapshot: ProjectSnapshotResponse): void {
+  if (useProjectStore.getState().activeProjectId !== snapshot.project.id) {
+    return;
+  }
+
+  useProjectStore.setState({
+    activeProject: snapshot.project,
+    tasks: snapshot.tasks,
+    dependencies: snapshot.dependencies,
+    resources: snapshot.resources,
+    assignments: snapshot.assignments,
+    loading: false,
+    error: null,
+  });
 }
 
 function getOrCreateQueue(projectId: string): ProjectQueueState {
@@ -328,6 +345,12 @@ function recomputeOptimisticSnapshot(projectId: string): void {
     return;
   }
 
+  if (authPauseState) {
+    setProjectSnapshot(projectId, snapshot);
+    syncActiveProjectFromSnapshot(snapshot);
+    return;
+  }
+
   if (queue.inFlight) {
     snapshot = applySnapshotMutation(snapshot, queue.inFlight.applyPatch);
   }
@@ -337,6 +360,15 @@ function recomputeOptimisticSnapshot(projectId: string): void {
   }
 
   setProjectSnapshot(projectId, snapshot);
+  syncActiveProjectFromSnapshot(snapshot);
+}
+
+function isAuthRequiredError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  return (error as { code?: unknown }).code === 'AUTH_REQUIRED';
 }
 
 async function fetchProjectsQuery(): Promise<ProjectSummary[]> {
@@ -417,7 +449,9 @@ function createSnapshotQueueMutation<T extends SnapshotMutationResult>(
     }
 
     recomputeOptimisticSnapshot(projectId);
-    void processProjectQueue(projectId);
+    if (!authPauseState) {
+      void processProjectQueue(projectId);
+    }
   });
 }
 
@@ -455,8 +489,21 @@ async function processProjectQueue(projectId: string): Promise<void> {
           observer.resolve(result);
         }
       } catch (error) {
+        if (isAuthRequiredError(error)) {
+          if (queue.authoritativeSnapshot) {
+            setProjectSnapshot(projectId, queue.authoritativeSnapshot);
+            syncActiveProjectFromSnapshot(queue.authoritativeSnapshot);
+          }
+
+          queue.queued.unshift(current);
+          queue.inFlight = null;
+          authPauseState = true;
+          break;
+        }
+
         if (queue.authoritativeSnapshot) {
           setProjectSnapshot(projectId, queue.authoritativeSnapshot);
+          syncActiveProjectFromSnapshot(queue.authoritativeSnapshot);
         }
 
         for (const observer of current.observers) {
@@ -884,3 +931,26 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   clearSelection: () => set({ selectedTaskIds: new Set() }),
 }));
+
+export function pauseProjectQueuesForAuth(): void {
+  authPauseState = true;
+
+  for (const [projectId, queue] of projectQueues.entries()) {
+    if (!queue.authoritativeSnapshot) {
+      continue;
+    }
+
+    setProjectSnapshot(projectId, queue.authoritativeSnapshot);
+    syncActiveProjectFromSnapshot(queue.authoritativeSnapshot);
+  }
+}
+
+export async function resumeProjectQueuesAfterAuth(): Promise<void> {
+  authPauseState = false;
+  await Promise.all([...projectQueues.keys()].map((projectId) => processProjectQueue(projectId)));
+}
+
+export function resetProjectQueuesForTesting(): void {
+  authPauseState = false;
+  projectQueues.clear();
+}

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useProjectStore } from '../stores';
-import { useProjectSnapshotQuery, useProjectsQuery } from './projectQueries';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useProjectSnapshotQuery, useProjectsQueryEnabled } from './projectQueries';
 
 export default function ProjectDataBridge() {
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
@@ -9,9 +10,11 @@ export default function ProjectDataBridge() {
   const clearActiveProjectData = useProjectStore((state) => state.clearActiveProjectData);
   const setProjectLoading = useProjectStore((state) => state.setProjectLoading);
   const setProjectError = useProjectStore((state) => state.setProjectError);
+  const authStatus = useAuthStore((state) => state.status);
+  const queriesEnabled = authStatus === 'authenticated';
 
-  const projectsQuery = useProjectsQuery();
-  const snapshotQuery = useProjectSnapshotQuery(activeProjectId);
+  const projectsQuery = useProjectsQueryEnabled(queriesEnabled);
+  const snapshotQuery = useProjectSnapshotQuery(activeProjectId, queriesEnabled);
 
   useEffect(() => {
     syncProjects(

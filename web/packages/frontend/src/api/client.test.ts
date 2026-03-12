@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { stratusApi } from "./client";
+import { useAuthStore } from "../stores/useAuthStore";
+import { projectsApi, stratusApi } from "./client";
 
 describe("API client request headers", () => {
   const fetchMock = vi.fn<typeof fetch>();
@@ -7,10 +8,13 @@ describe("API client request headers", () => {
   beforeEach(() => {
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
+    useAuthStore.getState().reset();
+    useAuthStore.getState().setCsrfToken("csrf-token-1");
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    useAuthStore.getState().reset();
   });
 
   it.each<readonly [string, () => Promise<unknown>]>([
@@ -37,6 +41,8 @@ describe("API client request headers", () => {
       const headers = new Headers(init?.headers);
       expect(init?.method).toBe("POST");
       expect(headers.has("Content-Type")).toBe(false);
+      expect(headers.get("X-CSRF-Token")).toBe("csrf-token-1");
+      expect(init?.credentials).toBe("include");
     },
   );
 
@@ -92,6 +98,8 @@ describe("API client request headers", () => {
     expect(init?.method).toBe("PUT");
     expect(init?.body).toBe(JSON.stringify(payload));
     expect(headers.get("Content-Type")).toBe("application/json");
+    expect(headers.get("X-CSRF-Token")).toBe("csrf-token-1");
+    expect(init?.credentials).toBe("include");
   });
 
   it("sends JSON bodies for Stratus job requests", async () => {
@@ -137,6 +145,7 @@ describe("API client request headers", () => {
       JSON.stringify({ mode: "apply", refreshMode: "incremental" }),
     );
     expect(headers.get("Content-Type")).toBe("application/json");
+    expect(headers.get("X-CSRF-Token")).toBe("csrf-token-1");
   });
 
   it("prefers backend message over generic error field", async () => {
@@ -157,5 +166,32 @@ describe("API client request headers", () => {
     await expect(stratusApi.previewProjectImport()).rejects.toThrow(
       "Stratus request failed (401): invalid app key",
     );
+  });
+
+  it("normalizes 401 responses into ApiError and publishes the auth event", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: "AUTH_REQUIRED",
+          error: "Authentication is required.",
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(projectsApi.list()).rejects.toMatchObject({
+      status: 401,
+      code: "AUTH_REQUIRED",
+    });
+
+    expect(useAuthStore.getState().lastAuthEvent).toMatchObject({
+      code: "AUTH_REQUIRED",
+      path: "/api/projects",
+      method: "GET",
+    });
+    expect(useAuthStore.getState().csrfToken).toBeNull();
   });
 });
