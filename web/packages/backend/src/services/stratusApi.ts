@@ -187,8 +187,6 @@ const ARCHIVED_STATUS_TOKENS = new Set([
 
 const ACTIVE_STATUS_TOKENS = new Set(["active", "activated"]);
 
-export const STRATUS_ACTIVE_PACKAGE_WHERE_CLAUSE = "statusName eq 'Active'";
-
 export function isImportableStratusPackageRecord(
   rawPackage: Record<string, unknown>,
 ): boolean {
@@ -635,7 +633,6 @@ export async function fetchPackagesFromStratus(
     project.stratusProjectId
       ? `projectId eq '${escapeStratusWhereValue(project.stratusProjectId)}'`
       : null,
-    STRATUS_ACTIVE_PACKAGE_WHERE_CLAUSE,
     project.stratusPackageWhere,
   );
   const endpointBase = project.stratusModelId

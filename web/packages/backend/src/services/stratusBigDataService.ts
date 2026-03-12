@@ -626,8 +626,11 @@ async function queryAssemblyRows(
   const request = pool.request();
   const whereClauses = buildTargetWhereClauses(request, target, activeOnly);
   if (activeOnly) {
-    whereClauses.push(buildActiveAssemblyCondition("a"));
-    whereClauses.push(`(p.Id IS NULL OR ${buildActivePackageCondition("p")})`);
+    // Assembly Status in Big Data carries tracking workflow values such as
+    // "Shipped to Jobsite", not an active/archive lifecycle flag. Filter on
+    // the joined package lifecycle instead so SQL stays aligned with the API.
+    whereClauses.push("p.Id IS NOT NULL");
+    whereClauses.push(buildActivePackageCondition("p"));
   }
   const result = await request.query<Record<string, unknown>>(
     `
@@ -853,10 +856,6 @@ function buildActiveProjectCondition(projectAlias: string): string {
 
 function buildActivePackageCondition(packageAlias: string): string {
   return buildActiveStatusCondition(`${packageAlias}.Status`, [0]);
-}
-
-function buildActiveAssemblyCondition(assemblyAlias: string): string {
-  return buildActiveStatusCondition(`${assemblyAlias}.Status`, [0]);
 }
 
 function buildActiveStatusCondition(
@@ -1234,8 +1233,10 @@ function isImportableBigDataPackageRow(row: Record<string, unknown>): boolean {
   return isImportableBigDataStatusValue(row.Status, [0], true);
 }
 
-function isImportableBigDataAssemblyRow(row: Record<string, unknown>): boolean {
-  return isImportableBigDataStatusValue(row.Status, [0], true);
+export function isImportableBigDataAssemblyRow(
+  row: Record<string, unknown>,
+): boolean {
+  return !isExcludedBigDataLifecycleStatusValue(row.Status);
 }
 
 function isImportableBigDataJoinedPackageRow(
@@ -1284,6 +1285,21 @@ function normalizeBigDataStatusValue(value: unknown): string | null {
     return String(value);
   }
   return null;
+}
+
+function isExcludedBigDataLifecycleStatusValue(value: unknown): boolean {
+  const normalized = normalizeBigDataStatusValue(value);
+  if (!normalized) {
+    return false;
+  }
+
+  return (
+    normalized === "archived" ||
+    normalized === "inactive" ||
+    normalized === "deleted" ||
+    normalized === "disabled" ||
+    normalized.includes("archiv")
+  );
 }
 
 function createUndefinedBigDataPackage(
