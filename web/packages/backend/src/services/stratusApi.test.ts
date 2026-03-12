@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getConfiguredPackageFieldValue,
   getRequestedStratusFieldKeys,
   isImportableStratusAssemblyRecord,
   isImportableStratusPackageRecord,
@@ -216,6 +217,90 @@ describe("stratusApi", () => {
         },
       }),
     ).toBe(false);
+  });
+
+  it("resolves start, finish, and duration fields when fieldNameToValueMap omits the STRATUS.Field prefix", () => {
+    const config = normalizeStratusConfig();
+    const normalized = normalizeStratusPackage(
+      {
+        id: "pkg-no-prefix",
+        projectId: "stratus-project-3",
+        modelId: "model-3",
+        number: "0001",
+        name: "Package Without Prefix",
+        fieldNameToValueMap: {
+          "STRATUS.Field.Project Number": "320001",
+          "SMC_Package Start Date": "2026-04-01T00:00:00.000Z",
+          "SMC_Package Estimated Finish Date": "2026-04-15T00:00:00.000Z",
+          "SMC_Overview Days Estimate_Not Editable": "10",
+          "PREFAB ESTIMATED BUILD TIME": "40",
+        },
+      },
+      config,
+    );
+
+    expect(
+      normalized.normalizedFields["STRATUS.Field.SMC_Package Start Date"],
+    ).toBe("2026-04-01T00:00:00.000Z");
+    expect(
+      normalized.normalizedFields[
+        "STRATUS.Field.SMC_Package Estimated Finish Date"
+      ],
+    ).toBe("2026-04-15T00:00:00.000Z");
+    expect(
+      normalized.normalizedFields[
+        "STRATUS.Field.SMC_Overview Days Estimate_Not Editable"
+      ],
+    ).toBe("10");
+    expect(
+      normalized.normalizedFields["STRATUS.Field.PREFAB ESTIMATED BUILD TIME"],
+    ).toBe("40");
+
+    expect(
+      getConfiguredPackageFieldValue(normalized, config.startDateField),
+    ).toBe("2026-04-01T00:00:00.000Z");
+    expect(
+      getConfiguredPackageFieldValue(normalized, config.finishDateField),
+    ).toBe("2026-04-15T00:00:00.000Z");
+    expect(
+      getConfiguredPackageFieldValue(normalized, config.durationDaysField),
+    ).toBe("10");
+    expect(
+      getConfiguredPackageFieldValue(normalized, config.durationHoursField),
+    ).toBe("40");
+  });
+
+  it("resolves configured fields when user config uses unprefixed names and raw data has prefixed keys", () => {
+    const config = normalizeStratusConfig({
+      startDateField: "SMC_Package Start Date",
+      finishDateField: "SMC_Package Estimated Finish Date",
+      durationDaysField: "Custom Duration Days",
+    });
+    const normalized = normalizeStratusPackage(
+      {
+        id: "pkg-reverse",
+        projectId: "stratus-project-4",
+        number: "0002",
+        name: "Package Reverse Prefix",
+        fieldNameToValueMap: {
+          "STRATUS.Field.SMC_Package Start Date": "2026-05-01T00:00:00.000Z",
+          "STRATUS.Field.SMC_Package Estimated Finish Date":
+            "2026-05-10T00:00:00.000Z",
+          "STRATUS.Field.Custom Duration Days": "7",
+        },
+      },
+      config,
+    );
+
+    expect(
+      getConfiguredPackageFieldValue(normalized, config.startDateField),
+    ).toBe("2026-05-01T00:00:00.000Z");
+    expect(
+      getConfiguredPackageFieldValue(normalized, config.finishDateField),
+    ).toBe("2026-05-10T00:00:00.000Z");
+    expect(
+      getConfiguredPackageFieldValue(normalized, config.durationDaysField),
+    ).toBe("7");
   });
 
   it("keeps assemblies importable when lifecycle status is absent but rejects archived rows when present", () => {
