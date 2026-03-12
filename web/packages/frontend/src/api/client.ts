@@ -341,7 +341,7 @@ export const importExportApi = {
       `${BASE}/projects/${projectId}/import-export/import/bulk-csv`,
       { method: "POST", body: form },
     );
-    if (!res.ok) throw new Error("Bulk CSV import failed");
+    if (!res.ok) throw new Error("CSV import failed");
     return res.json() as Promise<{
       created: number;
       updated: number;

@@ -1,0 +1,31 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260312035604
+Username: SULLYMAC\psimcoe
+RunAs User: SULLYMAC\psimcoe
+Configuration Name: 
+Machine: BIMCOOP-BOXX (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -ExecutionPolicy Bypass -File .\scripts\Launch-WebApp.ps1 -Mode Launch -SkipBrowser -LogPath .\output\launch-webapp.log
+Process ID: 8224
+PSVersion: 5.1.26100.7705
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.7705
+BuildVersion: 10.0.26100.7705
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Checking current app status...
+Preparing web workspace...
+
+
+
+Launching backend in the background...
+Waiting for backend...
+Waiting for frontend...
+Launcher complete.
+**********************
+Windows PowerShell transcript end
+End time: 20260312035829
+**********************

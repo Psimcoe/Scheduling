@@ -12,6 +12,7 @@ export type {
   ViewType,
   RibbonTab,
   DialogType,
+  DeleteConfirmationPayload,
   FilterCriteria,
   SortCriteria,
   GroupByOption,

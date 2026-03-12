@@ -1,0 +1,7 @@
+[GET] http://localhost:5173/api/projects => [200] OK
+[GET] http://localhost:5173/api/projects => [200] OK
+[GET] http://localhost:5173/api/projects/de0eb472-2722-4a24-97c0-518d3435ca20 => [200] OK
+[GET] http://localhost:5173/api/projects/de0eb472-2722-4a24-97c0-518d3435ca20/tasks => [200] OK
+[GET] http://localhost:5173/api/projects/de0eb472-2722-4a24-97c0-518d3435ca20/dependencies => [200] OK
+[GET] http://localhost:5173/api/projects/de0eb472-2722-4a24-97c0-518d3435ca20/resources => [200] OK
+[GET] http://localhost:5173/api/projects/de0eb472-2722-4a24-97c0-518d3435ca20/assignments => [200] OK

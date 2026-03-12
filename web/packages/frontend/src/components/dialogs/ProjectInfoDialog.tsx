@@ -22,6 +22,7 @@ import { projectsApi } from '../../api';
 const ProjectInfoDialog: React.FC = () => {
   const open = useUIStore((s) => s.openDialog === 'projectInfo');
   const closeDialog = useUIStore((s) => s.closeDialog);
+  const openDeleteConfirm = useUIStore((s) => s.openDeleteConfirm);
   const activeProject = useProjectStore((s) => s.activeProject);
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const showSnackbar = useUIStore((s) => s.showSnackbar);
@@ -138,6 +139,23 @@ const ProjectInfoDialog: React.FC = () => {
         />
       </DialogContent>
       <DialogActions>
+        <Button
+          color="error"
+          onClick={() => {
+            if (!activeProjectId || !activeProject) return;
+            openDeleteConfirm({
+              kind: 'project',
+              project: {
+                id: activeProjectId,
+                name: activeProject.name,
+              },
+            });
+          }}
+          disabled={!activeProjectId || !activeProject}
+          sx={{ mr: 'auto' }}
+        >
+          Delete Project
+        </Button>
         <Button onClick={closeDialog}>Cancel</Button>
         <Button variant="contained" onClick={handleSave}>
           Save

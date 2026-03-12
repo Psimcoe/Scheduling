@@ -69,7 +69,6 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
 }) => {
   const updateTask = useProjectStore((s) => s.updateTask);
   const selectTask = useProjectStore((s) => s.selectTask);
-  const deleteTask = useProjectStore((s) => s.deleteTask);
   const createTask = useProjectStore((s) => s.createTask);
   const dependencies = useProjectStore((s) => s.dependencies);
   const assignments = useProjectStore((s) => s.assignments);
@@ -77,6 +76,7 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
   const tasks = useProjectStore((s) => s.tasks);
   const showCriticalPath = useUIStore((s) => s.showCriticalPath);
   const openDialogWith = useUIStore((s) => s.openDialogWith);
+  const openDeleteConfirm = useUIStore((s) => s.openDeleteConfirm);
   const [editing, setEditing] = useState<EditingField>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
@@ -205,8 +205,17 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
 
   const handleDeleteTask = useCallback(async () => {
     closeContextMenu();
-    await deleteTask(task.id);
-  }, [closeContextMenu, deleteTask, task.id]);
+    openDeleteConfirm({
+      kind: 'tasks',
+      tasks: [
+        {
+          id: task.id,
+          name: task.name,
+          hasStratusSync: !!task.stratusSync,
+        },
+      ],
+    });
+  }, [closeContextMenu, openDeleteConfirm, task.id, task.name, task.stratusSync]);
 
   const handleTaskInfo = useCallback(() => {
     closeContextMenu();

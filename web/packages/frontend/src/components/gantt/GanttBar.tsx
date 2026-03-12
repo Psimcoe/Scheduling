@@ -45,10 +45,10 @@ const GanttBar: React.FC<GanttBarProps> = ({
 }) => {
   const showCriticalPath = useUIStore((s) => s.showCriticalPath);
   const openDialogWith = useUIStore((s) => s.openDialogWith);
+  const openDeleteConfirm = useUIStore((s) => s.openDeleteConfirm);
   const barStyles = useUIStore((s) => s.barStyles);
   const updateTask = useProjectStore((s) => s.updateTask);
   const selectTask = useProjectStore((s) => s.selectTask);
-  const deleteTask = useProjectStore((s) => s.deleteTask);
 
   const tlStart = dayjs.utc(timelineStart);
   const taskStart = dayjs.utc(task.start);
@@ -390,7 +390,16 @@ const GanttBar: React.FC<GanttBarProps> = ({
         <MenuItem
           onClick={() => {
             closeContextMenu();
-            deleteTask(task.id);
+            openDeleteConfirm({
+              kind: 'tasks',
+              tasks: [
+                {
+                  id: task.id,
+                  name: task.name,
+                  hasStratusSync: !!task.stratusSync,
+                },
+              ],
+            });
           }}
         >
           <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>

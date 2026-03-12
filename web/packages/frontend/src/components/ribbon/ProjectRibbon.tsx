@@ -279,7 +279,7 @@ const ProjectRibbon: React.FC = () => {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Bulk CSV Import (Create/Update)">
+        <Tooltip title="Import CSV into Current Project">
           <span>
             <IconButton
               size="small"

@@ -1,4 +1,5 @@
 export { default as NewProjectDialog } from './NewProjectDialog';
+export { default as DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 export { default as ProjectInfoDialog } from './ProjectInfoDialog';
 export { default as TaskInfoDialog } from './TaskInfoDialog';
 export { default as BaselineCaptureDialog } from './BaselineCaptureDialog';

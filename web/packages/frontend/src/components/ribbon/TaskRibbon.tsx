@@ -72,7 +72,6 @@ const TaskRibbon: React.FC = () => {
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
   const selectedTaskIds = useProjectStore((s) => s.selectedTaskIds);
   const createTask = useProjectStore((s) => s.createTask);
-  const deleteTask = useProjectStore((s) => s.deleteTask);
   const batchUpdateTasks = useProjectStore((s) => s.batchUpdateTasks);
   const tasks = useProjectStore((s) => s.tasks);
   const dependencies = useProjectStore((s) => s.dependencies);
@@ -81,6 +80,7 @@ const TaskRibbon: React.FC = () => {
   const showCriticalPath = useUIStore((s) => s.showCriticalPath);
   const toggleCriticalPath = useUIStore((s) => s.toggleCriticalPath);
   const openDialogWith = useUIStore((s) => s.openDialogWith);
+  const openDeleteConfirm = useUIStore((s) => s.openDeleteConfirm);
   const showSnackbar = useUIStore((s) => s.showSnackbar);
 
   const mspdiInputRef = useRef<HTMLInputElement>(null);
@@ -106,11 +106,20 @@ const TaskRibbon: React.FC = () => {
   }, [activeProjectId, createTask, showSnackbar]);
 
   const handleDeleteTask = useCallback(async () => {
-    const ids = Array.from(selectedTaskIds);
-    for (const id of ids) {
-      await deleteTask(id);
-    }
-  }, [selectedTaskIds, deleteTask]);
+    const selectedTasks = Array.from(selectedTaskIds)
+      .map((id) => tasks.find((task) => task.id === id))
+      .filter((task): task is (typeof tasks)[number] => Boolean(task));
+    if (selectedTasks.length === 0) return;
+
+    openDeleteConfirm({
+      kind: 'tasks',
+      tasks: selectedTasks.map((task) => ({
+        id: task.id,
+        name: task.name,
+        hasStratusSync: !!task.stratusSync,
+      })),
+    });
+  }, [selectedTaskIds, tasks, openDeleteConfirm]);
 
   const handleIndent = useCallback(async () => {
     const ids = Array.from(selectedTaskIds);

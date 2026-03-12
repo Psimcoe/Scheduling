@@ -101,6 +101,33 @@ describe("stratusSyncService", () => {
     );
   });
 
+  it("marks missing local Stratus projects as create in import preview", () => {
+    const rows = buildProjectImportPreviewRows(
+      [
+        {
+          id: "stratus-create-1",
+          number: "2001",
+          name: "New Stratus Project",
+          status: "Active",
+          category: "Industrial",
+          phase: "Prefab",
+          description: null,
+          city: "Nashville",
+          state: "TN",
+          startDate: "2026-06-01T00:00:00.000Z",
+          finishDate: "2026-07-01T00:00:00.000Z",
+          rawProject: {},
+        },
+      ],
+      [],
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.action).toBe("create");
+    expect(rows[0]?.localProjectId).toBeNull();
+    expect(rows[0]?.localProjectName).toBeNull();
+  });
+
   it("skips package pull rows when external key matching is ambiguous and groups assemblies under packages", () => {
     const rows = buildPullPreviewRows(
       [
@@ -305,6 +332,61 @@ describe("stratusSyncService", () => {
     expect(rows[0]?.assemblyRows[0]?.taskId).toBe("task-assembly");
   });
 
+  it("keeps missing local package hierarchies actionable during pull preview", () => {
+    const rows = buildPullPreviewRows(
+      [
+        {
+          package: {
+            id: "pkg-missing-local",
+            projectId: "stratus-project",
+            modelId: "model-1",
+            packageNumber: "PKG-MISSING",
+            packageName: "Missing Local Package",
+            trackingStatusId: "track-1",
+            trackingStatusName: "Ready to Ship",
+            externalKey: "1001-PKG-MISSING",
+            normalizedFields: {
+              "STRATUS.Package.Name": "Missing Local Package",
+              "STRATUS.Field.SMC_Package Start Date":
+                "2026-03-01T00:00:00.000Z",
+              "STRATUS.Field.SMC_Package Estimated Finish Date":
+                "2026-03-02T00:00:00.000Z",
+            },
+            assemblyIds: ["asm-1"],
+            rawPackage: {},
+          },
+          assemblies: [
+            {
+              id: "asm-1",
+              packageId: "pkg-missing-local",
+              projectId: "stratus-project",
+              modelId: "model-1",
+              name: "Assembly A",
+              externalKey: "1001-PKG-MISSING::assembly:asm-1",
+              trackingStatusId: null,
+              trackingStatusName: null,
+              notes: "",
+              rawAssembly: {},
+            },
+          ],
+          syncMeta: {
+            unchanged: false,
+            skippedReason: "Package task does not exist locally yet.",
+            localHierarchy: null,
+          },
+        },
+      ],
+      [],
+      480,
+      normalizeStratusConfig(),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.action).toBe("create");
+    expect(rows[0]?.matchStrategy).toBe("none");
+    expect(rows[0]?.assemblyRows[0]?.action).toBe("create");
+  });
+
   it("prefers SQL-native shop percent complete values over seeded status mappings when available", () => {
     const rows = buildPullPreviewRows(
       [
@@ -451,97 +533,108 @@ describe("stratusSyncService", () => {
     );
   });
 
-  it("includes only changed linked tasks in push preview rows", () => {
-    const rows = buildPushPreviewRows([
-      {
-        id: "task-1",
-        projectId: "project-1",
-        parentId: null,
-        wbsCode: "",
-        outlineLevel: 0,
-        name: "Linked package task",
-        type: "summary",
-        durationMinutes: 960,
-        start: new Date("2026-03-05T00:00:00.000Z"),
-        finish: new Date("2026-03-07T00:00:00.000Z"),
-        constraintType: 0,
-        constraintDate: null,
-        calendarId: null,
-        percentComplete: 0,
-        isManuallyScheduled: false,
-        isCritical: false,
-        totalSlackMinutes: 0,
-        freeSlackMinutes: 0,
-        earlyStart: null,
-        earlyFinish: null,
-        lateStart: null,
-        lateFinish: null,
-        deadline: new Date("2026-03-08T00:00:00.000Z"),
-        notes: "",
+  it("keeps push preview actions limited to push or skip", () => {
+    const linkedTask = {
+      id: "task-1",
+      projectId: "project-1",
+      parentId: null,
+      wbsCode: "",
+      outlineLevel: 0,
+      name: "Linked package task",
+      type: "summary",
+      durationMinutes: 960,
+      start: new Date("2026-03-05T00:00:00.000Z"),
+      finish: new Date("2026-03-07T00:00:00.000Z"),
+      constraintType: 0,
+      constraintDate: null,
+      calendarId: null,
+      percentComplete: 0,
+      isManuallyScheduled: false,
+      isCritical: false,
+      totalSlackMinutes: 0,
+      freeSlackMinutes: 0,
+      earlyStart: null,
+      earlyFinish: null,
+      lateStart: null,
+      lateFinish: null,
+      deadline: new Date("2026-03-08T00:00:00.000Z"),
+      notes: "",
+      externalKey: "1001-PKG-1",
+      sortOrder: 0,
+      actualStart: null,
+      actualFinish: null,
+      actualDurationMinutes: 0,
+      actualWork: 0,
+      actualCost: 0,
+      remainingDuration: 0,
+      remainingWork: 0,
+      remainingCost: 0,
+      fixedCost: 0,
+      fixedCostAccrual: "prorated",
+      cost: 0,
+      work: 0,
+      taskMode: "fixedUnits",
+      isEffortDriven: false,
+      isActive: true,
+      bcws: 0,
+      bcwp: 0,
+      acwp: 0,
+      physicalPercentComplete: 0,
+      sv: 0,
+      cv: 0,
+      spi: 0,
+      cpi: 0,
+      eac: 0,
+      vac: 0,
+      isSplit: false,
+      isRecurring: false,
+      recurringPattern: null,
+      hyperlink: "",
+      hyperlinkAddress: "",
+      createdAt: new Date("2026-03-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-03-01T00:00:00.000Z"),
+      stratusSync: {
+        id: "sync-1",
+        taskId: "task-1",
+        localProjectId: "project-1",
+        packageId: "pkg-1",
+        projectId: "stratus-project-1",
+        modelId: "model-1",
         externalKey: "1001-PKG-1",
-        sortOrder: 0,
-        actualStart: null,
-        actualFinish: null,
-        actualDurationMinutes: 0,
-        actualWork: 0,
-        actualCost: 0,
-        remainingDuration: 0,
-        remainingWork: 0,
-        remainingCost: 0,
-        fixedCost: 0,
-        fixedCostAccrual: "prorated",
-        cost: 0,
-        work: 0,
-        taskMode: "fixedUnits",
-        isEffortDriven: false,
-        isActive: true,
-        bcws: 0,
-        bcwp: 0,
-        acwp: 0,
-        physicalPercentComplete: 0,
-        sv: 0,
-        cv: 0,
-        spi: 0,
-        cpi: 0,
-        eac: 0,
-        vac: 0,
-        isSplit: false,
-        isRecurring: false,
-        recurringPattern: null,
-        hyperlink: "",
-        hyperlinkAddress: "",
+        packageNumber: "PKG-1",
+        packageName: "Package 1",
+        trackingStatusId: "track-1",
+        trackingStatusName: "Ready to Ship",
+        rawPackageJson: "{}",
+        lastPulledAt: new Date("2026-03-01T00:00:00.000Z"),
+        lastPushedAt: null,
+        syncedStartSignature: "2026-03-01",
+        syncedFinishSignature: "2026-03-03",
+        syncedDeadlineSignature: "2026-03-08",
         createdAt: new Date("2026-03-01T00:00:00.000Z"),
         updatedAt: new Date("2026-03-01T00:00:00.000Z"),
-        stratusSync: {
-          id: "sync-1",
-          taskId: "task-1",
-          localProjectId: "project-1",
-          packageId: "pkg-1",
-          projectId: "stratus-project-1",
-          modelId: "model-1",
-          externalKey: "1001-PKG-1",
-          packageNumber: "PKG-1",
-          packageName: "Package 1",
-          trackingStatusId: "track-1",
-          trackingStatusName: "Ready to Ship",
-          rawPackageJson: "{}",
-          lastPulledAt: new Date("2026-03-01T00:00:00.000Z"),
-          lastPushedAt: null,
-          syncedStartSignature: "2026-03-01",
-          syncedFinishSignature: "2026-03-03",
-          syncedDeadlineSignature: "2026-03-08",
-          createdAt: new Date("2026-03-01T00:00:00.000Z"),
-          updatedAt: new Date("2026-03-01T00:00:00.000Z"),
-        },
+      },
+    };
+
+    const rows = buildPushPreviewRows([
+      linkedTask,
+      {
+        ...linkedTask,
+        id: "task-2",
+        name: "Local only task",
+        externalKey: "local-only-task",
+        stratusSync: null,
       },
     ]);
 
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.action === "push" || row.action === "skip")).toBe(true);
     expect(rows[0]?.action).toBe("push");
     expect(rows[0]?.changes).toEqual([
       { field: "start", from: "2026-03-01", to: "2026-03-05" },
       { field: "finish", from: "2026-03-03", to: "2026-03-07" },
     ]);
+    expect(rows[1]?.action).toBe("skip");
   });
 
   it("builds sync-to-prefab preview rows for changed package reference tasks only", () => {

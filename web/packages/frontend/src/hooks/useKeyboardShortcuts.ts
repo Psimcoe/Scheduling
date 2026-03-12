@@ -9,12 +9,12 @@ import { useEffect, useCallback } from 'react';
 import { useProjectStore, useUIStore } from '../stores';
 
 export function useKeyboardShortcuts() {
-  const deleteTask = useProjectStore((s) => s.deleteTask);
   const createTask = useProjectStore((s) => s.createTask);
   const updateTask = useProjectStore((s) => s.updateTask);
   const selectedTaskIds = useProjectStore((s) => s.selectedTaskIds);
   const tasks = useProjectStore((s) => s.tasks);
   const openDialogWith = useUIStore((s) => s.openDialogWith);
+  const openDeleteConfirm = useUIStore((s) => s.openDeleteConfirm);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -30,7 +30,19 @@ export function useKeyboardShortcuts() {
       // Delete — remove selected task(s)
       if (e.key === 'Delete' && ids.length > 0) {
         e.preventDefault();
-        ids.forEach((id) => deleteTask(id));
+        const selectedTasks = ids
+          .map((id) => tasks.find((task) => task.id === id))
+          .filter((task): task is (typeof tasks)[number] => Boolean(task));
+        if (selectedTasks.length > 0) {
+          openDeleteConfirm({
+            kind: 'tasks',
+            tasks: selectedTasks.map((task) => ({
+              id: task.id,
+              name: task.name,
+              hasStratusSync: !!task.stratusSync,
+            })),
+          });
+        }
         return;
       }
 
@@ -71,7 +83,7 @@ export function useKeyboardShortcuts() {
         return;
       }
     },
-    [selectedTaskIds, tasks, deleteTask, createTask, updateTask, openDialogWith],
+    [selectedTaskIds, tasks, createTask, updateTask, openDialogWith, openDeleteConfirm],
   );
 
   useEffect(() => {

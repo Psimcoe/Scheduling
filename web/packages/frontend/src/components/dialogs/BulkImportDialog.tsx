@@ -1,8 +1,8 @@
 /**
- * BulkImportDialog — upload a CSV to bulk-create or update tasks.
+ * BulkImportDialog — upload a CSV to create or update local tasks.
  *
  * Rows whose ID column matches an existing task are updated;
- * rows without a matching ID are created as new tasks.
+ * rows without a matching ID are created as new tasks in the current project.
  */
 
 import React, { useState, useRef } from 'react';
@@ -54,7 +54,7 @@ const BulkImportDialog: React.FC = () => {
       const res = await importExportApi.bulkCsvImport(activeProjectId, file);
       setResult(res);
       showSnackbar(
-        `Bulk import: ${res.created} created, ${res.updated} updated` +
+        `Import CSV: ${res.created} created, ${res.updated} updated` +
           (res.errors.length > 0 ? `, ${res.errors.length} errors` : ''),
         res.errors.length > 0 ? 'warning' : 'success',
       );
@@ -62,7 +62,7 @@ const BulkImportDialog: React.FC = () => {
       await useProjectStore.getState().fetchTasks();
       await useProjectStore.getState().fetchDependencies();
     } catch (err: unknown) {
-      showSnackbar(err instanceof Error ? err.message : 'Bulk import failed', 'error');
+      showSnackbar(err instanceof Error ? err.message : 'CSV import failed', 'error');
     } finally {
       setLoading(false);
     }
@@ -70,12 +70,17 @@ const BulkImportDialog: React.FC = () => {
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Bulk CSV Import</DialogTitle>
+      <DialogTitle>Import CSV</DialogTitle>
       <DialogContent>
         <Typography variant="body2" sx={{ mb: 2 }}>
-          Upload a CSV file to create or update tasks. Rows with an <b>ID</b> that
-          matches an existing task will be updated; all other rows will create new
-          tasks.
+          Upload a CSV file to create or update local tasks in the current project.
+          Rows with an <b>ID</b> that matches an existing task will be updated; all
+          other rows will create new tasks.
+        </Typography>
+
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          This is a local ScheduleSync import workflow. It does not create, update,
+          or delete anything in Stratus.
         </Typography>
 
         <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
@@ -86,7 +91,7 @@ const BulkImportDialog: React.FC = () => {
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
           <Button variant="outlined" size="small" onClick={() => inputRef.current?.click()}>
-            Choose CSV File
+            Choose CSV
           </Button>
           <Typography variant="body2" color="text.secondary">
             {file ? file.name : 'No file selected'}
@@ -129,7 +134,7 @@ const BulkImportDialog: React.FC = () => {
           onClick={handleImport}
           disabled={!file || loading || !activeProjectId}
         >
-          Import
+          Import CSV
         </Button>
       </DialogActions>
     </Dialog>

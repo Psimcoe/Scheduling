@@ -10,6 +10,7 @@ import { Box, Snackbar, Alert } from '@mui/material';
 import { Sidebar, Ribbon, SplitView, StatusBar } from './components/layout';
 import {
   NewProjectDialog,
+  DeleteConfirmationDialog,
   ProjectInfoDialog,
   TaskInfoDialog,
   BaselineCaptureDialog,
@@ -64,6 +65,7 @@ const App: React.FC = () => {
 
       {/* Dialogs */}
       <NewProjectDialog />
+      <DeleteConfirmationDialog />
       <ProjectInfoDialog />
       <TaskInfoDialog />
       <BaselineCaptureDialog />

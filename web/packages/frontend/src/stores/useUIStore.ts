@@ -24,6 +24,7 @@ export type RibbonTab = 'task' | 'resource' | 'project' | 'view' | 'format';
 
 export type DialogType =
   | 'none'
+  | 'deleteConfirm'
   | 'projectInfo'
   | 'taskInfo'
   | 'calendar'
@@ -53,6 +54,27 @@ export type DialogType =
   | 'stratusRefreshFromPrefabPreview'
   | 'stratusSyncToPrefabPreview'
   | 'stratusPushPreview';
+
+export interface DeleteProjectConfirmationTarget {
+  id: string;
+  name: string;
+}
+
+export interface DeleteTaskConfirmationTarget {
+  id: string;
+  name: string;
+  hasStratusSync: boolean;
+}
+
+export type DeleteConfirmationPayload =
+  | {
+      kind: 'project';
+      project: DeleteProjectConfirmationTarget;
+    }
+  | {
+      kind: 'tasks';
+      tasks: DeleteTaskConfirmationTarget[];
+    };
 
 export interface SortCriteria {
   field: string;
@@ -171,6 +193,7 @@ interface UIState {
   openDialog: DialogType;
   dialogPayload: unknown;
   openDialogWith: (type: DialogType, payload?: unknown) => void;
+  openDeleteConfirm: (payload: DeleteConfirmationPayload) => void;
   closeDialog: () => void;
 
   // Filtering, sorting & grouping
@@ -235,6 +258,8 @@ export const useUIStore = create<UIState>((set) => ({
   dialogPayload: null,
   openDialogWith: (type, payload) =>
     set({ openDialog: type, dialogPayload: payload ?? null }),
+  openDeleteConfirm: (payload) =>
+    set({ openDialog: 'deleteConfirm', dialogPayload: payload }),
   closeDialog: () => set({ openDialog: 'none', dialogPayload: null }),
 
   filters: [],

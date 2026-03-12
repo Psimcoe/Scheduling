@@ -1,0 +1,111 @@
+{
+    "project":  "320001TUR - MDX RESIDENTIAL TOWER",
+    "totalApiTasks":  5959,
+    "totalRenderedRows":  5960,
+    "comparedRows":  120,
+    "mismatchCount":  0,
+    "firstRows":  [
+                      {
+                          "rowNum":  "1",
+                          "name":  "FAB-0001-LEVEL 3-DE-Level 3-Load Centers 125A",
+                          "paddingLeft":  "0px",
+                          "fontWeight":  "700",
+                          "hasToggle":  false
+                      },
+                      {
+                          "rowNum":  "2",
+                          "name":  "FAB-0002-LEVEL 3-DE-Level 3-Load Centers 150A",
+                          "paddingLeft":  "0px",
+                          "fontWeight":  "700",
+                          "hasToggle":  true
+                      },
+                      {
+                          "rowNum":  "3",
+                          "name":  "LOAD CENTER-C3(2A)-L3",
+                          "paddingLeft":  "20px",
+                          "fontWeight":  "400",
+                          "hasToggle":  false
+                      },
+                      {
+                          "rowNum":  "4",
+                          "name":  "LOAD CENTER-S2-L3",
+                          "paddingLeft":  "20px",
+                          "fontWeight":  "400",
+                          "hasToggle":  false
+                      },
+                      {
+                          "rowNum":  "5",
+                          "name":  "FAB-0003-LEVEL 4-DE-Level 4-Load Centers 125A",
+                          "paddingLeft":  "0px",
+                          "fontWeight":  "700",
+                          "hasToggle":  false
+                      },
+                      {
+                          "rowNum":  "6",
+                          "name":  "FAB-0004-LEVEL 4-DE-Level 4-Load Centers 150A",
+                          "paddingLeft":  "0px",
+                          "fontWeight":  "700",
+                          "hasToggle":  true
+                      },
+                      {
+                          "rowNum":  "7",
+                          "name":  "LOAD CENTER-C3(2A)-L4",
+                          "paddingLeft":  "20px",
+                          "fontWeight":  "400",
+                          "hasToggle":  false
+                      },
+                      {
+                          "rowNum":  "8",
+                          "name":  "FAB-0005-LEVEL 5-DE-Level 5-Load Centers 125A",
+                          "paddingLeft":  "0px",
+                          "fontWeight":  "700",
+                          "hasToggle":  false
+                      },
+                      {
+                          "rowNum":  "9",
+                          "name":  "FAB-0006-LEVEL 5-DE-Level 5-Load Centers 150A",
+                          "paddingLeft":  "0px",
+                          "fontWeight":  "700",
+                          "hasToggle":  true
+                      },
+                      {
+                          "rowNum":  "10",
+                          "name":  "LOAD CENTER-C3(2A)-L5",
+                          "paddingLeft":  "20px",
+                          "fontWeight":  "400",
+                          "hasToggle":  false
+                      },
+                      {
+                          "rowNum":  "11",
+                          "name":  "FAB-0007-LEVEL 7-DE-Level 7-Load Centers 125A",
+                          "paddingLeft":  "0px",
+                          "fontWeight":  "700",
+                          "hasToggle":  false
+                      },
+                      {
+                          "rowNum":  "12",
+                          "name":  "FAB-0008-LEVEL 7-DE-Level 7-Load Centers 150A",
+                          "paddingLeft":  "0px",
+                          "fontWeight":  "700",
+                          "hasToggle":  false
+                      }
+                  ],
+    "mismatches":  {
+
+                   },
+    "collapseCheck":  {
+                          "beforeRowCount":  5960,
+                          "collapsedRowCount":  5958,
+                          "restoredRowCount":  5960,
+                          "removedRows":  [
+                                              "LOAD CENTER-C3(2A)-L3",
+                                              "LOAD CENTER-S2-L3"
+                                          ],
+                          "behavior":  "Collapsing FAB-0002 hid its two child assembly rows and re-expanding restored them."
+                      },
+    "fullTableCheck":  {
+                           "checkedRows":  5959,
+                           "mismatchCount":  0,
+                           "note":  "Compared every rendered task row except the new-task entry row against the API task order, outline indentation, summary weight, and expand-toggle presence."
+                       }
+}

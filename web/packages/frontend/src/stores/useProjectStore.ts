@@ -155,6 +155,7 @@ interface ProjectState {
   batchUpdateTasks: (
     updates: { id: string; data: Record<string, unknown> }[],
   ) => Promise<void>;
+  deleteTasks: (taskIds: string[]) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   recalculate: () => Promise<void>;
 
@@ -249,6 +250,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         dependencies: [],
         resources: [],
         assignments: [],
+        selectedTaskIds: new Set(),
       });
     }
     await get().fetchProjects();
@@ -288,14 +290,26 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     await get().fetchTasks();
   },
 
-  deleteTask: async (taskId) => {
+  deleteTasks: async (taskIds) => {
     const pid = get().activeProjectId;
     if (!pid) return;
-    await tasksApi.delete(pid, taskId);
+
+    const uniqueTaskIds = [...new Set(taskIds)];
+    if (uniqueTaskIds.length === 0) return;
+
+    for (const taskId of uniqueTaskIds) {
+      await tasksApi.delete(pid, taskId);
+    }
+
     const selected = new Set(get().selectedTaskIds);
-    selected.delete(taskId);
+    uniqueTaskIds.forEach((taskId) => selected.delete(taskId));
     set({ selectedTaskIds: selected });
+
     await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+  },
+
+  deleteTask: async (taskId) => {
+    await get().deleteTasks([taskId]);
   },
 
   recalculate: async () => {
