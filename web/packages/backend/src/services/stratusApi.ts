@@ -421,11 +421,19 @@ export function normalizeStratusPackage(
     ]),
     "Work Days (Reference)": workDaysRaw,
     [STRATUS_START_DATE_FIELD_NAME]: firstNonEmptyString(
-      parseDateToIso(getFieldValue(fieldMap, [STRATUS_START_DATE_FIELD_NAME])),
+      parseDateToIso(
+        getFieldValue(
+          fieldMap,
+          getEquivalentFieldNames(STRATUS_START_DATE_FIELD_NAME),
+        ),
+      ),
       parseDateToIso(getString(rawPackage, "startDT")),
     ),
     [STRATUS_FINISH_DATE_FIELD_NAME]: parseDateToIso(
-      getFieldValue(fieldMap, [STRATUS_FINISH_DATE_FIELD_NAME]),
+      getFieldValue(
+        fieldMap,
+        getEquivalentFieldNames(STRATUS_FINISH_DATE_FIELD_NAME),
+      ),
     ),
     "STRATUS.Package.RequiredDT": firstNonEmptyString(
       parseDateToIso(getString(rawPackage, "requiredDT")),
@@ -465,9 +473,10 @@ export function normalizeStratusPackage(
       "STRATUS.Model.ShippingAddress",
     ]),
     "STRATUS.Package.Status": statusName,
-    "STRATUS.Field.PREFAB ESTIMATED BUILD TIME": getFieldValue(fieldMap, [
-      "STRATUS.Field.PREFAB ESTIMATED BUILD TIME",
-    ]),
+    "STRATUS.Field.PREFAB ESTIMATED BUILD TIME": getFieldValue(
+      fieldMap,
+      getEquivalentFieldNames("STRATUS.Field.PREFAB ESTIMATED BUILD TIME"),
+    ),
     "Project Number": firstNonEmptyString(
       getFieldValue(fieldMap, ["Project Number"]),
       projectNumber,
@@ -491,7 +500,7 @@ export function normalizeStratusPackage(
   };
 
   for (const key of getRequestedStratusFieldKeys(config)) {
-    if (!(key in normalizedFields)) {
+    if (normalizedFields[key] == null) {
       normalizedFields[key] = getFieldValue(
         fieldMap,
         getEquivalentFieldNames(key),
@@ -1067,6 +1076,8 @@ function getEquivalentFieldNames(expectedName: string): string[] {
   const fieldPrefix = "STRATUS.Field.";
   if (normalized.startsWith(fieldPrefix)) {
     variants.add(normalized.slice(fieldPrefix.length));
+  } else if (!normalized.startsWith("STRATUS.")) {
+    variants.add(fieldPrefix + normalized);
   }
 
   return [...variants];

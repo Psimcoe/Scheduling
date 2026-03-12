@@ -244,6 +244,45 @@ describe("stratusSyncService", () => {
     expect(rows[0]?.mappedTask.percentComplete).toBe(50);
   });
 
+  it("resolves duration and dates from unprefixed Stratus field names in normalizedFields", () => {
+    const rows = buildPullPreviewRows(
+      [
+        {
+          package: {
+            id: "pkg-no-prefix",
+            projectId: "stratus-project",
+            modelId: "model-1",
+            packageNumber: "PKG-NP",
+            packageName: "Package No Prefix",
+            trackingStatusId: null,
+            trackingStatusName: null,
+            externalKey: "1001-PKG-NP",
+            normalizedFields: {
+              "STRATUS.Package.Name": "Package No Prefix",
+              "STRATUS.Field.SMC_Overview Days Estimate_Not Editable": "5",
+              "STRATUS.Field.SMC_Package Start Date":
+                "2026-04-01T00:00:00.000Z",
+              "STRATUS.Field.SMC_Package Estimated Finish Date":
+                "2026-04-08T00:00:00.000Z",
+              "STRATUS.Package.RequiredDT": "2026-04-10T00:00:00.000Z",
+            },
+            rawPackage: {},
+          },
+          assemblies: [],
+        },
+      ],
+      [],
+      480,
+      normalizeStratusConfig(),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.mappedTask.durationMinutes).toBe(2400);
+    expect(rows[0]?.mappedTask.start).toBe("2026-04-01T00:00:00.000Z");
+    expect(rows[0]?.mappedTask.finish).toBe("2026-04-08T00:00:00.000Z");
+    expect(rows[0]?.mappedTask.deadline).toBe("2026-04-10T00:00:00.000Z");
+  });
+
   it("marks unchanged incremental bundles as skipped without remote assembly updates", () => {
     const rows = buildPullPreviewRows(
       [
