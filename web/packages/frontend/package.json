@@ -13,6 +13,8 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.66.8",
+    "@tanstack/react-virtual": "^3.13.12",
     "@schedulesync/engine": "workspace:*",
     "@mui/material": "^6.4.0",
     "@mui/icons-material": "^6.4.0",

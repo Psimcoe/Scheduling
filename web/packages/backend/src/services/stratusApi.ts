@@ -187,6 +187,34 @@ const ARCHIVED_STATUS_TOKENS = new Set([
 
 const ACTIVE_STATUS_TOKENS = new Set(["active", "activated"]);
 
+const STRATUS_FIELD_EQUIVALENT_GROUPS = [
+  [
+    STRATUS_DURATION_DAYS_FIELD_NAME,
+    "SMC_Overview Days Estimate_Not Editable",
+    "Work Days (Calculated)",
+  ],
+  [
+    STRATUS_DURATION_HOURS_FIELD_NAME,
+    "PREFAB ESTIMATED BUILD TIME",
+    "SMC_Overview Hours Estimate",
+    "Prefab Estimated Hours",
+  ],
+  [
+    STRATUS_START_DATE_FIELD_NAME,
+    "SMC_Package Start Date",
+    "Package Start Date",
+  ],
+  [
+    STRATUS_FINISH_DATE_FIELD_NAME,
+    "SMC_Package Estimated Finish Date",
+    "Estimated Finish Date",
+  ],
+] as const;
+
+const STRATUS_FIELD_EQUIVALENT_MAP = buildFieldEquivalentMap(
+  STRATUS_FIELD_EQUIVALENT_GROUPS,
+);
+
 export function isImportableStratusPackageRecord(
   rawPackage: Record<string, unknown>,
 ): boolean {
@@ -491,7 +519,7 @@ export function normalizeStratusPackage(
   };
 
   for (const key of getRequestedStratusFieldKeys(config)) {
-    if (!(key in normalizedFields)) {
+    if (!normalizeOptionalString(normalizedFields[key])) {
       normalizedFields[key] = getFieldValue(
         fieldMap,
         getEquivalentFieldNames(key),
@@ -529,13 +557,10 @@ export function getConfiguredPackageFieldValue(
     return null;
   }
 
-  if (normalized in pkg.normalizedFields) {
-    return pkg.normalizedFields[normalized];
-  }
-
   for (const equivalent of getEquivalentFieldNames(normalized)) {
-    if (equivalent in pkg.normalizedFields) {
-      return pkg.normalizedFields[equivalent];
+    const value = normalizeOptionalString(pkg.normalizedFields[equivalent]);
+    if (value) {
+      return value;
     }
   }
 
@@ -1057,7 +1082,7 @@ function findFieldDefinitionMatch(
   };
 }
 
-function getEquivalentFieldNames(expectedName: string): string[] {
+export function getEquivalentFieldNames(expectedName: string): string[] {
   const normalized = normalizeOptionalString(expectedName);
   if (!normalized) {
     return [];
@@ -1065,11 +1090,50 @@ function getEquivalentFieldNames(expectedName: string): string[] {
 
   const variants = new Set<string>([normalized]);
   const fieldPrefix = "STRATUS.Field.";
-  if (normalized.startsWith(fieldPrefix)) {
-    variants.add(normalized.slice(fieldPrefix.length));
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const variant of [...variants]) {
+      if (variant.startsWith(fieldPrefix)) {
+        const withoutPrefix = variant.slice(fieldPrefix.length);
+        if (withoutPrefix && !variants.has(withoutPrefix)) {
+          variants.add(withoutPrefix);
+          changed = true;
+        }
+      }
+
+      for (const equivalent of STRATUS_FIELD_EQUIVALENT_MAP.get(variant) ?? []) {
+        if (!variants.has(equivalent)) {
+          variants.add(equivalent);
+          changed = true;
+        }
+      }
+    }
   }
 
   return [...variants];
+}
+
+function buildFieldEquivalentMap(
+  groups: readonly (readonly string[])[],
+): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+
+  for (const group of groups) {
+    const normalizedGroup = group
+      .map((value) => normalizeOptionalString(value))
+      .filter((value): value is string => Boolean(value));
+
+    for (const value of normalizedGroup) {
+      map.set(
+        value,
+        normalizedGroup.filter((candidate) => candidate !== value),
+      );
+    }
+  }
+
+  return map;
 }
 
 function parseRetryAfterMs(headerValue: string | null): number {

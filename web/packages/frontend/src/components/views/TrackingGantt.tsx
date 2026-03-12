@@ -3,14 +3,26 @@
  * Reuses the existing GanttChart but forces baseline display on.
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Box, Typography, Chip } from '@mui/material';
 import GanttChart from '../gantt/GanttChart';
-import { useUIStore } from '../../stores';
+import { useVisibleTaskRows } from '../../hooks/useVisibleTaskRows';
+import { ROW_HEIGHT, useUIStore } from '../../stores';
+
+const SURFACE_HEADER_HEIGHT = 40;
 
 const TrackingGantt: React.FC = () => {
   const showBaseline = useUIStore((s) => s.showBaseline);
   const setShowBaseline = useUIStore((s) => s.setShowBaseline);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { rows, visibleTasks, visibleDependencies } = useVisibleTaskRows();
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 14,
+  });
 
   // Auto-enable baseline 0 if not already showing
   React.useEffect(() => {
@@ -67,8 +79,15 @@ const TrackingGantt: React.FC = () => {
       </Box>
 
       {/* The actual Gantt */}
-      <Box sx={{ flex: 1, overflow: 'hidden' }}>
-        <GanttChart />
+      <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        <GanttChart
+          rows={rows}
+          visibleTasks={visibleTasks}
+          visibleDependencies={visibleDependencies}
+          virtualRows={rowVirtualizer.getVirtualItems()}
+          totalBodyHeight={rowVirtualizer.getTotalSize()}
+          headerHeight={SURFACE_HEADER_HEIGHT}
+        />
       </Box>
     </Box>
   );

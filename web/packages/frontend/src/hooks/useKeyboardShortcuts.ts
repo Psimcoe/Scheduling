@@ -1,35 +1,34 @@
 /**
- * useKeyboardShortcuts — global keyboard shortcut handler.
- *
- * Handles Delete, Ctrl+Z (undo), Ctrl+Y (redo), Ctrl+I (indent),
- * Ctrl+Shift+I (outdent), Insert (new task).
+ * useKeyboardShortcuts - global keyboard shortcut handler for core task actions.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useProjectStore, useUIStore } from '../stores';
 
 export function useKeyboardShortcuts() {
-  const createTask = useProjectStore((s) => s.createTask);
-  const updateTask = useProjectStore((s) => s.updateTask);
-  const selectedTaskIds = useProjectStore((s) => s.selectedTaskIds);
-  const tasks = useProjectStore((s) => s.tasks);
-  const openDialogWith = useUIStore((s) => s.openDialogWith);
-  const openDeleteConfirm = useUIStore((s) => s.openDeleteConfirm);
+  const createTask = useProjectStore((state) => state.createTask);
+  const batchUpdateTasks = useProjectStore((state) => state.batchUpdateTasks);
+  const selectedTaskIds = useProjectStore((state) => state.selectedTaskIds);
+  const tasks = useProjectStore((state) => state.tasks);
+  const openDialogWith = useUIStore((state) => state.openDialogWith);
+  const openDeleteConfirm = useUIStore((state) => state.openDeleteConfirm);
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      // Don't fire shortcuts when typing in inputs
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if ((e.target as HTMLElement)?.isContentEditable) return;
+    (event: KeyboardEvent) => {
+      const tagName = (event.target as HTMLElement)?.tagName;
+      if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+        return;
+      }
+      if ((event.target as HTMLElement)?.isContentEditable) {
+        return;
+      }
 
-      const ctrl = e.ctrlKey || e.metaKey;
-      const shift = e.shiftKey;
+      const ctrl = event.ctrlKey || event.metaKey;
+      const shift = event.shiftKey;
       const ids = Array.from(selectedTaskIds);
 
-      // Delete — remove selected task(s)
-      if (e.key === 'Delete' && ids.length > 0) {
-        e.preventDefault();
+      if (event.key === 'Delete' && ids.length > 0) {
+        event.preventDefault();
         const selectedTasks = ids
           .map((id) => tasks.find((task) => task.id === id))
           .filter((task): task is (typeof tasks)[number] => Boolean(task));
@@ -39,51 +38,55 @@ export function useKeyboardShortcuts() {
             tasks: selectedTasks.map((task) => ({
               id: task.id,
               name: task.name,
-              hasStratusSync: !!task.stratusSync,
+              hasStratusSync: Boolean(task.stratusSync),
             })),
           });
         }
         return;
       }
 
-      // Insert — add new task
-      if (e.key === 'Insert') {
-        e.preventDefault();
-        createTask({ name: 'New Task' });
+      if (event.key === 'Insert') {
+        event.preventDefault();
+        void createTask({ name: 'New Task' });
         return;
       }
 
-      // Enter — open task info for single selected task
-      if (e.key === 'Enter' && !ctrl && ids.length === 1) {
-        e.preventDefault();
-        const task = tasks.find((t) => t.id === ids[0]);
-        if (task) openDialogWith('taskInfo', task);
+      if (event.key === 'Enter' && !ctrl && ids.length === 1) {
+        event.preventDefault();
+        const task = tasks.find((candidate) => candidate.id === ids[0]);
+        if (task) {
+          openDialogWith('taskInfo', task);
+        }
         return;
       }
 
-      // Ctrl+I — indent
-      if (ctrl && !shift && e.key === 'i') {
-        e.preventDefault();
-        ids.forEach((id) => {
-          const task = tasks.find((t) => t.id === id);
-          if (task) updateTask(id, { outlineLevel: task.outlineLevel + 1 });
+      if (ctrl && !shift && event.key.toLowerCase() === 'i') {
+        event.preventDefault();
+        const updates = ids.flatMap((id) => {
+          const task = tasks.find((candidate) => candidate.id === id);
+          return task ? [{ id, data: { outlineLevel: task.outlineLevel + 1 } }] : [];
         });
+        if (updates.length > 0) {
+          void batchUpdateTasks(updates);
+        }
         return;
       }
 
-      // Ctrl+Shift+I — outdent
-      if (ctrl && shift && (e.key === 'I' || e.key === 'i')) {
-        e.preventDefault();
-        ids.forEach((id) => {
-          const task = tasks.find((t) => t.id === id);
+      if (ctrl && shift && event.key.toLowerCase() === 'i') {
+        event.preventDefault();
+        const updates = ids.flatMap((id) => {
+          const task = tasks.find((candidate) => candidate.id === id);
           if (task && task.outlineLevel > 0) {
-            updateTask(id, { outlineLevel: task.outlineLevel - 1 });
+            return [{ id, data: { outlineLevel: task.outlineLevel - 1 } }];
           }
+          return [];
         });
-        return;
+        if (updates.length > 0) {
+          void batchUpdateTasks(updates);
+        }
       }
     },
-    [selectedTaskIds, tasks, createTask, updateTask, openDialogWith, openDeleteConfirm],
+    [batchUpdateTasks, createTask, openDeleteConfirm, openDialogWith, selectedTaskIds, tasks],
   );
 
   useEffect(() => {

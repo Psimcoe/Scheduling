@@ -38,6 +38,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export interface ProjectSummaryResponse {
   id: string;
   name: string;
+  revision: number;
   startDate: string;
   finishDate: string | null;
   projectType: string | null;
@@ -63,8 +64,140 @@ export interface ProjectDetailResponse extends ProjectSummaryResponse {
   };
 }
 
+export interface TaskResponse {
+  id: string;
+  projectId: string;
+  wbsCode: string;
+  outlineLevel: number;
+  parentId: string | null;
+  name: string;
+  type: string;
+  durationMinutes: number;
+  start: string;
+  finish: string;
+  constraintType: number;
+  constraintDate: string | null;
+  calendarId: string | null;
+  percentComplete: number;
+  isManuallyScheduled: boolean;
+  isCritical: boolean;
+  totalSlackMinutes: number;
+  freeSlackMinutes: number;
+  earlyStart: string | null;
+  earlyFinish: string | null;
+  lateStart: string | null;
+  lateFinish: string | null;
+  deadline: string | null;
+  notes: string | null;
+  externalKey: string | null;
+  sortOrder: number;
+  stratusSync: StratusSyncSummary | null;
+  fixedCost: number | null;
+  fixedCostAccrual: string | null;
+  cost: number | null;
+  actualCost: number | null;
+  remainingCost: number | null;
+  work: number | null;
+  actualWork: number | null;
+  remainingWork: number | null;
+  actualStart: string | null;
+  actualFinish: string | null;
+  actualDurationMinutes: number | null;
+  remainingDuration: number | null;
+  bcws: number | null;
+  bcwp: number | null;
+  acwp: number | null;
+}
+
+export interface DependencyResponse {
+  id: string;
+  projectId: string;
+  fromTaskId: string;
+  toTaskId: string;
+  type: string;
+  lagMinutes: number;
+}
+
+export interface ResourceResponse {
+  id: string;
+  projectId: string;
+  name: string;
+  type: string;
+  maxUnits: number;
+  calendarId: string | null;
+  standardRate: number | null;
+  overtimeRate: number | null;
+  costPerUse: number | null;
+  accrueAt: string | null;
+  budgetCost: number | null;
+  budgetWork: number | null;
+  isBudget: boolean;
+  isGeneric: boolean;
+}
+
+export interface AssignmentResponse {
+  id: string;
+  taskId: string;
+  resourceId: string;
+  units: number;
+  workMinutes: number;
+  actualWork: number | null;
+  actualCost: number | null;
+  remainingWork: number | null;
+  remainingCost: number | null;
+  task?: { id: string; name: string };
+  resource?: { id: string; name: string };
+}
+
+export interface ProjectSnapshotResponse {
+  revision: number;
+  project: ProjectDetailResponse;
+  tasks: TaskResponse[];
+  dependencies: DependencyResponse[];
+  resources: ResourceResponse[];
+  assignments: AssignmentResponse[];
+}
+
+export interface TaskMutationResponse {
+  revision: number;
+  snapshot: ProjectSnapshotResponse;
+  task: TaskResponse;
+}
+
+export interface TaskBatchUpdateResponse {
+  updated: number;
+  revision: number;
+  snapshot: ProjectSnapshotResponse;
+}
+
+export interface TaskDeleteResponse {
+  deletedTaskIds: string[];
+  revision: number;
+  snapshot: ProjectSnapshotResponse;
+}
+
+export interface DependencyMutationResponse {
+  revision: number;
+  snapshot: ProjectSnapshotResponse;
+  dependency: DependencyResponse;
+}
+
+export interface DependencyBatchResponse {
+  createdDependencies: DependencyResponse[];
+  deletedDependencyIds: string[];
+  revision: number;
+  snapshot: ProjectSnapshotResponse;
+}
+
+export interface TaskRecalculateResponse {
+  ok: boolean;
+  revision: number;
+  snapshot: ProjectSnapshotResponse;
+}
+
 export const projectsApi = {
   list: () => request<ProjectSummaryResponse[]>("/projects"),
+  snapshot: (id: string) => request<ProjectSnapshotResponse>(`/projects/${id}/snapshot`),
   get: (id: string) => request<ProjectDetailResponse>(`/projects/${id}`),
   create: (data: {
     name: string;
@@ -89,16 +222,16 @@ export const projectsApi = {
 // ---------- Tasks ----------
 
 export const tasksApi = {
-  list: (projectId: string) => request<any[]>(`/projects/${projectId}/tasks`),
+  list: (projectId: string) => request<TaskResponse[]>(`/projects/${projectId}/tasks`),
   get: (projectId: string, taskId: string) =>
-    request<any>(`/projects/${projectId}/tasks/${taskId}`),
+    request<TaskResponse>(`/projects/${projectId}/tasks/${taskId}`),
   create: (projectId: string, data: Record<string, unknown>) =>
-    request<any>(`/projects/${projectId}/tasks`, {
+    request<TaskMutationResponse>(`/projects/${projectId}/tasks`, {
       method: "POST",
       body: JSON.stringify(data),
     }),
   update: (projectId: string, taskId: string, data: Record<string, unknown>) =>
-    request<any>(`/projects/${projectId}/tasks/${taskId}`, {
+    request<TaskMutationResponse>(`/projects/${projectId}/tasks/${taskId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
@@ -107,16 +240,21 @@ export const tasksApi = {
     updates: { id: string; data: Record<string, unknown> }[],
     recalc = true,
   ) =>
-    request<{ updated: number }>(`/projects/${projectId}/tasks/batch`, {
+    request<TaskBatchUpdateResponse>(`/projects/${projectId}/tasks/batch`, {
       method: "POST",
       body: JSON.stringify({ updates, recalculate: recalc }),
     }),
+  deleteBatch: (projectId: string, taskIds: string[]) =>
+    request<TaskDeleteResponse>(`/projects/${projectId}/tasks/delete-batch`, {
+      method: "POST",
+      body: JSON.stringify({ taskIds }),
+    }),
   delete: (projectId: string, taskId: string) =>
-    request<void>(`/projects/${projectId}/tasks/${taskId}`, {
+    request<TaskDeleteResponse>(`/projects/${projectId}/tasks/${taskId}`, {
       method: "DELETE",
     }),
   recalculate: (projectId: string) =>
-    request<{ ok: boolean }>(`/projects/${projectId}/tasks/recalculate`, {
+    request<TaskRecalculateResponse>(`/projects/${projectId}/tasks/recalculate`, {
       method: "POST",
     }),
 };
@@ -125,19 +263,30 @@ export const tasksApi = {
 
 export const dependenciesApi = {
   list: (projectId: string) =>
-    request<any[]>(`/projects/${projectId}/dependencies`),
+    request<DependencyResponse[]>(`/projects/${projectId}/dependencies`),
   create: (projectId: string, data: Record<string, unknown>) =>
-    request<any>(`/projects/${projectId}/dependencies`, {
+    request<DependencyMutationResponse>(`/projects/${projectId}/dependencies`, {
       method: "POST",
       body: JSON.stringify(data),
     }),
   update: (projectId: string, depId: string, data: Record<string, unknown>) =>
-    request<any>(`/projects/${projectId}/dependencies/${depId}`, {
+    request<DependencyMutationResponse>(`/projects/${projectId}/dependencies/${depId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  batch: (
+    projectId: string,
+    data: {
+      create?: { fromTaskId: string; toTaskId: string; type?: string; lagMinutes?: number }[];
+      deleteDependencyIds?: string[];
+    },
+  ) =>
+    request<DependencyBatchResponse>(`/projects/${projectId}/dependencies/batch`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   delete: (projectId: string, depId: string) =>
-    request<void>(`/projects/${projectId}/dependencies/${depId}`, {
+    request<{ deletedDependencyIds: string[]; revision: number; snapshot: ProjectSnapshotResponse }>(`/projects/${projectId}/dependencies/${depId}`, {
       method: "DELETE",
     }),
 };
@@ -183,7 +332,7 @@ export const calendarsApi = {
 
 export const resourcesApi = {
   list: (projectId: string) =>
-    request<any[]>(`/projects/${projectId}/resources`),
+    request<ResourceResponse[]>(`/projects/${projectId}/resources`),
   create: (projectId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/resources`, {
       method: "POST",
@@ -204,7 +353,7 @@ export const resourcesApi = {
 
 export const assignmentsApi = {
   list: (projectId: string) =>
-    request<any[]>(`/projects/${projectId}/assignments`),
+    request<AssignmentResponse[]>(`/projects/${projectId}/assignments`),
   create: (projectId: string, data: Record<string, unknown>) =>
     request<any>(`/projects/${projectId}/assignments`, {
       method: "POST",

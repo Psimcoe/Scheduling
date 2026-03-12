@@ -1,137 +1,79 @@
 /**
- * Project store — manages the main project state (tasks, deps, etc.).
+ * Project store — UI-facing project state backed by React Query cache.
  *
- * Zustand store with async actions that call the backend API
- * and keep local state in sync.
+ * Query cache is the source of truth for server data. This store keeps the
+ * compatibility surface used throughout the app plus selection/loading state.
  */
 
 import { create } from 'zustand';
 import {
-  projectsApi,
-  tasksApi,
-  dependenciesApi,
-  resourcesApi,
   assignmentsApi,
-  calendarsApi,
-  baselinesApi,
-} from '../api';
-import type { StratusSyncSummary } from '../api/client';
+  dependenciesApi,
+  projectsApi,
+  resourcesApi,
+  tasksApi,
+  type AssignmentResponse,
+  type DependencyBatchResponse,
+  type DependencyMutationResponse,
+  type DependencyResponse,
+  type ProjectDetailResponse,
+  type ProjectSnapshotResponse,
+  type ProjectSummaryResponse,
+  type ResourceResponse,
+  type TaskBatchUpdateResponse,
+  type TaskDeleteResponse,
+  type TaskMutationResponse,
+  type TaskRecalculateResponse,
+  type TaskResponse,
+} from '../api/client';
+import { projectQueryKeys } from '../data/projectQueries';
+import { queryClient } from '../queryClient';
 
-export interface ProjectSummary {
-  id: string;
-  name: string;
-  startDate: string;
-  finishDate: string | null;
-  projectType: string | null;
-  sector: string | null;
-  region: string | null;
-  stratusProjectId: string | null;
-  stratusModelId: string | null;
-  stratusPackageWhere: string | null;
-  stratusLastPullAt: string | null;
-  stratusLastPushAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+export type ProjectSummary = ProjectSummaryResponse;
+export type TaskRow = TaskResponse;
+export type DependencyRow = DependencyResponse;
+export type ResourceRow = ResourceResponse;
+export type AssignmentRow = AssignmentResponse;
+
+type SnapshotMutationResult =
+  | TaskMutationResponse
+  | TaskBatchUpdateResponse
+  | TaskDeleteResponse
+  | TaskRecalculateResponse
+  | DependencyMutationResponse
+  | DependencyBatchResponse;
+
+interface QueueObserver {
+  resolve: (value: SnapshotMutationResult) => void;
+  reject: (error: unknown) => void;
 }
 
-export interface TaskRow {
-  id: string;
-  projectId: string;
-  wbsCode: string;
-  outlineLevel: number;
-  parentId: string | null;
-  name: string;
-  type: string;
-  durationMinutes: number;
-  start: string;
-  finish: string;
-  constraintType: number;
-  constraintDate: string | null;
-  calendarId: string | null;
-  percentComplete: number;
-  isManuallyScheduled: boolean;
-  isCritical: boolean;
-  totalSlackMinutes: number;
-  freeSlackMinutes: number;
-  earlyStart: string | null;
-  earlyFinish: string | null;
-  lateStart: string | null;
-  lateFinish: string | null;
-  deadline: string | null;
-  notes: string | null;
-  externalKey: string | null;
-  sortOrder: number;
-  stratusSync: StratusSyncSummary | null;
-  // Cost fields
-  fixedCost: number | null;
-  fixedCostAccrual: string | null;
-  cost: number | null;
-  actualCost: number | null;
-  remainingCost: number | null;
-  // Work/actuals
-  work: number | null;
-  actualWork: number | null;
-  remainingWork: number | null;
-  actualStart: string | null;
-  actualFinish: string | null;
-  actualDurationMinutes: number | null;
-  remainingDuration: number | null;
-  // Earned value
-  bcws: number | null;
-  bcwp: number | null;
-  acwp: number | null;
+interface QueueItem {
+  actionKey: string;
+  clientMutationId: string;
+  baseRevision: number;
+  entityKey: string;
+  coalesceKey: string;
+  applyPatch: (snapshot: ProjectSnapshotResponse) => ProjectSnapshotResponse;
+  rollbackPatch: (snapshot: ProjectSnapshotResponse) => ProjectSnapshotResponse;
+  execute: () => Promise<SnapshotMutationResult>;
+  observers: QueueObserver[];
 }
 
-export interface DependencyRow {
-  id: string;
-  projectId: string;
-  fromTaskId: string;
-  toTaskId: string;
-  type: string;
-  lagMinutes: number;
-}
-
-export interface ResourceRow {
-  id: string;
-  projectId: string;
-  name: string;
-  type: string;
-  maxUnits: number;
-  calendarId: string | null;
-  standardRate: number | null;
-  overtimeRate: number | null;
-  costPerUse: number | null;
-  accrueAt: string | null;
-  budgetCost: number | null;
-  budgetWork: number | null;
-  isBudget: boolean;
-  isGeneric: boolean;
-}
-
-export interface AssignmentRow {
-  id: string;
-  taskId: string;
-  resourceId: string;
-  units: number;
-  workMinutes: number;
-  actualWork: number | null;
-  actualCost: number | null;
-  remainingWork: number | null;
-  remainingCost: number | null;
-  task?: { id: string; name: string };
-  resource?: { id: string; name: string };
+interface ProjectQueueState {
+  authoritativeSnapshot: ProjectSnapshotResponse | null;
+  inFlight: QueueItem | null;
+  queued: QueueItem[];
+  processing: boolean;
 }
 
 interface ProjectState {
-  // Project list
   projects: ProjectSummary[];
   loadingProjects: boolean;
 
-  // Active project
   activeProjectId: string | null;
-  activeProject: any | null;
+  activeProject: ProjectDetailResponse | null;
 
-  // Data for active project
   tasks: TaskRow[];
   dependencies: DependencyRow[];
   resources: ResourceRow[];
@@ -139,46 +81,396 @@ interface ProjectState {
   loading: boolean;
   error: string | null;
 
-  // Selection
   selectedTaskIds: Set<string>;
+  pendingActions: Record<string, number>;
 
-  // Actions — projects
+  syncProjects: (
+    projects: ProjectSummary[],
+    loadingProjects: boolean,
+    error: string | null,
+  ) => void;
+  syncSnapshot: (snapshot: ProjectSnapshotResponse) => void;
+  clearActiveProjectData: () => void;
+  setProjectLoading: (loading: boolean) => void;
+  setProjectError: (error: string | null) => void;
+  startPendingAction: (actionKey: string) => void;
+  finishPendingAction: (actionKey: string) => void;
+
   fetchProjects: () => Promise<void>;
   createProject: (name: string, startDate: string) => Promise<string>;
   setActiveProject: (id: string) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
 
-  // Actions — tasks
   fetchTasks: () => Promise<void>;
   createTask: (data: Record<string, unknown>) => Promise<TaskRow>;
   updateTask: (taskId: string, data: Record<string, unknown>) => Promise<void>;
-  batchUpdateTasks: (
-    updates: { id: string; data: Record<string, unknown> }[],
-  ) => Promise<void>;
+  batchUpdateTasks: (updates: { id: string; data: Record<string, unknown> }[]) => Promise<void>;
   deleteTasks: (taskIds: string[]) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   recalculate: () => Promise<void>;
 
-  // Actions — dependencies
   fetchDependencies: () => Promise<void>;
   createDependency: (data: Record<string, unknown>) => Promise<void>;
+  createDependenciesBatch: (
+    dependencies: { fromTaskId: string; toTaskId: string; type?: string; lagMinutes?: number }[],
+  ) => Promise<void>;
   updateDependency: (depId: string, data: Record<string, unknown>) => Promise<void>;
   deleteDependency: (depId: string) => Promise<void>;
+  deleteDependenciesBatch: (dependencyIds: string[]) => Promise<void>;
 
-  // Actions — resources
   fetchResources: () => Promise<void>;
   createResource: (data: Record<string, unknown>) => Promise<void>;
   updateResource: (resId: string, data: Record<string, unknown>) => Promise<void>;
   deleteResource: (resId: string) => Promise<void>;
 
-  // Actions — assignments
   fetchAssignments: () => Promise<void>;
   createAssignment: (data: Record<string, unknown>) => Promise<void>;
   deleteAssignment: (assignId: string) => Promise<void>;
 
-  // Selection
   selectTask: (id: string, multi?: boolean) => void;
   clearSelection: () => void;
+}
+
+const projectQueues = new Map<string, ProjectQueueState>();
+
+function getProjectSnapshot(projectId: string): ProjectSnapshotResponse | null {
+  return (
+    queryClient.getQueryData<ProjectSnapshotResponse>(
+      projectQueryKeys.snapshot(projectId),
+    ) ?? null
+  );
+}
+
+function setProjectSnapshot(projectId: string, snapshot: ProjectSnapshotResponse): void {
+  queryClient.setQueryData(projectQueryKeys.snapshot(projectId), snapshot);
+}
+
+function getOrCreateQueue(projectId: string): ProjectQueueState {
+  let queue = projectQueues.get(projectId);
+  if (!queue) {
+    queue = {
+      authoritativeSnapshot: getProjectSnapshot(projectId),
+      inFlight: null,
+      queued: [],
+      processing: false,
+    };
+    projectQueues.set(projectId, queue);
+  }
+
+  if (!queue.authoritativeSnapshot) {
+    queue.authoritativeSnapshot = getProjectSnapshot(projectId);
+  }
+
+  return queue;
+}
+
+function buildOptimisticTask(
+  snapshot: ProjectSnapshotResponse,
+  data: Record<string, unknown>,
+  tempId: string,
+): TaskRow {
+  const start =
+    typeof data.start === 'string'
+      ? data.start
+      : snapshot.project.startDate;
+  const durationMinutes =
+    typeof data.durationMinutes === 'number' ? data.durationMinutes : 480;
+  const finish =
+    typeof data.finish === 'string'
+      ? data.finish
+      : new Date(new Date(start).getTime() + durationMinutes * 60_000).toISOString();
+  const maxSortOrder = snapshot.tasks.reduce(
+    (currentMax, task) => Math.max(currentMax, task.sortOrder ?? 0),
+    -1,
+  );
+
+  return {
+    id: tempId,
+    projectId: snapshot.project.id,
+    wbsCode: '',
+    outlineLevel: typeof data.outlineLevel === 'number' ? data.outlineLevel : 0,
+    parentId: (data.parentId as string | null | undefined) ?? null,
+    name: typeof data.name === 'string' ? data.name : 'New Task',
+    type: typeof data.type === 'string' ? data.type : durationMinutes === 0 ? 'milestone' : 'task',
+    durationMinutes,
+    start,
+    finish,
+    constraintType: typeof data.constraintType === 'number' ? data.constraintType : 0,
+    constraintDate: (data.constraintDate as string | null | undefined) ?? null,
+    calendarId: (data.calendarId as string | null | undefined) ?? null,
+    percentComplete:
+      typeof data.percentComplete === 'number' ? data.percentComplete : 0,
+    isManuallyScheduled: Boolean(data.isManuallyScheduled),
+    isCritical: false,
+    totalSlackMinutes: 0,
+    freeSlackMinutes: 0,
+    earlyStart: null,
+    earlyFinish: null,
+    lateStart: null,
+    lateFinish: null,
+    deadline: (data.deadline as string | null | undefined) ?? null,
+    notes: typeof data.notes === 'string' ? data.notes : null,
+    externalKey: typeof data.externalKey === 'string' ? data.externalKey : null,
+    sortOrder:
+      typeof data.sortOrder === 'number' ? data.sortOrder : maxSortOrder + 1,
+    stratusSync: null,
+    fixedCost: null,
+    fixedCostAccrual: null,
+    cost: null,
+    actualCost: null,
+    remainingCost: null,
+    work: null,
+    actualWork: null,
+    remainingWork: null,
+    actualStart: null,
+    actualFinish: null,
+    actualDurationMinutes: null,
+    remainingDuration: null,
+    bcws: null,
+    bcwp: null,
+    acwp: null,
+  };
+}
+
+function applyTaskPatch(
+  snapshot: ProjectSnapshotResponse,
+  taskId: string,
+  data: Record<string, unknown>,
+): ProjectSnapshotResponse {
+  return {
+    ...snapshot,
+    tasks: snapshot.tasks.map((task) =>
+      task.id === taskId
+        ? {
+            ...task,
+            ...data,
+            start: typeof data.start === 'string' ? data.start : task.start,
+            finish: typeof data.finish === 'string' ? data.finish : task.finish,
+          }
+        : task,
+    ),
+  };
+}
+
+function removeTasksFromSnapshot(
+  snapshot: ProjectSnapshotResponse,
+  taskIds: string[],
+): ProjectSnapshotResponse {
+  const idSet = new Set(taskIds);
+  return {
+    ...snapshot,
+    project: snapshot.project._count
+      ? {
+          ...snapshot.project,
+          _count: {
+            ...snapshot.project._count,
+            tasks: Math.max(snapshot.project._count.tasks - taskIds.length, 0),
+          },
+        }
+      : snapshot.project,
+    tasks: snapshot.tasks.filter((task) => !idSet.has(task.id)),
+    dependencies: snapshot.dependencies.filter(
+      (dependency) =>
+        !idSet.has(dependency.fromTaskId) && !idSet.has(dependency.toTaskId),
+    ),
+    assignments: snapshot.assignments.filter(
+      (assignment) => !idSet.has(assignment.taskId),
+    ),
+  };
+}
+
+function addDependenciesToSnapshot(
+  snapshot: ProjectSnapshotResponse,
+  dependencies: { fromTaskId: string; toTaskId: string; type?: string; lagMinutes?: number }[],
+): ProjectSnapshotResponse {
+  const existingPairs = new Set(
+    snapshot.dependencies.map((dependency) => `${dependency.fromTaskId}->${dependency.toTaskId}`),
+  );
+  const optimisticDependencies = dependencies
+    .filter((dependency) => !existingPairs.has(`${dependency.fromTaskId}->${dependency.toTaskId}`))
+    .map((dependency) => ({
+      id: `temp-dependency:${crypto.randomUUID()}`,
+      projectId: snapshot.project.id,
+      fromTaskId: dependency.fromTaskId,
+      toTaskId: dependency.toTaskId,
+      type: dependency.type ?? 'FS',
+      lagMinutes: dependency.lagMinutes ?? 0,
+    }));
+
+  return {
+    ...snapshot,
+    dependencies: [...snapshot.dependencies, ...optimisticDependencies],
+  };
+}
+
+function removeDependenciesFromSnapshot(
+  snapshot: ProjectSnapshotResponse,
+  dependencyIds: string[],
+): ProjectSnapshotResponse {
+  const idSet = new Set(dependencyIds);
+  return {
+    ...snapshot,
+    dependencies: snapshot.dependencies.filter((dependency) => !idSet.has(dependency.id)),
+  };
+}
+
+function applySnapshotMutation(
+  snapshot: ProjectSnapshotResponse,
+  applyPatch: (value: ProjectSnapshotResponse) => ProjectSnapshotResponse,
+): ProjectSnapshotResponse {
+  return applyPatch(snapshot);
+}
+
+function recomputeOptimisticSnapshot(projectId: string): void {
+  const queue = getOrCreateQueue(projectId);
+  let snapshot = queue.authoritativeSnapshot ?? getProjectSnapshot(projectId);
+  if (!snapshot) {
+    return;
+  }
+
+  if (queue.inFlight) {
+    snapshot = applySnapshotMutation(snapshot, queue.inFlight.applyPatch);
+  }
+
+  for (const item of queue.queued) {
+    snapshot = applySnapshotMutation(snapshot, item.applyPatch);
+  }
+
+  setProjectSnapshot(projectId, snapshot);
+}
+
+async function fetchProjectsQuery(): Promise<ProjectSummary[]> {
+  await queryClient.invalidateQueries({ queryKey: projectQueryKeys.list() });
+  return queryClient.fetchQuery({
+    queryKey: projectQueryKeys.list(),
+    queryFn: () => projectsApi.list(),
+  });
+}
+
+async function fetchProjectSnapshot(projectId: string): Promise<ProjectSnapshotResponse> {
+  await queryClient.invalidateQueries({
+    queryKey: projectQueryKeys.snapshot(projectId),
+  });
+  return queryClient.fetchQuery({
+    queryKey: projectQueryKeys.snapshot(projectId),
+    queryFn: () => projectsApi.snapshot(projectId),
+  });
+}
+
+function normalizeDependencyCoalesceKey(
+  snapshot: ProjectSnapshotResponse,
+  dependenciesToCreate: { fromTaskId: string; toTaskId: string }[],
+  dependenciesToDelete: string[],
+): string {
+  const deletePairs = dependenciesToDelete
+    .map((dependencyId) =>
+      snapshot.dependencies.find((dependency) => dependency.id === dependencyId),
+    )
+    .filter((dependency): dependency is DependencyRow => Boolean(dependency))
+    .map((dependency) => `${dependency.fromTaskId}->${dependency.toTaskId}`);
+  const createPairs = dependenciesToCreate.map(
+    (dependency) => `${dependency.fromTaskId}->${dependency.toTaskId}`,
+  );
+  return ['dependency-batch', ...createPairs, ...deletePairs].sort().join('|');
+}
+
+function createSnapshotQueueMutation<T extends SnapshotMutationResult>(
+  projectId: string,
+  item: Omit<QueueItem, 'execute' | 'observers'> & {
+    execute: () => Promise<T>;
+  },
+): Promise<T> {
+  const queue = getOrCreateQueue(projectId);
+  const authoritativeSnapshot = queue.authoritativeSnapshot ?? getProjectSnapshot(projectId);
+
+  if (!authoritativeSnapshot) {
+    return Promise.reject(new Error('Project snapshot is not loaded.'));
+  }
+
+  queue.authoritativeSnapshot = authoritativeSnapshot;
+
+  return new Promise<T>((resolve, reject) => {
+    const observer: QueueObserver = {
+      resolve: (value) => resolve(value as T),
+      reject,
+    };
+
+    const queuedItem: QueueItem = {
+      ...item,
+      execute: item.execute as () => Promise<SnapshotMutationResult>,
+      observers: [observer],
+    };
+
+    const existingIndex = queue.queued.findIndex(
+      (candidate) => candidate.coalesceKey === queuedItem.coalesceKey,
+    );
+
+    if (existingIndex >= 0) {
+      const existing = queue.queued[existingIndex];
+      queue.queued[existingIndex] = {
+        ...queuedItem,
+        observers: [...existing.observers, observer],
+      };
+    } else {
+      queue.queued.push(queuedItem);
+      useProjectStore.getState().startPendingAction(queuedItem.actionKey);
+    }
+
+    recomputeOptimisticSnapshot(projectId);
+    void processProjectQueue(projectId);
+  });
+}
+
+async function processProjectQueue(projectId: string): Promise<void> {
+  const queue = getOrCreateQueue(projectId);
+  if (queue.processing) {
+    return;
+  }
+
+  queue.processing = true;
+
+  try {
+    while (queue.inFlight || queue.queued.length > 0) {
+      if (!queue.inFlight) {
+        queue.inFlight = queue.queued.shift() ?? null;
+      }
+
+      const current = queue.inFlight;
+      if (!current) {
+        break;
+      }
+
+      try {
+        const result = await current.execute();
+        if (
+          result.snapshot.project.id === projectId &&
+          (!queue.authoritativeSnapshot ||
+            result.revision >= queue.authoritativeSnapshot.revision)
+        ) {
+          queue.authoritativeSnapshot = result.snapshot;
+          setProjectSnapshot(projectId, result.snapshot);
+        }
+
+        for (const observer of current.observers) {
+          observer.resolve(result);
+        }
+      } catch (error) {
+        if (queue.authoritativeSnapshot) {
+          setProjectSnapshot(projectId, queue.authoritativeSnapshot);
+        }
+
+        for (const observer of current.observers) {
+          observer.reject(error);
+        }
+      } finally {
+        useProjectStore.getState().finishPendingAction(current.actionKey);
+        queue.inFlight = null;
+        recomputeOptimisticSnapshot(projectId);
+      }
+    }
+  } finally {
+    queue.processing = false;
+  }
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -193,119 +485,237 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loading: false,
   error: null,
   selectedTaskIds: new Set(),
+  pendingActions: {},
 
-  // ---------- Projects ----------
+  syncProjects: (projects, loadingProjects, error) =>
+    set({
+      projects,
+      loadingProjects,
+      error,
+    }),
+
+  syncSnapshot: (snapshot) => {
+    const queue = getOrCreateQueue(snapshot.project.id);
+    if (!queue.inFlight && queue.queued.length === 0) {
+      queue.authoritativeSnapshot = snapshot;
+    }
+
+    if (get().activeProjectId !== snapshot.project.id) {
+      return;
+    }
+
+    set({
+      activeProject: snapshot.project,
+      tasks: snapshot.tasks,
+      dependencies: snapshot.dependencies,
+      resources: snapshot.resources,
+      assignments: snapshot.assignments,
+      loading: false,
+      error: null,
+    });
+  },
+
+  clearActiveProjectData: () =>
+    set({
+      activeProject: null,
+      tasks: [],
+      dependencies: [],
+      resources: [],
+      assignments: [],
+      loading: false,
+      error: null,
+      selectedTaskIds: new Set(),
+    }),
+
+  setProjectLoading: (loading) => set({ loading }),
+  setProjectError: (error) => set({ error, loading: false }),
+
+  startPendingAction: (actionKey) =>
+    set((state) => ({
+      pendingActions: {
+        ...state.pendingActions,
+        [actionKey]: (state.pendingActions[actionKey] ?? 0) + 1,
+      },
+    })),
+
+  finishPendingAction: (actionKey) =>
+    set((state) => {
+      const nextCount = (state.pendingActions[actionKey] ?? 1) - 1;
+      const pendingActions = { ...state.pendingActions };
+      if (nextCount <= 0) {
+        delete pendingActions[actionKey];
+      } else {
+        pendingActions[actionKey] = nextCount;
+      }
+      return { pendingActions };
+    }),
 
   fetchProjects: async () => {
     set({ loadingProjects: true });
     try {
-      const projects = await projectsApi.list();
-      set({ projects, loadingProjects: false });
-    } catch (e: any) {
-      set({ loadingProjects: false, error: e.message });
+      await fetchProjectsQuery();
+    } catch (error: unknown) {
+      set({
+        loadingProjects: false,
+        error: error instanceof Error ? error.message : 'Failed to load projects',
+      });
     }
   },
 
   createProject: async (name, startDate) => {
     const project = await projectsApi.create({ name, startDate });
-    await get().fetchProjects();
+    await fetchProjectsQuery();
     return project.id;
   },
 
   setActiveProject: async (id) => {
-    set({ activeProjectId: id, loading: true, error: null });
-    try {
-      const [project, tasks, dependencies, resources, assignments] =
-        await Promise.all([
-          projectsApi.get(id),
-          tasksApi.list(id),
-          dependenciesApi.list(id),
-          resourcesApi.list(id),
-          assignmentsApi.list(id),
-        ]);
-      // Guard against stale results from a superseded request
-      if (get().activeProjectId !== id) return;
-      set({
-        activeProject: project,
-        tasks,
-        dependencies,
-        resources,
-        assignments,
-        loading: false,
-      });
-    } catch (e: unknown) {
-      if (get().activeProjectId !== id) return;
-      set({ loading: false, error: e instanceof Error ? e.message : 'Failed to load project' });
-    }
+    set({
+      activeProjectId: id,
+      loading: true,
+      error: null,
+      selectedTaskIds: new Set(),
+    });
+    await fetchProjectSnapshot(id);
   },
 
   deleteProject: async (id) => {
     await projectsApi.delete(id);
-    const state = get();
-    if (state.activeProjectId === id) {
+    queryClient.removeQueries({ queryKey: projectQueryKeys.snapshot(id) });
+    projectQueues.delete(id);
+
+    if (get().activeProjectId === id) {
       set({
         activeProjectId: null,
-        activeProject: null,
-        tasks: [],
-        dependencies: [],
-        resources: [],
-        assignments: [],
         selectedTaskIds: new Set(),
       });
+      get().clearActiveProjectData();
     }
-    await get().fetchProjects();
+
+    await fetchProjectsQuery();
   },
 
-  // ---------- Tasks ----------
-
   fetchTasks: async () => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    const tasks = await tasksApi.list(pid);
-    if (get().activeProjectId !== pid) return;
-    set({ tasks });
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    await fetchProjectSnapshot(projectId);
   },
 
   createTask: async (data) => {
-    const pid = get().activeProjectId;
-    if (!pid) throw new Error('No active project');
-    const task = await tasksApi.create(pid, data);
-    await get().fetchTasks();
-    // Also refetch deps (recalculation may change tasks)
-    await get().fetchDependencies();
-    return task;
+    const projectId = get().activeProjectId;
+    if (!projectId) {
+      throw new Error('No active project');
+    }
+
+    const snapshot = getProjectSnapshot(projectId);
+    if (!snapshot) {
+      throw new Error('Project snapshot is not loaded');
+    }
+    const tempId = `temp-task:${crypto.randomUUID()}`;
+
+    const result = await createSnapshotQueueMutation<TaskMutationResponse>(projectId, {
+      actionKey: 'task:create',
+      clientMutationId: crypto.randomUUID(),
+      baseRevision: snapshot.revision,
+      entityKey: `task:${tempId}`,
+      coalesceKey: `task:create:${tempId}`,
+      applyPatch: (current) => ({
+        ...current,
+        project: current.project._count
+          ? {
+              ...current.project,
+              _count: {
+                ...current.project._count,
+                tasks: current.project._count.tasks + 1,
+              },
+            }
+          : current.project,
+        tasks: [...current.tasks, buildOptimisticTask(current, data, tempId)].sort(
+          (left, right) => left.sortOrder - right.sortOrder,
+        ),
+      }),
+      rollbackPatch: (current) => ({
+        ...current,
+        tasks: current.tasks.filter((task) => task.id !== tempId),
+      }),
+      execute: () => tasksApi.create(projectId, data),
+    });
+
+    return result.task;
   },
 
   updateTask: async (taskId, data) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await tasksApi.update(pid, taskId, data);
-    await get().fetchTasks();
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    const snapshot = getProjectSnapshot(projectId);
+    if (!snapshot) {
+      throw new Error('Project snapshot is not loaded');
+    }
+
+    await createSnapshotQueueMutation<TaskMutationResponse>(projectId, {
+      actionKey: 'task:update',
+      clientMutationId: crypto.randomUUID(),
+      baseRevision: snapshot.revision,
+      entityKey: `task:${taskId}`,
+      coalesceKey: `task:update:${taskId}`,
+      applyPatch: (current) => applyTaskPatch(current, taskId, data),
+      rollbackPatch: (current) => current,
+      execute: () => tasksApi.update(projectId, taskId, data),
+    });
   },
 
   batchUpdateTasks: async (updates) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await tasksApi.batchUpdate(pid, updates);
-    await get().fetchTasks();
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    const snapshot = getProjectSnapshot(projectId);
+    if (!snapshot) {
+      throw new Error('Project snapshot is not loaded');
+    }
+
+    await createSnapshotQueueMutation<TaskBatchUpdateResponse>(projectId, {
+      actionKey: 'task:batch-update',
+      clientMutationId: crypto.randomUUID(),
+      baseRevision: snapshot.revision,
+      entityKey: `tasks:${updates.map((update) => update.id).sort().join(',')}`,
+      coalesceKey: `task:batch-update:${updates.map((update) => update.id).sort().join(',')}`,
+      applyPatch: (current) =>
+        updates.reduce(
+          (nextSnapshot, update) => applyTaskPatch(nextSnapshot, update.id, update.data),
+          current,
+        ),
+      rollbackPatch: (current) => current,
+      execute: () => tasksApi.batchUpdate(projectId, updates),
+    });
   },
 
   deleteTasks: async (taskIds) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-
-    const uniqueTaskIds = [...new Set(taskIds)];
-    if (uniqueTaskIds.length === 0) return;
-
-    for (const taskId of uniqueTaskIds) {
-      await tasksApi.delete(pid, taskId);
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    const snapshot = getProjectSnapshot(projectId);
+    if (!snapshot) {
+      throw new Error('Project snapshot is not loaded');
     }
 
-    const selected = new Set(get().selectedTaskIds);
-    uniqueTaskIds.forEach((taskId) => selected.delete(taskId));
-    set({ selectedTaskIds: selected });
+    const uniqueTaskIds = [...new Set(taskIds)];
+    if (uniqueTaskIds.length === 0) {
+      return;
+    }
 
-    await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+    await createSnapshotQueueMutation<TaskDeleteResponse>(projectId, {
+      actionKey: 'task:delete',
+      clientMutationId: crypto.randomUUID(),
+      baseRevision: snapshot.revision,
+      entityKey: `tasks:${uniqueTaskIds.sort().join(',')}`,
+      coalesceKey: `task:delete:${uniqueTaskIds.sort().join(',')}`,
+      applyPatch: (current) => removeTasksFromSnapshot(current, uniqueTaskIds),
+      rollbackPatch: (current) => current,
+      execute: () => tasksApi.deleteBatch(projectId, uniqueTaskIds),
+    });
+
+    const nextSelection = new Set(get().selectedTaskIds);
+    for (const taskId of uniqueTaskIds) {
+      nextSelection.delete(taskId);
+    }
+    set({ selectedTaskIds: nextSelection });
   },
 
   deleteTask: async (taskId) => {
@@ -313,99 +723,154 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   recalculate: async () => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await tasksApi.recalculate(pid);
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    const snapshot = getProjectSnapshot(projectId);
+    if (!snapshot) {
+      throw new Error('Project snapshot is not loaded');
+    }
+
+    await createSnapshotQueueMutation<TaskRecalculateResponse>(projectId, {
+      actionKey: 'task:recalculate',
+      clientMutationId: crypto.randomUUID(),
+      baseRevision: snapshot.revision,
+      entityKey: `project:${projectId}`,
+      coalesceKey: `project:recalculate:${projectId}`,
+      applyPatch: (current) => current,
+      rollbackPatch: (current) => current,
+      execute: () => tasksApi.recalculate(projectId),
+    });
+  },
+
+  fetchDependencies: async () => {
     await get().fetchTasks();
   },
 
-  // ---------- Dependencies ----------
-
-  fetchDependencies: async () => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    const dependencies = await dependenciesApi.list(pid);
-    if (get().activeProjectId !== pid) return;
-    set({ dependencies });
+  createDependency: async (data) => {
+    await get().createDependenciesBatch([
+      {
+        fromTaskId: String(data.fromTaskId),
+        toTaskId: String(data.toTaskId),
+        type: typeof data.type === 'string' ? data.type : 'FS',
+        lagMinutes:
+          typeof data.lagMinutes === 'number' ? data.lagMinutes : 0,
+      },
+    ]);
   },
 
-  createDependency: async (data) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await dependenciesApi.create(pid, data);
-    await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+  createDependenciesBatch: async (dependenciesToCreate) => {
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    const snapshot = getProjectSnapshot(projectId);
+    if (!snapshot) {
+      throw new Error('Project snapshot is not loaded');
+    }
+    if (dependenciesToCreate.length === 0) return;
+
+    await createSnapshotQueueMutation<DependencyBatchResponse>(projectId, {
+      actionKey: 'dependency:create',
+      clientMutationId: crypto.randomUUID(),
+      baseRevision: snapshot.revision,
+      entityKey: dependenciesToCreate
+        .map((dependency) => `${dependency.fromTaskId}->${dependency.toTaskId}`)
+        .sort()
+        .join(','),
+      coalesceKey: normalizeDependencyCoalesceKey(
+        snapshot,
+        dependenciesToCreate,
+        [],
+      ),
+      applyPatch: (current) => addDependenciesToSnapshot(current, dependenciesToCreate),
+      rollbackPatch: (current) => current,
+      execute: () =>
+        dependenciesApi.batch(projectId, {
+          create: dependenciesToCreate,
+        }),
+    });
   },
 
   updateDependency: async (depId, data) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await dependenciesApi.update(pid, depId, data);
-    await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    const response = await dependenciesApi.update(projectId, depId, data);
+    setProjectSnapshot(projectId, response.snapshot);
   },
 
   deleteDependency: async (depId) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await dependenciesApi.delete(pid, depId);
-    await Promise.all([get().fetchTasks(), get().fetchDependencies()]);
+    await get().deleteDependenciesBatch([depId]);
   },
 
-  // ---------- Resources ----------
+  deleteDependenciesBatch: async (dependencyIds) => {
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    const snapshot = getProjectSnapshot(projectId);
+    if (!snapshot) {
+      throw new Error('Project snapshot is not loaded');
+    }
+    const uniqueDependencyIds = [...new Set(dependencyIds)];
+    if (uniqueDependencyIds.length === 0) return;
+
+    await createSnapshotQueueMutation<DependencyBatchResponse>(projectId, {
+      actionKey: 'dependency:delete',
+      clientMutationId: crypto.randomUUID(),
+      baseRevision: snapshot.revision,
+      entityKey: uniqueDependencyIds.sort().join(','),
+      coalesceKey: normalizeDependencyCoalesceKey(
+        snapshot,
+        [],
+        uniqueDependencyIds,
+      ),
+      applyPatch: (current) => removeDependenciesFromSnapshot(current, uniqueDependencyIds),
+      rollbackPatch: (current) => current,
+      execute: () =>
+        dependenciesApi.batch(projectId, {
+          deleteDependencyIds: uniqueDependencyIds,
+        }),
+    });
+  },
 
   fetchResources: async () => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    const resources = await resourcesApi.list(pid);
-    if (get().activeProjectId !== pid) return;
-    set({ resources });
+    await get().fetchTasks();
   },
 
   createResource: async (data) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await resourcesApi.create(pid, data);
-    await get().fetchResources();
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    await resourcesApi.create(projectId, data);
+    await fetchProjectSnapshot(projectId);
   },
 
   updateResource: async (resId, data) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await resourcesApi.update(pid, resId, data);
-    await get().fetchResources();
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    await resourcesApi.update(projectId, resId, data);
+    await fetchProjectSnapshot(projectId);
   },
 
   deleteResource: async (resId) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await resourcesApi.delete(pid, resId);
-    await Promise.all([get().fetchResources(), get().fetchAssignments()]);
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    await resourcesApi.delete(projectId, resId);
+    await fetchProjectSnapshot(projectId);
   },
 
-  // ---------- Assignments ----------
-
   fetchAssignments: async () => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    const assignments = await assignmentsApi.list(pid);
-    if (get().activeProjectId !== pid) return;
-    set({ assignments });
+    await get().fetchTasks();
   },
 
   createAssignment: async (data) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await assignmentsApi.create(pid, data);
-    await get().fetchAssignments();
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    await assignmentsApi.create(projectId, data);
+    await fetchProjectSnapshot(projectId);
   },
 
   deleteAssignment: async (assignId) => {
-    const pid = get().activeProjectId;
-    if (!pid) return;
-    await assignmentsApi.delete(pid, assignId);
-    await get().fetchAssignments();
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    await assignmentsApi.delete(projectId, assignId);
+    await fetchProjectSnapshot(projectId);
   },
-
-  // ---------- Selection ----------
 
   selectTask: (id, multi = false) => {
     const selected = multi ? new Set(get().selectedTaskIds) : new Set<string>();

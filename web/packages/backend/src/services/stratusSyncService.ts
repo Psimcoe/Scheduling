@@ -17,6 +17,7 @@ import {
   fetchCompanyFields,
   fetchPackagesFromStratus,
   getConfiguredPackageFieldValue,
+  getEquivalentFieldNames,
   normalizeStratusAssembly,
   normalizeStratusPackage,
   normalizeStratusProject,
@@ -261,11 +262,7 @@ export interface SyncToPrefabPreviewResult {
     prefabTaskId: string | null;
     prefabTaskName: string | null;
     externalKey: string;
-    changes: Array<{
-      field: "start" | "finish" | "deadline";
-      from: string | null;
-      to: string | null;
-    }>;
+    changes: ScheduleMirrorChange[];
     warnings: string[];
   }>;
   summary: {
@@ -309,11 +306,7 @@ export interface RefreshFromPrefabPreviewResult {
     prefabTaskId: string | null;
     prefabTaskName: string | null;
     externalKey: string;
-    changes: Array<{
-      field: "start" | "finish" | "deadline";
-      from: string | null;
-      to: string | null;
-    }>;
+    changes: ScheduleMirrorChange[];
     warnings: string[];
   }>;
   summary: {
@@ -417,6 +410,12 @@ interface IncrementalBundleSyncMeta {
   unchanged: boolean;
   skippedReason: string | null;
   localHierarchy: LocalPackageHierarchy | null;
+}
+
+interface ScheduleMirrorChange {
+  field: "start" | "finish" | "deadline" | "duration";
+  from: string | number | null;
+  to: string | number | null;
 }
 
 const STRATUS_FETCH_CONCURRENCY = 6;
@@ -1052,6 +1051,7 @@ export async function previewStratusPull(
     tasks,
     project.minutesPerDay,
     config,
+    project.startDate,
   );
   return {
     rows,
@@ -1114,6 +1114,7 @@ export async function applyStratusPull(
       existingTasks,
       project.minutesPerDay,
       effectiveConfig,
+      project.startDate,
     );
     const previewRowByPackageId = new Map(
       previewRows.map((row) => [row.packageId, row]),
@@ -1238,6 +1239,7 @@ export async function applyStratusPull(
     existingTasks,
     project.minutesPerDay,
     effectiveConfig,
+    project.startDate,
   );
   const previewRowByPackageId = new Map(
     previewRows.map((row) => [row.packageId, row]),
@@ -1620,6 +1622,7 @@ export async function applyStratusSyncToPrefab(
           start: sourceTask.start,
           finish: sourceTask.finish,
           deadline: sourceTask.deadline,
+          durationMinutes: sourceTask.durationMinutes,
           isManuallyScheduled: true,
         },
       });
@@ -1760,6 +1763,7 @@ export async function applyStratusRefreshFromPrefab(
           start: prefabTask.start,
           finish: prefabTask.finish,
           deadline: prefabTask.deadline,
+          durationMinutes: prefabTask.durationMinutes,
           isManuallyScheduled: true,
         },
       });
@@ -1926,6 +1930,7 @@ export function buildPullPreviewRows(
   tasks: PreviewTaskRecord[],
   minutesPerDay: number,
   config: StratusTaskMappingConfig,
+  projectStartDate: Date | null = null,
 ): PullPreviewRow[] {
   const syncByPackageId = new Map<string, PreviewTaskRecord>();
   const tasksByExternalKey = new Map<string, PreviewTaskRecord[]>();
@@ -1949,6 +1954,7 @@ export function buildPullPreviewRows(
       minutesPerDay,
       config,
       statusLookup,
+      projectStartDate,
     );
     const byPackage = syncByPackageId.get(pkg.id) ?? null;
     const byExternalKey = pkg.externalKey
@@ -2049,6 +2055,7 @@ export function buildPullPreviewRows(
         assembly,
         config,
         statusLookup,
+        projectStartDate,
       );
       const assemblyWarnings: string[] = [];
       const matches = tasksByExternalKey.get(assembly.externalKey) ?? [];
@@ -2198,11 +2205,7 @@ export function buildSyncToPrefabPreviewRows(
         );
       }
 
-      const changes: Array<{
-        field: "start" | "finish" | "deadline";
-        from: string | null;
-        to: string | null;
-      }> = [];
+      const changes: ScheduleMirrorChange[] = [];
       if (prefabTask) {
         const prefabStart = toIsoSignature(prefabTask.start);
         const sourceStart = toIsoSignature(sourceTask.start);
@@ -2210,6 +2213,8 @@ export function buildSyncToPrefabPreviewRows(
         const sourceFinish = toIsoSignature(sourceTask.finish);
         const prefabDeadline = toIsoSignature(prefabTask.deadline);
         const sourceDeadline = toIsoSignature(sourceTask.deadline);
+        const prefabDuration = prefabTask.durationMinutes;
+        const sourceDuration = sourceTask.durationMinutes;
 
         if (prefabStart !== sourceStart) {
           changes.push({ field: "start", from: prefabStart, to: sourceStart });
@@ -2228,6 +2233,13 @@ export function buildSyncToPrefabPreviewRows(
             to: sourceDeadline,
           });
         }
+        if (prefabDuration !== sourceDuration) {
+          changes.push({
+            field: "duration",
+            from: prefabDuration,
+            to: sourceDuration,
+          });
+        }
       }
 
       return {
@@ -2243,7 +2255,7 @@ export function buildSyncToPrefabPreviewRows(
         changes,
         warnings:
           warnings.length === 0 && changes.length === 0
-            ? ["No date changes to sync"]
+            ? ["No schedule changes to sync"]
             : warnings,
       };
     });
@@ -2279,11 +2291,7 @@ export function buildRefreshFromPrefabPreviewRows(
         );
       }
 
-      const changes: Array<{
-        field: "start" | "finish" | "deadline";
-        from: string | null;
-        to: string | null;
-      }> = [];
+      const changes: ScheduleMirrorChange[] = [];
       if (prefabTask) {
         const sourceStart = toIsoSignature(sourceTask.start);
         const prefabStart = toIsoSignature(prefabTask.start);
@@ -2291,6 +2299,8 @@ export function buildRefreshFromPrefabPreviewRows(
         const prefabFinish = toIsoSignature(prefabTask.finish);
         const sourceDeadline = toIsoSignature(sourceTask.deadline);
         const prefabDeadline = toIsoSignature(prefabTask.deadline);
+        const sourceDuration = sourceTask.durationMinutes;
+        const prefabDuration = prefabTask.durationMinutes;
 
         if (sourceStart !== prefabStart) {
           changes.push({ field: "start", from: sourceStart, to: prefabStart });
@@ -2309,6 +2319,13 @@ export function buildRefreshFromPrefabPreviewRows(
             to: prefabDeadline,
           });
         }
+        if (sourceDuration !== prefabDuration) {
+          changes.push({
+            field: "duration",
+            from: sourceDuration,
+            to: prefabDuration,
+          });
+        }
       }
 
       return {
@@ -2324,7 +2341,7 @@ export function buildRefreshFromPrefabPreviewRows(
         changes,
         warnings:
           warnings.length === 0 && changes.length === 0
-            ? ["No Prefab changes to refresh"]
+            ? ["No Prefab schedule changes to refresh"]
             : warnings,
       };
     });
@@ -3123,7 +3140,18 @@ function getConfiguredNormalizedFieldValue(
   fieldName: string | null | undefined,
 ) {
   const normalized = normalizeNullableString(fieldName);
-  return normalized ? normalizedFields[normalized] ?? null : null;
+  if (!normalized) {
+    return null;
+  }
+
+  for (const equivalent of getEquivalentFieldNames(normalized)) {
+    const value = normalizeNullableString(normalizedFields[equivalent]);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
 }
 
 function extractStoredPackageSignature(
@@ -3533,6 +3561,57 @@ function resolveMappedDurationMinutes(
   return minutesPerDay;
 }
 
+interface ResolvedMappedPackageSchedule {
+  start: Date | null;
+  finish: Date | null;
+  deadline: Date | null;
+  durationMinutes: number;
+}
+
+function resolveMappedPackageSchedule(
+  minutesPerDay: number,
+  projectStartDate: Date | null,
+  config: StratusTaskMappingConfig,
+  pkg: NormalizedStratusPackage,
+): ResolvedMappedPackageSchedule {
+  const durationMinutes = resolveMappedDurationMinutes(
+    minutesPerDay,
+    config,
+    pkg,
+  );
+  let start = parseDateValue(
+    getConfiguredPackageFieldValue(pkg, config.startDateField),
+  );
+  let finish = parseDateValue(
+    getConfiguredPackageFieldValue(pkg, config.finishDateField),
+  );
+
+  if (!start && finish) {
+    start = new Date(finish.getTime() - durationMinutes * 60_000);
+  }
+
+  if (!finish && start) {
+    finish = new Date(start.getTime() + durationMinutes * 60_000);
+  }
+
+  if (!start && projectStartDate) {
+    start = new Date(projectStartDate.getTime());
+  }
+
+  if (!finish && start) {
+    finish = new Date(start.getTime() + durationMinutes * 60_000);
+  }
+
+  return {
+    start,
+    finish,
+    deadline: parseDateValue(
+      getConfiguredPackageFieldValue(pkg, config.deadlineField),
+    ),
+    durationMinutes,
+  };
+}
+
 function resolveMappedProgress(
   lookup: StatusProgressLookup,
   status: {
@@ -3568,28 +3647,22 @@ function createMappedPackageTaskData(
   config: StratusTaskMappingConfig,
   statusLookup: StatusProgressLookup,
 ) {
-  const durationMinutes = resolveMappedDurationMinutes(
+  const schedule = resolveMappedPackageSchedule(
     project.minutesPerDay,
+    project.startDate,
     config,
     pkg,
   );
-  const start =
-    parseDateValue(
-      getConfiguredPackageFieldValue(pkg, config.startDateField),
-    ) ?? project.startDate;
+  const start = schedule.start ?? project.startDate;
   const finish =
-    parseDateValue(
-      getConfiguredPackageFieldValue(pkg, config.finishDateField),
-    ) ?? new Date(start.getTime() + durationMinutes * 60_000);
+    schedule.finish ?? new Date(start.getTime() + schedule.durationMinutes * 60_000);
 
   return {
     name: resolveMappedTaskName(pkg, config),
     start,
     finish,
-    deadline: parseDateValue(
-      getConfiguredPackageFieldValue(pkg, config.deadlineField),
-    ),
-    durationMinutes,
+    deadline: schedule.deadline,
+    durationMinutes: schedule.durationMinutes,
     percentComplete: resolveMappedProgress(statusLookup, pkg),
     notes: [
       pkg.normalizedFields["STRATUS.Package.Description"],
@@ -3609,13 +3682,20 @@ function createMappedPackagePreviewData(
   minutesPerDay: number,
   config: StratusTaskMappingConfig,
   statusLookup: StatusProgressLookup,
+  projectStartDate: Date | null = null,
 ): PullPreviewRow["mappedTask"] {
+  const schedule = resolveMappedPackageSchedule(
+    minutesPerDay,
+    projectStartDate,
+    config,
+    pkg,
+  );
   return {
     name: resolveMappedTaskName(pkg, config),
-    start: getConfiguredPackageFieldValue(pkg, config.startDateField),
-    finish: getConfiguredPackageFieldValue(pkg, config.finishDateField),
-    deadline: getConfiguredPackageFieldValue(pkg, config.deadlineField),
-    durationMinutes: resolveMappedDurationMinutes(minutesPerDay, config, pkg),
+    start: schedule.start?.toISOString() ?? null,
+    finish: schedule.finish?.toISOString() ?? null,
+    deadline: schedule.deadline?.toISOString() ?? null,
+    durationMinutes: schedule.durationMinutes,
     percentComplete: resolveMappedProgress(statusLookup, pkg),
     notes: [
       pkg.normalizedFields["STRATUS.Package.Description"],
@@ -3670,12 +3750,14 @@ function createMappedAssemblyPreviewData(
   assembly: NormalizedStratusAssembly,
   config: StratusTaskMappingConfig,
   statusLookup: StatusProgressLookup,
+  projectStartDate: Date | null = null,
 ): PullPreviewAssemblyRow["mappedTask"] {
   const packagePreview = createMappedPackagePreviewData(
     pkg,
     minutesPerDay,
     config,
     statusLookup,
+    projectStartDate,
   );
   return {
     name: assembly.name ?? `Assembly ${assembly.id}`,

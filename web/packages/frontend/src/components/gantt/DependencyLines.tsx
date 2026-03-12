@@ -1,12 +1,12 @@
 /**
- * DependencyLines — SVG overlay that draws dependency arrows between bars.
+ * DependencyLines - SVG overlay that draws dependency arrows between visible bars.
  */
 
-import React, { useMemo  } from 'react';
+import React, { useMemo } from 'react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
-import { type TaskRow, type DependencyRow } from '../../stores';
+import { type DependencyRow, type TaskRow } from '../../stores';
 
 dayjs.extend(utc);
 
@@ -15,9 +15,7 @@ interface DependencyLinesProps {
   dependencies: DependencyRow[];
   timelineStart: string;
   dayWidth: number;
-  rowHeight: number;
-  /** Map from task.id → visible row index (some rows may be collapsed) */
-  taskIndexMap: Map<string, number>;
+  taskYMap: Map<string, number>;
   totalHeight: number;
   totalWidth: number;
 }
@@ -27,72 +25,56 @@ const DependencyLines: React.FC<DependencyLinesProps> = ({
   dependencies,
   timelineStart,
   dayWidth,
-  rowHeight,
-  taskIndexMap,
+  taskYMap,
   totalHeight,
   totalWidth,
 }) => {
-  const tlStart = useMemo(() => dayjs.utc(timelineStart), [timelineStart]);
-  const taskMap = useMemo(
-    () => new Map(tasks.map((t) => [t.id, t])),
-    [tasks],
+  const timelineStartDate = useMemo(() => dayjs.utc(timelineStart), [timelineStart]);
+  const taskMap = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
+
+  const lines = useMemo(
+    () =>
+      dependencies
+        .map((dependency) => {
+          const fromTask = taskMap.get(dependency.fromTaskId);
+          const toTask = taskMap.get(dependency.toTaskId);
+          const sourceY = taskYMap.get(dependency.fromTaskId);
+          const targetY = taskYMap.get(dependency.toTaskId);
+
+          if (!fromTask || !toTask || sourceY == null || targetY == null) {
+            return null;
+          }
+
+          const fromStart = dayjs.utc(fromTask.start);
+          const fromFinish = dayjs.utc(fromTask.finish);
+          const toStart = dayjs.utc(toTask.start);
+          const toFinish = dayjs.utc(toTask.finish);
+
+          const sourceX =
+            dependency.type === 'FF' || dependency.type === 'FS'
+              ? fromFinish.diff(timelineStartDate, 'day', true) * dayWidth
+              : fromStart.diff(timelineStartDate, 'day', true) * dayWidth;
+          const targetX =
+            dependency.type === 'FS' || dependency.type === 'SS'
+              ? toStart.diff(timelineStartDate, 'day', true) * dayWidth
+              : toFinish.diff(timelineStartDate, 'day', true) * dayWidth;
+
+          const midX =
+            dependency.type === 'FS' || dependency.type === 'FF'
+              ? sourceX + 8
+              : sourceX - 8;
+          const arrowDirection =
+            dependency.type === 'FS' || dependency.type === 'SS' ? 'right' : 'left';
+
+          return {
+            id: dependency.id,
+            arrowDirection,
+            path: `M ${sourceX} ${sourceY} L ${midX} ${sourceY} L ${midX} ${targetY} L ${targetX} ${targetY}`,
+          };
+        })
+        .filter((line): line is { id: string; arrowDirection: 'left' | 'right'; path: string } => Boolean(line)),
+    [dayWidth, dependencies, taskMap, taskYMap, timelineStartDate],
   );
-
-  const lines = useMemo(() => {
-    return dependencies
-      .map((dep) => {
-        const from = taskMap.get(dep.fromTaskId);
-        const to = taskMap.get(dep.toTaskId);
-        if (!from || !to) return null;
-
-        const fromIdx = taskIndexMap.get(from.id);
-        const toIdx = taskIndexMap.get(to.id);
-        if (fromIdx === undefined || toIdx === undefined) return null;
-
-        const fromStart = dayjs.utc(from.start);
-        const fromFinish = dayjs.utc(from.finish);
-        const toStart = dayjs.utc(to.start);
-
-        // Source point — depends on link type
-        let sx: number;
-        const sy = fromIdx * rowHeight + rowHeight / 2;
-
-        // FS or FF: source from finish side
-        if (dep.type === 'FF' || dep.type === 'FS') {
-          sx = fromFinish.diff(tlStart, 'day', true) * dayWidth;
-        } else {
-          sx = fromStart.diff(tlStart, 'day', true) * dayWidth;
-        }
-
-        // Target point
-        let tx: number;
-        const ty = toIdx * rowHeight + rowHeight / 2;
-
-        // FS or SS: target at start side
-        if (dep.type === 'FS' || dep.type === 'SS') {
-          tx = toStart.diff(tlStart, 'day', true) * dayWidth;
-        } else {
-          tx = dayjs.utc(to.finish).diff(tlStart, 'day', true) * dayWidth;
-        }
-
-        // Build elbow path  
-        const midX = dep.type === 'FS' || dep.type === 'FF'
-          ? sx + 8
-          : sx - 8;
-
-        const path = `M ${sx} ${sy} L ${midX} ${sy} L ${midX} ${ty} L ${tx} ${ty}`;
-        const arrowDir = (dep.type === 'FS' || dep.type === 'SS') ? 'right' : 'left';
-
-        return { path, tx, ty, arrowDir, id: dep.id };
-      })
-      .filter(Boolean) as {
-      path: string;
-      tx: number;
-      ty: number;
-      arrowDir: string;
-      id: string;
-    }[];
-  }, [dependencies, taskMap, taskIndexMap, tlStart, dayWidth, rowHeight]);
 
   return (
     <svg
@@ -106,35 +88,21 @@ const DependencyLines: React.FC<DependencyLinesProps> = ({
       }}
     >
       <defs>
-        <marker
-          id="arrow-right"
-          markerWidth="8"
-          markerHeight="6"
-          refX="8"
-          refY="3"
-          orient="auto"
-        >
+        <marker id="arrow-right" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
           <polygon points="0 0, 8 3, 0 6" fill="#666" />
         </marker>
-        <marker
-          id="arrow-left"
-          markerWidth="8"
-          markerHeight="6"
-          refX="0"
-          refY="3"
-          orient="auto"
-        >
+        <marker id="arrow-left" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
           <polygon points="8 0, 0 3, 8 6" fill="#666" />
         </marker>
       </defs>
-      {lines.map((l) => (
+      {lines.map((line) => (
         <path
-          key={l.id}
-          d={l.path}
+          key={line.id}
+          d={line.path}
           fill="none"
           stroke="#666"
           strokeWidth={1.2}
-          markerEnd={`url(#arrow-${l.arrowDir})`}
+          markerEnd={`url(#arrow-${line.arrowDirection})`}
         />
       ))}
     </svg>

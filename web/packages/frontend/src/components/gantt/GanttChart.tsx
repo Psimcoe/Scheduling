@@ -1,37 +1,30 @@
 /**
- * GanttChart — the right-side Gantt panel: timeline header + bars + dependency lines.
- *
- * Scrolls horizontally. Row heights match the task grid so they align.
+ * GanttChart - virtualized Gantt surface that shares the task-grid row model.
  */
 
-import React, { useMemo, useRef, useCallback } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
+import type { VirtualItem } from '@tanstack/react-virtual';
 import { Box } from '@mui/material';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import minMax from 'dayjs/plugin/minMax';
+import utc from 'dayjs/plugin/utc';
 
 import TimelineHeader from './TimelineHeader';
 import GanttBar from './GanttBar';
 import DependencyLines from './DependencyLines';
-import { useProjectStore, useUIStore, ROW_HEIGHT, type GanttZoom, type FilterCriteria, type TaskRow } from '../../stores';
+import { ROW_HEIGHT, useProjectStore, useUIStore, type DependencyRow, type GanttZoom, type TaskRow } from '../../stores';
+import type { VisibleTaskListRow } from '../../hooks/useVisibleTaskRows';
 
 dayjs.extend(utc);
 dayjs.extend(minMax);
 
-/** Check whether a task matches a single filter criterion (mirrors TaskGrid). */
-function matchesCriterion(task: TaskRow, c: FilterCriteria): boolean {
-  const raw = (task as unknown as Record<string, unknown>)[c.field];
-  const strVal = String(raw ?? '').toLowerCase();
-  const cmpVal = String(c.value ?? '').toLowerCase();
-  switch (c.operator) {
-    case 'contains': return strVal.includes(cmpVal);
-    case 'eq': return strVal === cmpVal;
-    case 'ne': return strVal !== cmpVal;
-    case 'gt': return Number(raw) > Number(c.value);
-    case 'lt': return Number(raw) < Number(c.value);
-    case 'between': return c.value2 != null && Number(raw) >= Number(c.value) && Number(raw) <= Number(c.value2);
-    default: return true;
-  }
+interface GanttChartProps {
+  rows: VisibleTaskListRow[];
+  visibleTasks: TaskRow[];
+  visibleDependencies: DependencyRow[];
+  virtualRows: VirtualItem[];
+  totalBodyHeight: number;
+  headerHeight: number;
 }
 
 function dayWidthForZoom(zoom: GanttZoom): number {
@@ -49,142 +42,184 @@ function dayWidthForZoom(zoom: GanttZoom): number {
   }
 }
 
-const GanttChart: React.FC<{ onScroll?: (scrollTop: number) => void; scrollRef?: React.RefObject<HTMLDivElement | null> }> = ({ onScroll, scrollRef }) => {
-  const tasks = useProjectStore((s) => s.tasks);
-  const dependencies = useProjectStore((s) => s.dependencies);
-  const selectedTaskIds = useProjectStore((s) => s.selectedTaskIds);
-  const zoom = useUIStore((s) => s.ganttZoom);
-  const collapsedIds = useUIStore((s) => s.collapsedIds);
-  const filters = useUIStore((s) => s.filters);
-  const sortCriteria = useUIStore((s) => s.sortCriteria);
-  const containerRef = useRef<HTMLDivElement>(null);
-
+const GanttChart: React.FC<GanttChartProps> = ({
+  rows,
+  visibleTasks,
+  visibleDependencies,
+  virtualRows,
+  totalBodyHeight,
+  headerHeight,
+}) => {
+  const activeProject = useProjectStore((state) => state.activeProject);
+  const selectedTaskIds = useProjectStore((state) => state.selectedTaskIds);
+  const zoom = useUIStore((state) => state.ganttZoom);
   const dayWidth = dayWidthForZoom(zoom);
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
 
-  // Compute visible tasks — match TaskGrid logic exactly
-  const visibleTasks = useMemo(() => {
-    // Build hidden set from collapsed summary parents
-    const hiddenIds = new Set<string>();
-    const taskById = new Map(tasks.map((t) => [t.id, t]));
-    for (const t of tasks) {
-      let cur = t.parentId;
-      while (cur) {
-        if (collapsedIds.has(cur)) { hiddenIds.add(t.id); break; }
-        const parent = taskById.get(cur);
-        cur = parent?.parentId ?? null;
-      }
+  const syncHeaderScroll = useCallback(() => {
+    if (headerScrollRef.current && bodyScrollRef.current) {
+      headerScrollRef.current.scrollLeft = bodyScrollRef.current.scrollLeft;
     }
-    let result = tasks.filter((t) => !hiddenIds.has(t.id));
-    if (filters.length > 0) {
-      result = result.filter((t) => filters.every((c) => matchesCriterion(t, c)));
-    }
-    if (sortCriteria.length > 0) {
-      result = [...result].sort((a, b) => {
-        for (const sc of sortCriteria) {
-          const aVal = (a as unknown as Record<string, unknown>)[sc.field];
-          const bVal = (b as unknown as Record<string, unknown>)[sc.field];
-          const aNum = Number(aVal);
-          const bNum = Number(bVal);
-          let cmp: number;
-          if (!isNaN(aNum) && !isNaN(bNum)) cmp = aNum - bNum;
-          else cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''));
-          if (cmp !== 0) return sc.direction === 'desc' ? -cmp : cmp;
-        }
-        return 0;
-      });
-    }
-    return result;
-  }, [tasks, collapsedIds, filters, sortCriteria]);
+  }, []);
 
-  // Compute timeline range — from earliest start to latest finish + buffer
+  const renderedRows = useMemo(
+    () =>
+      virtualRows
+        .map((virtualRow) => {
+          const row = rows[virtualRow.index];
+          return row ? { virtualRow, row } : null;
+        })
+        .filter(
+          (
+            entry,
+          ): entry is {
+            virtualRow: VirtualItem;
+            row: VisibleTaskListRow;
+          } => Boolean(entry),
+        ),
+    [rows, virtualRows],
+  );
+
+  const renderedTaskRows = useMemo(
+    () =>
+      renderedRows.filter(
+        (
+          entry,
+        ): entry is {
+          virtualRow: VirtualItem;
+          row: Extract<VisibleTaskListRow, { kind: 'task' }>;
+        } => entry.row.kind === 'task',
+      ),
+    [renderedRows],
+  );
+
+  const taskYMap = useMemo(
+    () =>
+      new Map(
+        renderedTaskRows.map(({ row, virtualRow }) => [
+          row.task.id,
+          virtualRow.start + ROW_HEIGHT / 2,
+        ]),
+      ),
+    [renderedTaskRows],
+  );
+
+  const renderedTaskIds = useMemo(
+    () => new Set(renderedTaskRows.map(({ row }) => row.task.id)),
+    [renderedTaskRows],
+  );
+
+  const renderedDependencies = useMemo(
+    () =>
+      visibleDependencies.filter(
+        (dependency) =>
+          renderedTaskIds.has(dependency.fromTaskId) &&
+          renderedTaskIds.has(dependency.toTaskId),
+      ),
+    [renderedTaskIds, visibleDependencies],
+  );
+
   const { timelineStart, timelineEnd } = useMemo(() => {
-    if (tasks.length === 0) {
-      const now = dayjs.utc();
+    if (visibleTasks.length === 0) {
+      const fallbackStart = activeProject?.startDate
+        ? dayjs.utc(activeProject.startDate)
+        : dayjs.utc();
       return {
-        timelineStart: now.startOf('month').toISOString(),
-        timelineEnd: now.add(3, 'month').endOf('month').toISOString(),
+        timelineStart: fallbackStart.startOf('month').toISOString(),
+        timelineEnd: fallbackStart.add(3, 'month').endOf('month').toISOString(),
       };
     }
-    const starts = tasks.map((t) => dayjs.utc(t.start));
-    const finishes = tasks.map((t) => dayjs.utc(t.finish));
+
+    const starts = visibleTasks.map((task) => dayjs.utc(task.start));
+    const finishes = visibleTasks.map((task) => dayjs.utc(task.finish));
     const earliest = dayjs.min(...starts)!.subtract(7, 'day').startOf('week');
     const latest = dayjs.max(...finishes)!.add(14, 'day').endOf('week');
     return {
       timelineStart: earliest.toISOString(),
       timelineEnd: latest.toISOString(),
     };
-  }, [tasks]);
+  }, [activeProject?.startDate, visibleTasks]);
 
-  const totalDays = dayjs.utc(timelineEnd).diff(dayjs.utc(timelineStart), 'day');
+  const totalDays = Math.max(dayjs.utc(timelineEnd).diff(dayjs.utc(timelineStart), 'day'), 1);
   const totalWidth = totalDays * dayWidth;
-  const totalHeight = visibleTasks.length * ROW_HEIGHT;
-
-  const taskIndexMap = useMemo(
-    () => new Map(visibleTasks.map((t, i) => [t.id, i])),
-    [visibleTasks],
-  );
-
-  // Sync vertical scroll
-  const handleScroll = useCallback(() => {
-    if (containerRef.current && onScroll) {
-      onScroll(containerRef.current.scrollTop);
-    }
-  }, [onScroll]);
 
   return (
     <Box
-      ref={(el: HTMLDivElement | null) => {
-        (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-        if (scrollRef) (scrollRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-      }}
-      onScroll={handleScroll}
       sx={{
-        height: '100%',
-        overflow: 'auto',
         position: 'relative',
+        minHeight: headerHeight + totalBodyHeight,
         bgcolor: '#FFFFFF',
       }}
     >
-      {/* Timeline header (sticky top) */}
-      <Box sx={{ position: 'sticky', top: 0, zIndex: 2, bgcolor: '#FFFFFF' }}>
-        <TimelineHeader
-          startDate={timelineStart}
-          endDate={timelineEnd}
-          dayWidth={dayWidth}
-        />
-      </Box>
-
-      {/* Bar area */}
       <Box
         sx={{
-          position: 'relative',
-          width: totalWidth,
-          height: totalHeight,
-          minHeight: 200,
+          position: 'sticky',
+          top: 0,
+          zIndex: 2,
+          height: headerHeight,
+          bgcolor: '#FFFFFF',
+          borderBottom: '1px solid #DADCE0',
         }}
       >
-        {/* Alternating row stripes */}
-        {visibleTasks.map((_, i) => (
-          <Box
-            key={i}
-            sx={{
-              position: 'absolute',
-              top: i * ROW_HEIGHT,
-              left: 0,
-              right: 0,
-              width: totalWidth,
-              height: ROW_HEIGHT,
-              bgcolor: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
-              borderBottom: '1px solid #F0F0F0',
-            }}
-          />
-        ))}
+        <Box ref={headerScrollRef} sx={{ overflow: 'hidden' }}>
+          <Box sx={{ width: totalWidth, minWidth: '100%' }}>
+            <TimelineHeader
+              startDate={timelineStart}
+              endDate={timelineEnd}
+              dayWidth={dayWidth}
+            />
+          </Box>
+        </Box>
+      </Box>
 
-        {/* Today line */}
-        {(() => {
-          const todayOffset =
-            dayjs.utc().diff(dayjs.utc(timelineStart), 'day', true) * dayWidth;
-          if (todayOffset > 0 && todayOffset < totalWidth) {
+      <Box
+        ref={bodyScrollRef}
+        onScroll={syncHeaderScroll}
+        sx={{
+          height: totalBodyHeight,
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'relative',
+            width: totalWidth,
+            minWidth: '100%',
+            height: totalBodyHeight,
+          }}
+        >
+          {renderedRows.map(({ row, virtualRow }) => (
+            <Box
+              key={`stripe:${row.key}`}
+              sx={{
+                position: 'absolute',
+                top: virtualRow.start,
+                left: 0,
+                right: 0,
+                width: totalWidth,
+                height: ROW_HEIGHT,
+                bgcolor:
+                  row.kind === 'group'
+                    ? 'rgba(0,0,0,0.05)'
+                    : row.kind === 'newTask'
+                      ? 'rgba(0,0,0,0.01)'
+                      : virtualRow.index % 2 === 0
+                        ? 'transparent'
+                        : 'rgba(0,0,0,0.02)',
+                borderBottom: '1px solid #F0F0F0',
+              }}
+            />
+          ))}
+
+          {(() => {
+            const todayOffset = dayjs.utc().diff(dayjs.utc(timelineStart), 'day', true) * dayWidth;
+            if (todayOffset <= 0 || todayOffset >= totalWidth) {
+              return null;
+            }
+
             return (
               <Box
                 sx={{
@@ -192,41 +227,37 @@ const GanttChart: React.FC<{ onScroll?: (scrollTop: number) => void; scrollRef?:
                   top: 0,
                   left: todayOffset,
                   width: 1.5,
-                  height: totalHeight,
+                  height: totalBodyHeight,
                   bgcolor: '#ED6C02',
-                  zIndex: 1,
                   opacity: 0.7,
+                  zIndex: 1,
                 }}
               />
             );
-          }
-          return null;
-        })()}
+          })()}
 
-        {/* Bars */}
-        {visibleTasks.map((task, idx) => (
-          <GanttBar
-            key={task.id}
-            task={task}
+          {renderedTaskRows.map(({ row, virtualRow }) => (
+            <GanttBar
+              key={row.task.id}
+              task={row.task}
+              timelineStart={timelineStart}
+              dayWidth={dayWidth}
+              rowHeight={ROW_HEIGHT}
+              rowTop={virtualRow.start}
+              isSelected={selectedTaskIds.has(row.task.id)}
+            />
+          ))}
+
+          <DependencyLines
+            tasks={visibleTasks}
+            dependencies={renderedDependencies}
             timelineStart={timelineStart}
             dayWidth={dayWidth}
-            rowHeight={ROW_HEIGHT}
-            rowIndex={idx}
-            isSelected={selectedTaskIds.has(task.id)}
+            taskYMap={taskYMap}
+            totalHeight={totalBodyHeight}
+            totalWidth={totalWidth}
           />
-        ))}
-
-        {/* Dependency lines */}
-        <DependencyLines
-          tasks={visibleTasks}
-          dependencies={dependencies}
-          timelineStart={timelineStart}
-          dayWidth={dayWidth}
-          rowHeight={ROW_HEIGHT}
-          taskIndexMap={taskIndexMap}
-          totalHeight={totalHeight}
-          totalWidth={totalWidth}
-        />
+        </Box>
       </Box>
     </Box>
   );

@@ -10,6 +10,7 @@ import { recalculateProject } from '../services/schedulingService.js';
 import { markProjectKnowledgeDirty } from '../services/scheduleKnowledgeService.js';
 import { toStratusSyncSummary } from '../services/stratusSyncService.js';
 import { captureUndo } from '../services/undoService.js';
+import { loadProjectSnapshot } from '../services/projectSnapshotService.js';
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -26,6 +27,7 @@ const createSchema = z.object({
   notes: z.string().optional(),
   externalKey: z.string().optional(),
   sortOrder: z.number().int().optional(),
+  outlineLevel: z.number().int().min(0).optional(),
 });
 
 const updateSchema = z.object({
@@ -43,6 +45,7 @@ const updateSchema = z.object({
   notes: z.string().optional(),
   externalKey: z.string().optional(),
   sortOrder: z.number().int().optional(),
+  outlineLevel: z.number().int().min(0).optional(),
   deadline: z.string().datetime().nullable().optional(),
   actualStart: z.string().datetime().nullable().optional(),
   actualFinish: z.string().datetime().nullable().optional(),
@@ -62,6 +65,15 @@ const batchUpdateSchema = z.object({
   ),
   recalculate: z.boolean().default(true),
 });
+
+const batchDeleteSchema = z.object({
+  taskIds: z.array(z.string()).min(1),
+});
+
+async function finalizeTaskMutation(projectId: string) {
+  await recalculateProject(projectId);
+  return loadProjectSnapshot(projectId);
+}
 
 export default async function taskRoutes(app: FastifyInstance) {
   // List tasks for a project (flat, sorted)
@@ -124,7 +136,7 @@ export default async function taskRoutes(app: FastifyInstance) {
           projectId,
           name: body.name,
           wbsCode: '',
-          outlineLevel: 0,
+          outlineLevel: body.outlineLevel ?? 0,
           type: body.type,
           durationMinutes: body.durationMinutes,
           start,
@@ -143,8 +155,13 @@ export default async function taskRoutes(app: FastifyInstance) {
 
       await logTaskMutation(projectId, 'task_created', null, toTaskMutationSnapshot(task), 'user');
       markProjectKnowledgeDirty(projectId);
-      await recalculateProject(projectId);
-      return reply.code(201).send(task);
+      const snapshot = await finalizeTaskMutation(projectId);
+      const createdTask = snapshot.tasks.find((candidate) => candidate.id === task.id) ?? serializeTask(task);
+      return reply.code(201).send({
+        task: createdTask,
+        revision: snapshot.revision,
+        snapshot,
+      });
     },
   );
 
@@ -175,6 +192,7 @@ export default async function taskRoutes(app: FastifyInstance) {
       if (body.notes !== undefined) data.notes = body.notes;
       if (body.externalKey !== undefined) data.externalKey = body.externalKey;
       if (body.sortOrder !== undefined) data.sortOrder = body.sortOrder;
+      if (body.outlineLevel !== undefined) data.outlineLevel = body.outlineLevel;
       if (body.deadline !== undefined)
         data.deadline = body.deadline ? new Date(body.deadline) : null;
       if (body.actualStart !== undefined)
@@ -197,8 +215,13 @@ export default async function taskRoutes(app: FastifyInstance) {
         'user',
       );
       markProjectKnowledgeDirty(projectId);
-      await recalculateProject(projectId);
-      return task;
+      const snapshot = await finalizeTaskMutation(projectId);
+      const updatedTask = snapshot.tasks.find((candidate) => candidate.id === task.id) ?? serializeTask(task);
+      return {
+        task: updatedTask,
+        revision: snapshot.revision,
+        snapshot,
+      };
     },
   );
 
@@ -232,6 +255,7 @@ export default async function taskRoutes(app: FastifyInstance) {
             data.isManuallyScheduled = d.isManuallyScheduled;
           if (d.percentComplete !== undefined) data.percentComplete = d.percentComplete;
           if (d.sortOrder !== undefined) data.sortOrder = d.sortOrder;
+          if (d.outlineLevel !== undefined) data.outlineLevel = d.outlineLevel;
 
           return prisma.task.update({ where: { id: u.id }, data });
         }),
@@ -253,14 +277,70 @@ export default async function taskRoutes(app: FastifyInstance) {
       }
       markProjectKnowledgeDirty(projectId);
 
-      return { updated: results.length };
+      const snapshot = await loadProjectSnapshot(projectId);
+
+      return {
+        updated: results.length,
+        revision: snapshot.revision,
+        snapshot,
+      };
+    },
+  );
+
+  app.post<{ Params: { projectId: string } }>(
+    '/delete-batch',
+    async (req) => {
+      const { projectId } = req.params;
+      const body = batchDeleteSchema.parse(req.body);
+      const taskIds = [...new Set(body.taskIds)];
+      const beforeTasks = await prisma.task.findMany({
+        where: { projectId, id: { in: taskIds } },
+      });
+
+      if (beforeTasks.length === 0) {
+        const snapshot = await loadProjectSnapshot(projectId);
+        return {
+          deletedTaskIds: [],
+          revision: snapshot.revision,
+          snapshot,
+        };
+      }
+
+      await captureUndo(projectId, `Delete ${beforeTasks.length} task${beforeTasks.length === 1 ? '' : 's'}`);
+
+      await prisma.$transaction([
+        prisma.dependency.deleteMany({
+          where: {
+            projectId,
+            OR: [
+              { fromTaskId: { in: taskIds } },
+              { toTaskId: { in: taskIds } },
+            ],
+          },
+        }),
+        prisma.assignment.deleteMany({ where: { taskId: { in: taskIds } } }),
+        prisma.baseline.deleteMany({ where: { taskId: { in: taskIds } } }),
+        prisma.task.deleteMany({ where: { projectId, id: { in: taskIds } } }),
+      ]);
+
+      for (const before of beforeTasks) {
+        await logTaskMutation(projectId, 'task_deleted', toTaskMutationSnapshot(before), null, 'user');
+      }
+      markProjectKnowledgeDirty(projectId);
+
+      const snapshot = await finalizeTaskMutation(projectId);
+      return {
+        deletedTaskIds: beforeTasks.map((task) => task.id),
+        revision: snapshot.revision,
+        snapshot,
+      };
     },
   );
 
   // Delete task
   app.delete<{ Params: { projectId: string; taskId: string } }>(
     '/:taskId',
-    async (req, reply) => {
+    async (req) => {
       const { projectId, taskId } = req.params;
       const before = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
 
@@ -280,8 +360,12 @@ export default async function taskRoutes(app: FastifyInstance) {
 
       await logTaskMutation(projectId, 'task_deleted', toTaskMutationSnapshot(before), null, 'user');
       markProjectKnowledgeDirty(projectId);
-      await recalculateProject(projectId);
-      return reply.code(204).send();
+      const snapshot = await finalizeTaskMutation(projectId);
+      return {
+        deletedTaskIds: [taskId],
+        revision: snapshot.revision,
+        snapshot,
+      };
     },
   );
 
@@ -290,8 +374,12 @@ export default async function taskRoutes(app: FastifyInstance) {
     '/recalculate',
     async (req) => {
       const { projectId } = req.params;
-      await recalculateProject(projectId);
-      return { ok: true };
+      const snapshot = await finalizeTaskMutation(projectId);
+      return {
+        ok: true,
+        revision: snapshot.revision,
+        snapshot,
+      };
     },
   );
 }
@@ -316,9 +404,11 @@ function toTaskMutationSnapshot(task: {
   };
 }
 
-function serializeTask(task: {
-  stratusSync?: Parameters<typeof toStratusSyncSummary>[0];
-} & Record<string, unknown>) {
+function serializeTask(
+  task: Record<string, unknown> & {
+    stratusSync?: Parameters<typeof toStratusSyncSummary>[0] | null;
+  },
+) {
   return {
     ...task,
     stratusSync: toStratusSyncSummary(task.stratusSync ?? null),

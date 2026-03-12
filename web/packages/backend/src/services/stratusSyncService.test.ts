@@ -244,6 +244,53 @@ describe("stratusSyncService", () => {
     expect(rows[0]?.mappedTask.percentComplete).toBe(50);
   });
 
+  it("resolves aliased finish and duration fields and derives the preview start from them", () => {
+    const projectStart = new Date("2026-07-01T18:00:00.000Z");
+    const rows = buildPullPreviewRows(
+      [
+        {
+          package: {
+            id: "pkg-alias-preview",
+            projectId: "stratus-project",
+            modelId: "model-1",
+            packageNumber: "PKG-ALIAS",
+            packageName: "Package Alias",
+            trackingStatusId: null,
+            trackingStatusName: null,
+            externalKey: "1001-PKG-ALIAS",
+            normalizedFields: {
+              "STRATUS.Package.Name": "Package Alias",
+              "STRATUS.Field.SMC_Package Start Date": null,
+              "STRATUS.Field.SMC_Package Estimated Finish Date": null,
+              "STRATUS.Field.PREFAB ESTIMATED BUILD TIME": null,
+              "SMC_Package Estimated Finish Date":
+                "2026-03-12T00:00:00.000Z",
+              "SMC_Overview Hours Estimate": "16",
+            },
+            rawPackage: {
+              fieldNameToValueMap: {
+                "SMC_Package Estimated Finish Date":
+                  "2026-03-12T00:00:00.000Z",
+                "SMC_Overview Hours Estimate": "16",
+              },
+            },
+          },
+          assemblies: [],
+        },
+      ],
+      [],
+      480,
+      normalizeStratusConfig(),
+      projectStart,
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.mappedTask.durationMinutes).toBe(960);
+    expect(rows[0]?.mappedTask.finish).toBe("2026-03-12T00:00:00.000Z");
+    expect(rows[0]?.mappedTask.start).toBe("2026-03-11T08:00:00.000Z");
+    expect(rows[0]?.mappedTask.start).not.toBe(projectStart.toISOString());
+  });
+
   it("marks unchanged incremental bundles as skipped without remote assembly updates", () => {
     const rows = buildPullPreviewRows(
       [
@@ -648,7 +695,7 @@ describe("stratusSyncService", () => {
           outlineLevel: 0,
           name: "Package Ref",
           type: "summary",
-          durationMinutes: 480,
+          durationMinutes: 960,
           start: new Date("2026-03-05T00:00:00.000Z"),
           finish: new Date("2026-03-06T00:00:00.000Z"),
           constraintType: 0,
@@ -867,6 +914,11 @@ describe("stratusSyncService", () => {
         from: "2026-03-03T00:00:00.000Z",
         to: "2026-03-07T00:00:00.000Z",
       },
+      {
+        field: "duration",
+        from: 480,
+        to: 960,
+      },
     ]);
   });
 
@@ -881,7 +933,7 @@ describe("stratusSyncService", () => {
           outlineLevel: 0,
           name: "Package Ref",
           type: "summary",
-          durationMinutes: 480,
+          durationMinutes: 960,
           start: new Date("2026-03-05T00:00:00.000Z"),
           finish: new Date("2026-03-06T00:00:00.000Z"),
           constraintType: 0,
@@ -1038,6 +1090,11 @@ describe("stratusSyncService", () => {
         field: "deadline",
         from: "2026-03-07T00:00:00.000Z",
         to: "2026-03-03T00:00:00.000Z",
+      },
+      {
+        field: "duration",
+        from: 960,
+        to: 480,
       },
     ]);
   });

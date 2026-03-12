@@ -10,6 +10,7 @@ import {
   markProjectKnowledgeDirty,
   removeProjectKnowledge,
 } from '../services/scheduleKnowledgeService.js';
+import { loadProjectSnapshot } from '../services/projectSnapshotService.js';
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -46,6 +47,7 @@ export default async function projectRoutes(app: FastifyInstance) {
       select: {
         id: true,
         name: true,
+        revision: true,
         startDate: true,
         finishDate: true,
         projectType: true,
@@ -63,6 +65,10 @@ export default async function projectRoutes(app: FastifyInstance) {
   });
 
   // Get single project with counts
+  app.get<{ Params: { id: string } }>('/:id/snapshot', async (req) => {
+    return loadProjectSnapshot(req.params.id);
+  });
+
   app.get<{ Params: { id: string } }>('/:id', async (req, reply) => {
     const { id } = req.params;
     const project = await prisma.project.findUnique({

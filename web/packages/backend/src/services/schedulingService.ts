@@ -1,180 +1,113 @@
 /**
- * Scheduling service — bridges the database and the CPM engine.
- *
- * Loads tasks + dependencies + calendars from Prisma,
- * calls the engine's recalculate(), writes results back.
+ * Scheduling service — loads project data, runs the scheduling engine in a
+ * worker thread, and persists the resulting schedule fields plus project revision.
  */
 
+import { Worker } from 'node:worker_threads';
+import type { ProjectData, ScheduleResult, ScheduleWarning } from '@schedulesync/engine';
 import { prisma } from '../db.js';
-import {
-  recalculate,
-  type Task,
-  type Dependency,
-  type Calendar,
-  type ProjectData,
-  type ProjectSettings,
-  type WorkingHourRange,
-  type CalendarException,
-  TaskType,
-  DependencyType,
-  ConstraintType,
-  ScheduleFrom,
-} from '@schedulesync/engine';
+import { loadProjectData } from './costService.js';
+
+const WORKER_URL = new URL(
+  import.meta.url.endsWith('.ts')
+    ? '../workers/recalculateWorker.ts'
+    : '../workers/recalculateWorker.js',
+  import.meta.url,
+);
+
+export interface RecalculationResult {
+  revision: number;
+  warnings: ScheduleWarning[];
+  calculationTimeMs: number;
+}
+
+function runScheduleWorker(projectData: ProjectData): Promise<ScheduleResult> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(WORKER_URL, {
+      execArgv: import.meta.url.endsWith('.ts') ? ['--import', 'tsx'] : undefined,
+      workerData: projectData,
+    });
+
+    worker.once('message', (message: { ok: true; result: ScheduleResult } | { ok: false; error: string }) => {
+      worker.terminate().catch(() => {});
+      if (message.ok) {
+        resolve(message.result);
+        return;
+      }
+
+      reject(new Error(message.error));
+    });
+
+    worker.once('error', (error) => {
+      worker.terminate().catch(() => {});
+      reject(error);
+    });
+
+    worker.once('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Scheduling worker exited with code ${code}.`));
+      }
+    });
+  });
+}
+
+export async function recalculateProjectData(projectData: ProjectData): Promise<ScheduleResult> {
+  return runScheduleWorker(projectData);
+}
+
+export async function persistScheduleResult(
+  projectId: string,
+  projectData: ProjectData,
+  result: ScheduleResult,
+): Promise<number> {
+  const updatedProject = await prisma.$transaction(async (tx) => {
+    await Promise.all(
+      result.tasks.map((task) =>
+        tx.task.update({
+          where: { id: task.id },
+          data: {
+            start: new Date(task.start),
+            finish: new Date(task.finish),
+            durationMinutes: task.durationMinutes,
+            percentComplete: task.percentComplete,
+            isCritical: task.isCritical,
+            totalSlackMinutes: task.totalSlackMinutes,
+            freeSlackMinutes: task.freeSlackMinutes,
+            earlyStart: task.earlyStart ? new Date(task.earlyStart) : null,
+            earlyFinish: task.earlyFinish ? new Date(task.earlyFinish) : null,
+            lateStart: task.lateStart ? new Date(task.lateStart) : null,
+            lateFinish: task.lateFinish ? new Date(task.lateFinish) : null,
+          },
+        }),
+      ),
+    );
+
+    return tx.project.update({
+      where: { id: projectId },
+      data: {
+        finishDate: projectData.settings.finishDate
+          ? new Date(projectData.settings.finishDate)
+          : null,
+        revision: { increment: 1 },
+      },
+      select: { revision: true },
+    });
+  });
+
+  return updatedProject.revision;
+}
 
 /**
- * Recalculate the schedule for a project and persist the results.
+ * Recalculate the schedule for a project and persist the authoritative result.
  */
-export async function recalculateProject(projectId: string): Promise<void> {
-  // Load project
-  const project = await prisma.project.findUniqueOrThrow({
-    where: { id: projectId },
-  });
+export async function recalculateProject(projectId: string): Promise<RecalculationResult> {
+  const projectData = await loadProjectData(projectId);
+  const result = await recalculateProjectData(projectData);
+  const revision = await persistScheduleResult(projectId, projectData, result);
 
-  // Load all data
-  const [dbTasks, dbDeps, dbCalendars, dbResources, dbAssignments, dbBaselines] =
-    await Promise.all([
-      prisma.task.findMany({
-        where: { projectId },
-        orderBy: { sortOrder: 'asc' },
-      }),
-      prisma.dependency.findMany({ where: { projectId } }),
-      prisma.calendar.findMany({
-        where: { OR: [{ projectId }, { projectId: null }] },
-        include: { exceptions: true },
-      }),
-      prisma.resource.findMany({ where: { projectId } }),
-      prisma.assignment.findMany({
-        where: { task: { projectId } },
-      }),
-      prisma.baseline.findMany({
-        where: { task: { projectId } },
-      }),
-    ]);
-
-  // Map to engine types
-  const settings: ProjectSettings = {
-    id: project.id,
-    name: project.name,
-    startDate: project.startDate.toISOString(),
-    finishDate: project.finishDate?.toISOString() ?? null,
-    defaultCalendarId: project.defaultCalendarId,
-    scheduleFrom: project.scheduleFrom as ScheduleFrom,
-    statusDate: project.statusDate?.toISOString() ?? null,
+  return {
+    revision,
+    warnings: result.warnings,
+    calculationTimeMs: result.calculationTimeMs,
   };
-
-  const tasks: Task[] = dbTasks.map((t) => ({
-    id: t.id,
-    wbsCode: t.wbsCode,
-    outlineLevel: t.outlineLevel,
-    parentId: t.parentId,
-    name: t.name,
-    type: t.type as TaskType,
-    durationMinutes: t.durationMinutes,
-    start: t.start.toISOString(),
-    finish: t.finish.toISOString(),
-    constraintType: t.constraintType as ConstraintType,
-    constraintDate: t.constraintDate?.toISOString() ?? null,
-    calendarId: t.calendarId,
-    percentComplete: t.percentComplete,
-    isManuallyScheduled: t.isManuallyScheduled,
-    isCritical: t.isCritical,
-    totalSlackMinutes: t.totalSlackMinutes,
-    freeSlackMinutes: t.freeSlackMinutes,
-    earlyStart: t.earlyStart?.toISOString() ?? null,
-    earlyFinish: t.earlyFinish?.toISOString() ?? null,
-    lateStart: t.lateStart?.toISOString() ?? null,
-    lateFinish: t.lateFinish?.toISOString() ?? null,
-    deadline: t.deadline?.toISOString() ?? null,
-    notes: t.notes,
-    externalKey: t.externalKey,
-    sortOrder: t.sortOrder,
-  }));
-
-  const dependencies: Dependency[] = dbDeps.map((d) => ({
-    id: d.id,
-    fromTaskId: d.fromTaskId,
-    toTaskId: d.toTaskId,
-    type: d.type as DependencyType,
-    lagMinutes: d.lagMinutes,
-  }));
-
-  const calendars: Calendar[] = dbCalendars.map((c) => ({
-    id: c.id,
-    name: c.name,
-    workingDaysOfWeek: JSON.parse(c.workingDaysOfWeek) as boolean[],
-    defaultWorkingHours: JSON.parse(c.defaultWorkingHours) as WorkingHourRange[],
-    exceptions: c.exceptions.map(
-      (e): CalendarException => ({
-        startDate: e.startDate,
-        endDate: e.endDate,
-        isWorking: e.isWorking,
-        workingHours: e.workingHours
-          ? (JSON.parse(e.workingHours) as WorkingHourRange[])
-          : null,
-      }),
-    ),
-  }));
-
-  const projectData: ProjectData = {
-    settings,
-    tasks,
-    dependencies,
-    calendars,
-    resources: dbResources.map((r) => ({
-      id: r.id,
-      name: r.name,
-      type: r.type as any,
-      maxUnits: r.maxUnits,
-      calendarId: r.calendarId,
-    })),
-    assignments: dbAssignments.map((a) => ({
-      id: a.id,
-      taskId: a.taskId,
-      resourceId: a.resourceId,
-      units: a.units,
-      workMinutes: a.workMinutes,
-    })),
-    baselines: dbBaselines.map((b) => ({
-      taskId: b.taskId,
-      baselineIndex: b.baselineIndex,
-      baselineStart: b.baselineStart.toISOString(),
-      baselineFinish: b.baselineFinish.toISOString(),
-      baselineDurationMinutes: b.baselineDurationMinutes,
-    })),
-  };
-
-  // Recalculate
-  const result = recalculate(projectData);
-
-  // Write updated tasks back to DB
-  const updates = result.tasks.map((t) =>
-    prisma.task.update({
-      where: { id: t.id },
-      data: {
-        start: new Date(t.start),
-        finish: new Date(t.finish),
-        durationMinutes: t.durationMinutes,
-        percentComplete: t.percentComplete,
-        isCritical: t.isCritical,
-        totalSlackMinutes: t.totalSlackMinutes,
-        freeSlackMinutes: t.freeSlackMinutes,
-        earlyStart: t.earlyStart ? new Date(t.earlyStart) : null,
-        earlyFinish: t.earlyFinish ? new Date(t.earlyFinish) : null,
-        lateStart: t.lateStart ? new Date(t.lateStart) : null,
-        lateFinish: t.lateFinish ? new Date(t.lateFinish) : null,
-      },
-    }),
-  );
-
-  // Update project finish date
-  const projectUpdate = prisma.project.update({
-    where: { id: projectId },
-    data: {
-      finishDate: projectData.settings.finishDate
-        ? new Date(projectData.settings.finishDate)
-        : null,
-    },
-  });
-
-  await prisma.$transaction([...updates, projectUpdate]);
 }

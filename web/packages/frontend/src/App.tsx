@@ -8,38 +8,9 @@ import React from 'react';
 import { Box, Snackbar, Alert } from '@mui/material';
 
 import { Sidebar, Ribbon, SplitView, StatusBar } from './components/layout';
-import {
-  NewProjectDialog,
-  DeleteConfirmationDialog,
-  ProjectInfoDialog,
-  TaskInfoDialog,
-  BaselineCaptureDialog,
-  ImportPreviewDialog,
-  ResourceAssignmentDialog,
-  ColumnChooserDialog,
-  FilterDialog,
-  SortDialog,
-  GroupByDialog,
-  CalendarDialog,
-  CustomFieldsDialog,
-  UndoHistoryDialog,
-  BarStylesDialog,
-  FindReplaceDialog,
-  PrintPreviewDialog,
-  ProjectStatisticsDialog,
-  ResourceInfoDialog,
-  LevelingDialog,
-  RecurringTaskDialog,
-  AiSettingsDialog,
-  BulkImportDialog,
-  StratusSettingsDialog,
-  StratusProjectImportDialog,
-  StratusPullPreviewDialog,
-  StratusRefreshFromPrefabPreviewDialog,
-  StratusSyncToPrefabPreviewDialog,
-  StratusPushPreviewDialog,
-} from './components/dialogs';
 import ChatPanel from './components/ai/ChatPanel';
+import DialogHost from './components/dialogs/DialogHost';
+import ProjectDataBridge from './data/ProjectDataBridge';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useUIStore } from './stores';
 
@@ -50,6 +21,8 @@ const App: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      <ProjectDataBridge />
+
       {/* Sidebar */}
       <Sidebar />
 
@@ -63,36 +36,7 @@ const App: React.FC = () => {
       {/* AI Chat Panel */}
       <ChatPanel />
 
-      {/* Dialogs */}
-      <NewProjectDialog />
-      <DeleteConfirmationDialog />
-      <ProjectInfoDialog />
-      <TaskInfoDialog />
-      <BaselineCaptureDialog />
-      <ImportPreviewDialog />
-      <ResourceAssignmentDialog />
-      <ColumnChooserDialog />
-      <FilterDialog />
-      <SortDialog />
-      <GroupByDialog />
-      <CalendarDialog />
-      <CustomFieldsDialog />
-      <UndoHistoryDialog />
-      <BarStylesDialog />
-      <FindReplaceDialog />
-      <PrintPreviewDialog />
-      <ProjectStatisticsDialog />
-      <ResourceInfoDialog />
-      <LevelingDialog />
-      <RecurringTaskDialog />
-      <AiSettingsDialog />
-      <BulkImportDialog />
-      <StratusSettingsDialog />
-      <StratusProjectImportDialog />
-      <StratusPullPreviewDialog />
-      <StratusRefreshFromPrefabPreviewDialog />
-      <StratusSyncToPrefabPreviewDialog />
-      <StratusPushPreviewDialog />
+      <DialogHost />
 
       {/* Global snackbar */}
       <Snackbar

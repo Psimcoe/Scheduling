@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -106,7 +107,13 @@ const DeleteConfirmationDialog: React.FC = () => {
   };
 
   return (
-    <Dialog open={open && !!payload && !!derived} onClose={submitting ? undefined : closeDialog} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open && !!payload && !!derived}
+      onClose={submitting ? undefined : closeDialog}
+      maxWidth="sm"
+      fullWidth
+      aria-busy={submitting || undefined}
+    >
       <DialogTitle>{derived?.title ?? 'Delete'}</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         {payload?.kind === 'project' && (
@@ -160,12 +167,13 @@ const DeleteConfirmationDialog: React.FC = () => {
         <Button
           color="error"
           variant="contained"
+          aria-busy={submitting || undefined}
           onClick={() => {
             void handleConfirm();
           }}
           disabled={submitting || !payload || !derived}
         >
-          {derived?.confirmLabel ?? 'Delete'}
+          {submitting ? <CircularProgress size={16} color="inherit" /> : derived?.confirmLabel ?? 'Delete'}
         </Button>
       </DialogActions>
     </Dialog>

@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
   TextField,
   Button,
   FormControl,
@@ -142,6 +143,11 @@ const TaskInfoDialog: React.FC = () => {
   // Resources tab state
   const [newResId, setNewResId] = useState('');
   const [newResUnits, setNewResUnits] = useState(100);
+  const [saving, setSaving] = useState(false);
+  const [addingPredecessor, setAddingPredecessor] = useState(false);
+  const [addingResource, setAddingResource] = useState(false);
+  const [deletingDependencyId, setDeletingDependencyId] = useState<string | null>(null);
+  const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (payload) {
@@ -211,6 +217,7 @@ const TaskInfoDialog: React.FC = () => {
 
   const handleSave = async () => {
     if (!payload) return;
+    setSaving(true);
     try {
       const mins = parseDuration(durationStr);
       await updateTask(payload.id, {
@@ -228,37 +235,53 @@ const TaskInfoDialog: React.FC = () => {
         deadline: deadline ? new Date(deadline).toISOString() : null,
       });
       closeDialog();
-    } catch (e: any) {
-      showSnackbar(e.message, 'error');
+    } catch (error: unknown) {
+      showSnackbar(error instanceof Error ? error.message : 'Save failed', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleAddPredecessor = async () => {
     if (!payload || !newPredTaskId) return;
-    const lagMins = parseDuration(newPredLag) ?? 0;
-    await createDependency({
-      fromTaskId: newPredTaskId,
-      toTaskId: payload.id,
-      type: newPredType,
-      lagMinutes: lagMins,
-    });
-    setNewPredTaskId('');
-    setNewPredLag('0d');
+    setAddingPredecessor(true);
+    try {
+      const lagMins = parseDuration(newPredLag) ?? 0;
+      await createDependency({
+        fromTaskId: newPredTaskId,
+        toTaskId: payload.id,
+        type: newPredType,
+        lagMinutes: lagMins,
+      });
+      setNewPredTaskId('');
+      setNewPredLag('0d');
+    } catch (error: unknown) {
+      showSnackbar(error instanceof Error ? error.message : 'Failed to add predecessor', 'error');
+    } finally {
+      setAddingPredecessor(false);
+    }
   };
 
   const handleAddResource = async () => {
     if (!payload || !newResId) return;
-    await createAssignment({
-      taskId: payload.id,
-      resourceId: newResId,
-      units: newResUnits / 100,
-    });
-    setNewResId('');
-    setNewResUnits(100);
+    setAddingResource(true);
+    try {
+      await createAssignment({
+        taskId: payload.id,
+        resourceId: newResId,
+        units: newResUnits / 100,
+      });
+      setNewResId('');
+      setNewResUnits(100);
+    } catch (error: unknown) {
+      showSnackbar(error instanceof Error ? error.message : 'Failed to add resource', 'error');
+    } finally {
+      setAddingResource(false);
+    }
   };
 
   return (
-    <Dialog open={open} onClose={closeDialog} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={saving ? undefined : closeDialog} maxWidth="md" fullWidth aria-busy={saving || undefined}>
       <DialogTitle sx={{ pb: 0 }}>
         Task Information — {payload?.name ?? ''}
       </DialogTitle>
@@ -476,9 +499,21 @@ const TaskInfoDialog: React.FC = () => {
                   <TableCell>
                     <IconButton
                       size="small"
-                      onClick={() => deleteDependency(dep.id)}
+                      aria-label={`Delete predecessor ${taskName(dep.fromTaskId)}`}
+                      aria-busy={deletingDependencyId === dep.id || undefined}
+                      disabled={deletingDependencyId !== null}
+                      onClick={() => {
+                        setDeletingDependencyId(dep.id);
+                        void deleteDependency(dep.id)
+                          .catch((error: unknown) => {
+                            showSnackbar(error instanceof Error ? error.message : 'Failed to delete predecessor', 'error');
+                          })
+                          .finally(() => {
+                            setDeletingDependencyId((current) => (current === dep.id ? null : current));
+                          });
+                      }}
                     >
-                      <DeleteIcon fontSize="small" />
+                      {deletingDependencyId === dep.id ? <CircularProgress size={16} /> : <DeleteIcon fontSize="small" />}
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -533,10 +568,12 @@ const TaskInfoDialog: React.FC = () => {
             />
             <IconButton
               color="primary"
+              aria-label="Add predecessor"
+              aria-busy={addingPredecessor || undefined}
               onClick={handleAddPredecessor}
-              disabled={!newPredTaskId}
+              disabled={!newPredTaskId || addingPredecessor}
             >
-              <AddIcon />
+              {addingPredecessor ? <CircularProgress size={18} /> : <AddIcon />}
             </IconButton>
           </Box>
 
@@ -592,9 +629,21 @@ const TaskInfoDialog: React.FC = () => {
                   <TableCell>
                     <IconButton
                       size="small"
-                      onClick={() => deleteAssignment(a.id)}
+                      aria-label={`Delete assignment ${resourceName(a.resourceId)}`}
+                      aria-busy={deletingAssignmentId === a.id || undefined}
+                      disabled={deletingAssignmentId !== null}
+                      onClick={() => {
+                        setDeletingAssignmentId(a.id);
+                        void deleteAssignment(a.id)
+                          .catch((error: unknown) => {
+                            showSnackbar(error instanceof Error ? error.message : 'Failed to delete assignment', 'error');
+                          })
+                          .finally(() => {
+                            setDeletingAssignmentId((current) => (current === a.id ? null : current));
+                          });
+                      }}
                     >
-                      <DeleteIcon fontSize="small" />
+                      {deletingAssignmentId === a.id ? <CircularProgress size={16} /> : <DeleteIcon fontSize="small" />}
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -637,10 +686,12 @@ const TaskInfoDialog: React.FC = () => {
             />
             <IconButton
               color="primary"
+              aria-label="Add resource"
+              aria-busy={addingResource || undefined}
               onClick={handleAddResource}
-              disabled={!newResId}
+              disabled={!newResId || addingResource}
             >
-              <AddIcon />
+              {addingResource ? <CircularProgress size={18} /> : <AddIcon />}
             </IconButton>
           </Box>
         </TabPanel>
@@ -755,9 +806,11 @@ const TaskInfoDialog: React.FC = () => {
         </TabPanel>
       </DialogContent>
       <DialogActions>
-        <Button onClick={closeDialog}>Cancel</Button>
-        <Button variant="contained" onClick={handleSave}>
-          Save
+        <Button onClick={closeDialog} disabled={saving}>
+          Cancel
+        </Button>
+        <Button variant="contained" onClick={handleSave} disabled={saving} aria-busy={saving || undefined}>
+          {saving ? <CircularProgress size={16} color="inherit" /> : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>

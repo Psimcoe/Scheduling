@@ -1,81 +1,81 @@
 /**
- * SplitView — the grid|gantt split pane layout, or alternate full-screen views.
- *
- * For Gantt/TrackingGantt: uses a draggable divider to resize grid and gantt panels.
- * For other views: renders the view full-width.
+ * SplitView - shared-scroll split pane layout for the task grid and Gantt surface.
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Box } from '@mui/material';
 
 import { TaskGrid } from '../grid';
 import { GanttChart } from '../gantt';
 import {
+  CalendarView,
   NetworkDiagram,
+  ReportingView,
+  ResourceGraph,
   ResourceSheet,
   ResourceUsage,
-  TaskUsage,
-  CalendarView,
-  TrackingGantt,
-  ReportingView,
   TaskSheet,
-  ResourceGraph,
+  TaskUsage,
   TeamPlanner,
   Timeline,
+  TrackingGantt,
 } from '../views';
-import { useUIStore } from '../../stores';
+import { useVisibleTaskRows } from '../../hooks/useVisibleTaskRows';
+import { ROW_HEIGHT, useUIStore } from '../../stores';
 
 const MIN_PERCENT = 15;
 const MAX_PERCENT = 85;
+const SURFACE_HEADER_HEIGHT = 40;
 
 const SplitView: React.FC = () => {
-  const activeView = useUIStore((s) => s.activeView);
-  const gridSplitPercent = useUIStore((s) => s.gridSplitPercent);
-  const setGridSplitPercent = useUIStore((s) => s.setGridSplitPercent);
+  const activeView = useUIStore((state) => state.activeView);
+  const gridSplitPercent = useUIStore((state) => state.gridSplitPercent);
+  const setGridSplitPercent = useUIStore((state) => state.setGridSplitPercent);
+  const { rows, visibleTasks, visibleDependencies } = useVisibleTaskRows();
   const containerRef = useRef<HTMLDivElement>(null);
-  const gridScrollRef = useRef<HTMLDivElement>(null);
-  const ganttScrollRef = useRef<HTMLDivElement>(null);
+  const verticalScrollRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
-  const scrollingSource = useRef<'grid' | 'gantt' | null>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setDragging(true);
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => verticalScrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 14,
+  });
 
-    const controller = new AbortController();
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const totalBodyHeight = rowVirtualizer.getTotalSize();
+  const totalContentHeight = SURFACE_HEADER_HEIGHT + totalBodyHeight;
 
-    const handleMouseMove = (ev: MouseEvent) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
-      setGridSplitPercent(Math.min(MAX_PERCENT, Math.max(MIN_PERCENT, pct)));
-    };
+  const handleMouseDown = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      setDragging(true);
 
-    const handleMouseUp = () => {
-      setDragging(false);
-      controller.abort();
-    };
+      const controller = new AbortController();
 
-    document.addEventListener('mousemove', handleMouseMove, { signal: controller.signal });
-    document.addEventListener('mouseup', handleMouseUp, { signal: controller.signal });
-  }, [setGridSplitPercent]);
+      const handleMouseMove = (mouseEvent: MouseEvent) => {
+        if (!containerRef.current) {
+          return;
+        }
 
-  // Vertical scroll synchronization
-  const handleGridScroll = useCallback((scrollTop: number) => {
-    if (scrollingSource.current === 'gantt') return;
-    scrollingSource.current = 'grid';
-    if (ganttScrollRef.current) ganttScrollRef.current.scrollTop = scrollTop;
-    requestAnimationFrame(() => { scrollingSource.current = null; });
-  }, []);
+        const rect = containerRef.current.getBoundingClientRect();
+        const percentage = ((mouseEvent.clientX - rect.left) / rect.width) * 100;
+        setGridSplitPercent(Math.min(MAX_PERCENT, Math.max(MIN_PERCENT, percentage)));
+      };
 
-  const handleGanttScroll = useCallback((scrollTop: number) => {
-    if (scrollingSource.current === 'grid') return;
-    scrollingSource.current = 'gantt';
-    if (gridScrollRef.current) gridScrollRef.current.scrollTop = scrollTop;
-    requestAnimationFrame(() => { scrollingSource.current = null; });
-  }, []);
+      const handleMouseUp = () => {
+        setDragging(false);
+        controller.abort();
+      };
 
-  // Non-split views
+      document.addEventListener('mousemove', handleMouseMove, { signal: controller.signal });
+      document.addEventListener('mouseup', handleMouseUp, { signal: controller.signal });
+    },
+    [setGridSplitPercent],
+  );
+
   if (activeView === 'networkDiagram') return <NetworkDiagram />;
   if (activeView === 'resourceSheet') return <ResourceSheet />;
   if (activeView === 'resourceUsage') return <ResourceUsage />;
@@ -88,7 +88,6 @@ const SplitView: React.FC = () => {
   if (activeView === 'teamPlanner') return <TeamPlanner />;
   if (activeView === 'timeline') return <Timeline />;
 
-  // Default: Gantt split view
   return (
     <Box
       ref={containerRef}
@@ -100,34 +99,55 @@ const SplitView: React.FC = () => {
         cursor: dragging ? 'col-resize' : undefined,
       }}
     >
-      {/* Grid pane */}
       <Box
+        ref={verticalScrollRef}
         sx={{
-          width: `${gridSplitPercent}%`,
-          minWidth: 0,
-          overflow: 'hidden',
-          borderRight: '2px solid #E0E0E0',
+          display: 'flex',
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
         }}
       >
-        <TaskGrid onScroll={handleGridScroll} scrollRef={gridScrollRef} />
-      </Box>
+        <Box sx={{ display: 'flex', minWidth: '100%', minHeight: totalContentHeight }}>
+          <Box
+            sx={{
+              width: `${gridSplitPercent}%`,
+              minWidth: 0,
+              overflow: 'hidden',
+              borderRight: '2px solid #E0E0E0',
+            }}
+          >
+            <TaskGrid
+              rows={rows}
+              virtualRows={virtualRows}
+              totalBodyHeight={totalBodyHeight}
+              headerHeight={SURFACE_HEADER_HEIGHT}
+            />
+          </Box>
 
-      {/* Draggable divider */}
-      <Box
-        onMouseDown={handleMouseDown}
-        sx={{
-          width: 6,
-          cursor: 'col-resize',
-          bgcolor: dragging ? 'primary.light' : 'transparent',
-          '&:hover': { bgcolor: 'primary.light', opacity: 0.5 },
-          zIndex: 5,
-          flexShrink: 0,
-        }}
-      />
+          <Box
+            onMouseDown={handleMouseDown}
+            sx={{
+              width: 6,
+              flexShrink: 0,
+              cursor: 'col-resize',
+              bgcolor: dragging ? 'primary.light' : 'transparent',
+              '&:hover': { bgcolor: 'primary.light', opacity: 0.5 },
+              zIndex: 5,
+            }}
+          />
 
-      {/* Gantt pane */}
-      <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-        <GanttChart onScroll={handleGanttScroll} scrollRef={ganttScrollRef} />
+          <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <GanttChart
+              rows={rows}
+              visibleTasks={visibleTasks}
+              visibleDependencies={visibleDependencies}
+              virtualRows={virtualRows}
+              totalBodyHeight={totalBodyHeight}
+              headerHeight={SURFACE_HEADER_HEIGHT}
+            />
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

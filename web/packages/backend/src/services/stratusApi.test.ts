@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getConfiguredPackageFieldValue,
   getRequestedStratusFieldKeys,
   isImportableStratusAssemblyRecord,
   isImportableStratusPackageRecord,
@@ -162,6 +163,40 @@ describe("stratusApi", () => {
     );
 
     expect(normalized.externalKey).toBe("stratus-project-2-1252");
+  });
+
+  it("resolves configured package fields from equivalent Stratus aliases when exact keys are blank", () => {
+    const config = normalizeStratusConfig();
+    const normalized = normalizeStratusPackage(
+      {
+        id: "pkg-alias",
+        projectId: "stratus-project-3",
+        modelId: "model-3",
+        number: "P-300",
+        name: "Package Alias",
+        fieldNameToValueMap: {
+          "SMC_Package Estimated Finish Date": "2026-03-07T00:00:00.000Z",
+          "SMC_Overview Hours Estimate": "55.28",
+          "Work Days (Calculated)": "4",
+        },
+      },
+      config,
+    );
+
+    expect(getConfiguredPackageFieldValue(normalized, config.finishDateField)).toBe(
+      "2026-03-07T00:00:00.000Z",
+    );
+    expect(
+      getConfiguredPackageFieldValue(normalized, config.durationHoursField),
+    ).toBe("55.28");
+    expect(getConfiguredPackageFieldValue(normalized, config.durationDaysField)).toBe(
+      "4",
+    );
+    expect(normalized.normalizedFields[config.finishDateField]).toBe(
+      "2026-03-07T00:00:00.000Z",
+    );
+    expect(normalized.normalizedFields[config.durationHoursField]).toBe("55.28");
+    expect(normalized.normalizedFields[config.durationDaysField]).toBe("4");
   });
 
   it("normalizes Stratus project and assembly records for import and grouping", () => {

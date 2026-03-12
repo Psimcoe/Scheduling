@@ -27,7 +27,7 @@ interface GanttBarProps {
   timelineStart: string;
   dayWidth: number;
   rowHeight: number;
-  rowIndex: number;
+  rowTop: number;
   isSelected: boolean;
   baselineStart?: string | null;
   baselineFinish?: string | null;
@@ -38,7 +38,7 @@ const GanttBar: React.FC<GanttBarProps> = ({
   timelineStart,
   dayWidth,
   rowHeight,
-  rowIndex,
+  rowTop,
   isSelected,
   baselineStart,
   baselineFinish,
@@ -58,9 +58,8 @@ const GanttBar: React.FC<GanttBarProps> = ({
   const durationDaysVal = taskFinish.diff(taskStart, 'day', true);
   const left = offsetDays * dayWidth;
   const width = Math.max(durationDaysVal * dayWidth, 4);
-  const top = rowIndex * rowHeight;
   const barHeight = rowHeight * 0.65;
-  const barTop = (rowHeight - barHeight) / 2;
+  const barTop = rowTop + (rowHeight - barHeight) / 2;
 
   const isSummary = task.type === 'summary';
   const isMilestone = task.type === 'milestone' || task.durationMinutes === 0;
@@ -183,7 +182,7 @@ const GanttBar: React.FC<GanttBarProps> = ({
           onMouseDown={(e) => handleDragStart(e, 'move')}
           sx={{
             position: 'absolute',
-            top: top + barTop,
+            top: barTop,
             left,
             height: barHeight,
             userSelect: 'none',
