@@ -11,6 +11,10 @@ import {
 import { testStratusConnection } from "../services/stratusApi.js";
 import { testStratusBigDataConnection } from "../services/stratusBigDataService.js";
 import {
+  createStratusJob,
+  getStratusJob,
+} from "../services/stratusJobService.js";
+import {
   applyStratusProjectImport,
   applyStratusPull,
   applyStratusPush,
@@ -63,6 +67,15 @@ const configSchema = z.object({
   excludedProjectIds: z.array(z.string()).optional(),
 });
 
+const importJobSchema = z.object({
+  mode: z.enum(["preview", "apply"]).default("apply"),
+});
+
+const pullJobSchema = z.object({
+  mode: z.enum(["preview", "apply"]).default("apply"),
+  refreshMode: z.enum(["incremental", "full"]).optional(),
+});
+
 export default async function stratusRoutes(app: FastifyInstance) {
   app.get("/stratus/config", async () => {
     return getSafeStratusConfig();
@@ -90,6 +103,36 @@ export default async function stratusRoutes(app: FastifyInstance) {
     return applyStratusProjectImport(getStratusConfig());
   });
 
+  app.post("/stratus/projects/import/jobs", async (req) => {
+    const body = importJobSchema.parse(req.body ?? {});
+    const kind =
+      body.mode === "apply" ? "projectImportApply" : "projectImportPreview";
+
+    return createStratusJob(kind, async (reportProgress) => {
+      const config = getStratusConfig();
+      if (body.mode === "apply") {
+        return applyStratusProjectImport(config, {
+          forceApiRead: true,
+          progress: reportProgress,
+        });
+      }
+      return previewStratusProjectImport(config, {
+        forceApiRead: true,
+        progress: reportProgress,
+      });
+    });
+  });
+
+  app.get<{ Params: { jobId: string } }>("/stratus/jobs/:jobId", async (req) => {
+    const job = getStratusJob(req.params.jobId);
+    if (!job) {
+      const error = new Error("Stratus job not found.");
+      (error as Error & { statusCode?: number }).statusCode = 404;
+      throw error;
+    }
+    return job;
+  });
+
   app.get<{ Params: { projectId: string } }>(
     "/projects/:projectId/stratus/status",
     async (req) => {
@@ -104,6 +147,54 @@ export default async function stratusRoutes(app: FastifyInstance) {
     "/projects/:projectId/stratus/pull/preview",
     async (req) => {
       return previewStratusPull(req.params.projectId, getStratusConfig());
+    },
+  );
+
+  app.post<{ Params: { projectId: string } }>(
+    "/projects/:projectId/stratus/pull/jobs",
+    async (req) => {
+      const body = pullJobSchema.parse(req.body ?? {});
+      const { projectId } = req.params;
+      const kind = body.mode === "apply" ? "pullApply" : "pullPreview";
+
+      return createStratusJob(kind, async (reportProgress) => {
+        const config = getStratusConfig();
+        const refreshMode = body.refreshMode ?? "incremental";
+
+        if (body.mode === "apply") {
+          await captureUndo(projectId, "Stratus pull");
+          const result = await applyStratusPull(projectId, config, {
+            forceApiRead: true,
+            refreshMode,
+            progress: reportProgress,
+          });
+          if (
+            result.summary.created > 0 ||
+            result.summary.updated > 0 ||
+            result.summary.createdAssemblies > 0 ||
+            result.summary.updatedAssemblies > 0
+          ) {
+            await logImportEvent(projectId, "stratus-pull", {
+              created: result.summary.created,
+              updated: result.summary.updated,
+              skipped: result.summary.skipped,
+              failed: result.summary.failed,
+              createdAssemblies: result.summary.createdAssemblies,
+              updatedAssemblies: result.summary.updatedAssemblies,
+              skippedAssemblies: result.summary.skippedAssemblies,
+              failedAssemblies: result.summary.failedAssemblies,
+            });
+            markProjectKnowledgeDirty(projectId);
+          }
+          return result;
+        }
+
+        return previewStratusPull(projectId, config, {
+          forceApiRead: true,
+          refreshMode,
+          progress: reportProgress,
+        });
+      });
     },
   );
 

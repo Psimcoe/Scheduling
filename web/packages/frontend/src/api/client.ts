@@ -416,6 +416,46 @@ export interface StratusReadSourceInfoResponse {
   isFullRebuild: boolean | null;
 }
 
+export interface StratusResultMetaResponse {
+  skippedUnchangedPackages: number;
+  undefinedPackageCount: number;
+  orphanAssemblyCount: number;
+  durationMs: number;
+}
+
+export type StratusJobStatus =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed";
+
+export type StratusJobKind =
+  | "projectImportPreview"
+  | "projectImportApply"
+  | "pullPreview"
+  | "pullApply";
+
+export type StratusJobPhase =
+  | "idle"
+  | "loadingProjects"
+  | "loadingPackages"
+  | "loadingAssemblies"
+  | "comparingLocal"
+  | "applyingPackages"
+  | "applyingAssemblies"
+  | "finalizing";
+
+export interface StratusJobProgressResponse {
+  phase: StratusJobPhase;
+  message: string | null;
+  processedPackages: number;
+  totalPackages: number;
+  processedAssemblies: number;
+  totalAssemblies: number;
+  skippedUnchangedPackages: number;
+  source: "sqlBigData" | "stratusApi" | null;
+}
+
 export interface StratusBigDataFieldValidationResponse {
   mappingKey:
     | "taskName"
@@ -466,6 +506,7 @@ export interface StratusProjectImportPreviewResponse {
     skipCount: number;
     excludedCount: number;
   };
+  meta: StratusResultMetaResponse;
 }
 
 export interface StratusProjectImportApplyResponse {
@@ -487,6 +528,7 @@ export interface StratusProjectImportApplyResponse {
     excluded: number;
     failed: number;
   };
+  meta: StratusResultMetaResponse;
 }
 
 export interface StratusStatusResponse {
@@ -563,6 +605,7 @@ export interface StratusPullPreviewResponse {
     updateAssemblyCount: number;
     skipAssemblyCount: number;
   };
+  meta: StratusResultMetaResponse;
 }
 
 export interface StratusPullApplyResponse {
@@ -592,6 +635,25 @@ export interface StratusPullApplyResponse {
     skippedAssemblies: number;
     failedAssemblies: number;
   };
+  meta: StratusResultMetaResponse;
+}
+
+export type StratusJobResult =
+  | StratusProjectImportPreviewResponse
+  | StratusProjectImportApplyResponse
+  | StratusPullPreviewResponse
+  | StratusPullApplyResponse;
+
+export interface StratusJobResponse<TResult = StratusJobResult> {
+  id: string;
+  kind: StratusJobKind;
+  status: StratusJobStatus;
+  progress: StratusJobProgressResponse;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  error: string | null;
+  result: TResult | null;
 }
 
 export interface StratusPushPreviewResponse {
@@ -761,6 +823,13 @@ export const stratusApi = {
     request<StratusProjectImportApplyResponse>("/stratus/projects/apply", {
       method: "POST",
     }),
+  createProjectImportJob: (mode: "preview" | "apply") =>
+    request<StratusJobResponse>("/stratus/projects/import/jobs", {
+      method: "POST",
+      body: JSON.stringify({ mode }),
+    }),
+  getJob: (jobId: string) =>
+    request<StratusJobResponse>(`/stratus/jobs/${jobId}`),
   getStatus: (projectId: string) =>
     request<StratusStatusResponse>(`/projects/${projectId}/stratus/status`),
   previewPull: (projectId: string) =>
@@ -777,6 +846,17 @@ export const stratusApi = {
         method: "POST",
       },
     ),
+  createPullJob: (
+    projectId: string,
+    data: {
+      mode: "preview" | "apply";
+      refreshMode?: "incremental" | "full";
+    },
+  ) =>
+    request<StratusJobResponse>(`/projects/${projectId}/stratus/pull/jobs`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   previewPush: (projectId: string) =>
     request<StratusPushPreviewResponse>(
       `/projects/${projectId}/stratus/push/preview`,

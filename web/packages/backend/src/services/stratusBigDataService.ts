@@ -651,6 +651,7 @@ async function queryAssemblyRows(
         pr.Id AS [__ProjectId],
         pr.Number AS [__ProjectNumber],
         pr.Name AS [__ProjectName],
+        apn.PackageNameToken AS [__PackageNameToken],
         p.Id AS [__JoinedPackageId],
         p.Name AS [__JoinedPackageName],
         p.Number AS [__JoinedPackageNumber],
@@ -666,9 +667,15 @@ async function queryAssemblyRows(
       FROM Assemblies a
       INNER JOIN Models m ON m.Id = a.ModelId
       LEFT JOIN Projects pr ON pr.Id = m.ProjectId
+      OUTER APPLY (
+        SELECT DISTINCT
+          LTRIM(RTRIM(CONVERT(nvarchar(4000), split.value))) AS PackageNameToken
+        FROM STRING_SPLIT(CONVERT(nvarchar(max), a.PackageName), ';') split
+        WHERE LTRIM(RTRIM(CONVERT(nvarchar(4000), split.value))) <> ''
+      ) apn
       LEFT JOIN Packages p
         ON p.ModelId = a.ModelId
-        AND p.Name = a.PackageName
+        AND p.Name = apn.PackageNameToken
       LEFT JOIN TrackingStatuses pts ON pts.Id = p.PackageTrackingStatusId
       LEFT JOIN LatestAssemblyUpdates lau
         ON lau.AssemblyId = a.Id
@@ -677,7 +684,10 @@ async function queryAssemblyRows(
       ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ""}
       ORDER BY
         COALESCE(CONVERT(nvarchar(255), pr.Number), CONVERT(nvarchar(255), pr.Id)),
-        CONVERT(nvarchar(255), a.PackageName),
+        COALESCE(
+          CONVERT(nvarchar(255), apn.PackageNameToken),
+          CONVERT(nvarchar(255), a.PackageName)
+        ),
         CONVERT(nvarchar(255), a.Name),
         CONVERT(nvarchar(255), a.Id)
     `,

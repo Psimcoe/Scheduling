@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useTransition } from 'react';
 import {
   Alert,
   Box,
@@ -9,15 +9,17 @@ import {
   DialogContent,
   DialogTitle,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Typography,
 } from '@mui/material';
-import { stratusApi, type StratusPullPreviewResponse } from '../../api/client';
+import { DataGrid, type GridColDef } from '@mui/x-data-grid';
+import {
+  stratusApi,
+  type StratusPullApplyResponse,
+  type StratusPullPreviewResponse,
+} from '../../api/client';
+import { useStratusJob } from '../../hooks/useStratusJob';
 import { useProjectStore, useUIStore } from '../../stores';
+import StratusJobStatusCard from './StratusJobStatusCard';
 
 function formatDate(value: string | null): string {
   return value ? value.slice(0, 10) : '-';
@@ -36,73 +38,193 @@ const StratusPullPreviewDialog: React.FC = () => {
   const closeDialog = useUIStore((s) => s.closeDialog);
   const showSnackbar = useUIStore((s) => s.showSnackbar);
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
+  const { job, startJob, clearJob, isRunning } = useStratusJob();
+  const [, startTransition] = useTransition();
 
-  const [loading, setLoading] = useState(false);
-  const [applying, setApplying] = useState(false);
   const [preview, setPreview] = useState<StratusPullPreviewResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [handledJobId, setHandledJobId] = useState<string | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || !activeProjectId) {
+    if (open) {
+      return;
+    }
+    setPreview(null);
+    setError(null);
+    setHandledJobId(null);
+    setSelectedPackageId(null);
+    clearJob();
+  }, [open, clearJob]);
+
+  useEffect(() => {
+    if (!job || job.id === handledJobId) {
       return;
     }
 
-    let cancelled = false;
-    setLoading(true);
-    setPreview(null);
+    if (job.status === 'failed') {
+      setHandledJobId(job.id);
+      setError(job.error || 'Stratus job failed.');
+      showSnackbar(job.error || 'Stratus job failed.', 'error');
+      return;
+    }
 
-    stratusApi.previewPull(activeProjectId)
-      .then((result) => {
-        if (!cancelled) {
-          setPreview(result);
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          showSnackbar(error instanceof Error ? error.message : 'Failed to preview Stratus pull', 'error');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
+    if (job.status !== 'succeeded' || !job.result) {
+      return;
+    }
+
+    setHandledJobId(job.id);
+    if (job.kind === 'pullPreview') {
+      const result = job.result as StratusPullPreviewResponse;
+      setPreview(result);
+      setSelectedPackageId((current) => current ?? result.rows[0]?.packageId ?? null);
+      setError(null);
+      return;
+    }
+
+    if (job.kind === 'pullApply' && activeProjectId) {
+      const result = job.result as StratusPullApplyResponse;
+      startTransition(() => {
+        closeDialog();
       });
+      void Promise.all([
+        useProjectStore.getState().fetchProjects(),
+        useProjectStore.getState().setActiveProject(activeProjectId),
+      ]).finally(() => {
+        showSnackbar(
+          `Stratus pull complete. Packages: created ${result.summary.created}, updated ${result.summary.updated}, skipped ${result.summary.skipped}, failed ${result.summary.failed}. Assemblies: created ${result.summary.createdAssemblies}, updated ${result.summary.updatedAssemblies}, skipped ${result.summary.skippedAssemblies}, failed ${result.summary.failedAssemblies}.`,
+          result.summary.failed > 0 || result.summary.failedAssemblies > 0 ? 'warning' : 'success',
+        );
+      });
+    }
+  }, [job, handledJobId, activeProjectId, closeDialog, showSnackbar, startTransition]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [open, activeProjectId, showSnackbar]);
-
-  const handleApply = async () => {
+  const runPreview = async () => {
     if (!activeProjectId) {
       return;
     }
-
-    setApplying(true);
-    try {
-      const result = await stratusApi.applyPull(activeProjectId);
-      await useProjectStore.getState().setActiveProject(activeProjectId);
-      closeDialog();
-      showSnackbar(
-        `Stratus pull complete. Packages: created ${result.summary.created}, updated ${result.summary.updated}, skipped ${result.summary.skipped}, failed ${result.summary.failed}. Assemblies: created ${result.summary.createdAssemblies}, updated ${result.summary.updatedAssemblies}, skipped ${result.summary.skippedAssemblies}, failed ${result.summary.failedAssemblies}.`,
-        result.summary.failed > 0 || result.summary.failedAssemblies > 0 ? 'warning' : 'success',
-      );
-    } catch (error: unknown) {
-      showSnackbar(error instanceof Error ? error.message : 'Failed to apply Stratus pull', 'error');
-    } finally {
-      setApplying(false);
-    }
+    setError(null);
+    await startJob(() =>
+      stratusApi.createPullJob(activeProjectId, {
+        mode: 'preview',
+        refreshMode: 'incremental',
+      }),
+    );
   };
 
-  const actionableRows = preview?.rows.filter((row) => row.action !== 'skip').length ?? 0;
+  const handleQuickPull = async (refreshMode: 'incremental' | 'full') => {
+    if (!activeProjectId) {
+      return;
+    }
+    setError(null);
+    await startJob(() =>
+      stratusApi.createPullJob(activeProjectId, {
+        mode: 'apply',
+        refreshMode,
+      }),
+    );
+  };
+
+  const actionableRows =
+    preview?.rows.filter((row) => row.action !== 'skip').length ?? 0;
+  const selectedRow =
+    preview?.rows.find((row) => row.packageId === selectedPackageId) ??
+    preview?.rows[0] ??
+    null;
+
+  const packageColumns: GridColDef[] = [
+    {
+      field: 'action',
+      headerName: 'Action',
+      width: 100,
+    },
+    {
+      field: 'packageNumber',
+      headerName: 'Package',
+      width: 180,
+      valueGetter: (_value, row) => row.packageNumber || row.packageId,
+    },
+    {
+      field: 'packageName',
+      headerName: 'Name',
+      flex: 1,
+      minWidth: 260,
+      valueGetter: (_value, row) => row.packageName || row.externalKey || row.packageId,
+    },
+    {
+      field: 'match',
+      headerName: 'Match',
+      width: 180,
+      valueGetter: (_value, row) =>
+        row.matchStrategy === 'none' ? 'New task' : `Matched by ${row.matchStrategy}`,
+    },
+    {
+      field: 'mappedName',
+      headerName: 'Mapped Task',
+      flex: 1,
+      minWidth: 220,
+      valueGetter: (_value, row) => row.mappedTask.name,
+    },
+    {
+      field: 'assemblies',
+      headerName: 'Assemblies',
+      width: 180,
+      valueGetter: (_value, row) =>
+        `${row.assemblyCount} total, ${row.skipAssemblyCount} skipped`,
+    },
+    {
+      field: 'dates',
+      headerName: 'Dates',
+      width: 220,
+      valueGetter: (_value, row) =>
+        `Start ${formatDate(row.mappedTask.start)} | Finish ${formatDate(row.mappedTask.finish)}`,
+    },
+  ];
+
+  const assemblyColumns: GridColDef[] = [
+    {
+      field: 'action',
+      headerName: 'Action',
+      width: 100,
+    },
+    {
+      field: 'assemblyName',
+      headerName: 'Assembly',
+      flex: 1,
+      minWidth: 260,
+      valueGetter: (_value, row) => row.assemblyName || row.externalKey,
+    },
+    {
+      field: 'taskName',
+      headerName: 'Local Task',
+      flex: 1,
+      minWidth: 240,
+      valueGetter: (_value, row) => row.taskName || 'New task',
+    },
+    {
+      field: 'percentComplete',
+      headerName: '% Done',
+      width: 100,
+      valueGetter: (_value, row) => row.mappedTask.percentComplete,
+    },
+    {
+      field: 'externalKey',
+      headerName: 'External Key',
+      width: 260,
+    },
+  ];
 
   return (
-    <Dialog open={open} onClose={closeDialog} maxWidth="lg" fullWidth>
-      <DialogTitle>Stratus Pull Preview</DialogTitle>
+    <Dialog open={open} onClose={isRunning ? undefined : closeDialog} maxWidth="xl" fullWidth>
+      <DialogTitle>Stratus Pull</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Stack spacing={2}>
           <Alert severity="info">
-            Project-specific pulls refresh that project’s reference rows and also backfill any newly discovered Stratus package and assembly ids into the master <strong>Prefab</strong> project.
+            Quick Pull runs immediately in the background using the Stratus API. Preview remains available when you want to review package and assembly changes first. Full Refresh bypasses the incremental skip logic.
           </Alert>
+
+          {job && <StratusJobStatusCard job={job} />}
+
           {preview && (
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Chip
@@ -121,9 +243,10 @@ const StratusPullPreviewDialog: React.FC = () => {
               <Chip label={`Update ${preview.summary.updateCount}`} size="small" color="primary" />
               <Chip label={`Skip ${preview.summary.skipCount}`} size="small" />
               <Chip label={`Assemblies ${preview.summary.totalAssemblies}`} size="small" />
-              <Chip label={`Assembly Create ${preview.summary.createAssemblyCount}`} size="small" color="success" />
-              <Chip label={`Assembly Update ${preview.summary.updateAssemblyCount}`} size="small" color="primary" />
-              <Chip label={`Assembly Skip ${preview.summary.skipAssemblyCount}`} size="small" />
+              <Chip label={`Unchanged ${preview.meta.skippedUnchangedPackages}`} size="small" />
+              <Chip label={`Undefined ${preview.meta.undefinedPackageCount}`} size="small" color="warning" />
+              <Chip label={`Orphan Assemblies ${preview.meta.orphanAssemblyCount}`} size="small" color="warning" />
+              <Chip label={`Runtime ${(preview.meta.durationMs / 1000).toFixed(1)}s`} size="small" />
             </Box>
           )}
           {preview && (
@@ -134,113 +257,107 @@ const StratusPullPreviewDialog: React.FC = () => {
             </Alert>
           )}
 
-          {loading && <Alert severity="info">Loading Stratus package preview...</Alert>}
-          {!loading && preview && preview.rows.length === 0 && (
+          {!job && !preview && !error && (
+            <Alert severity="info">
+              Choose <strong>Quick Pull</strong> for the fastest path, <strong>Full Refresh</strong> to rebuild everything, or <strong>Preview</strong> to inspect the next pull result first.
+            </Alert>
+          )}
+          {error && <Alert severity="error">{error}</Alert>}
+          {!isRunning && !error && preview && preview.rows.length === 0 && (
             <Alert severity="info">No Stratus packages were returned for the current project target.</Alert>
           )}
 
-          {!loading && preview && preview.rows.length > 0 && (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Action</TableCell>
-                  <TableCell>Package</TableCell>
-                  <TableCell>Match</TableCell>
-                  <TableCell>Mapped Task</TableCell>
-                  <TableCell>Assemblies</TableCell>
-                  <TableCell>Dates</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {preview.rows.map((row) => (
-                  <TableRow key={row.packageId}>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={row.action}
-                        color={row.action === 'create' ? 'success' : row.action === 'update' ? 'primary' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {row.packageNumber || row.packageId}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {row.packageName || row.externalKey || row.packageId}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Package Id: {row.packageId}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Key: {row.externalKey || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {row.taskName || 'New task'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {row.matchStrategy === 'none' ? 'No existing match' : `Matched by ${row.matchStrategy}`}
-                      </Typography>
-                      {row.warnings.map((warning) => (
-                        <Typography key={warning} variant="caption" color="warning.main" display="block">
-                          {warning}
-                        </Typography>
-                      ))}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{row.mappedTask.name}</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        % Complete {row.mappedTask.percentComplete}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Duration {row.mappedTask.durationMinutes ? `${Math.round(row.mappedTask.durationMinutes)} min` : '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {row.assemblyCount} assemblies
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Create {row.createAssemblyCount} | Update {row.updateAssemblyCount} | Skip {row.skipAssemblyCount}
-                      </Typography>
-                      {row.assemblyRows.slice(0, 3).map((assembly) => (
-                        <Typography key={assembly.assemblyId} variant="caption" color="text.secondary" display="block">
-                          {assembly.action}: {assembly.assemblyName || assembly.externalKey} ({assembly.assemblyId})
-                        </Typography>
-                      ))}
-                      {row.assemblyCount > 3 && (
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          +{row.assemblyCount - 3} more
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" display="block">
-                        Start {formatDate(row.mappedTask.start)}
-                      </Typography>
-                      <Typography variant="caption" display="block">
-                        Finish {formatDate(row.mappedTask.finish)}
-                      </Typography>
-                      <Typography variant="caption" display="block">
-                        Deadline {formatDate(row.mappedTask.deadline)}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {!isRunning && !error && preview && preview.rows.length > 0 && (
+            <>
+              <Box sx={{ height: 420 }}>
+                <DataGrid
+                  rows={preview.rows}
+                  columns={packageColumns}
+                  getRowId={(row) => row.packageId}
+                  rowSelectionModel={selectedPackageId ? [selectedPackageId] : []}
+                  onRowSelectionModelChange={(selection) => {
+                    const nextSelection = selection[0];
+                    setSelectedPackageId(typeof nextSelection === 'string' ? nextSelection : null);
+                  }}
+                  disableRowSelectionOnClick={false}
+                  pageSizeOptions={[25, 50, 100]}
+                  initialState={{
+                    pagination: {
+                      paginationModel: {
+                        pageSize: 25,
+                        page: 0,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+
+              {selectedRow && (
+                <Stack spacing={1}>
+                  <Typography variant="subtitle2">
+                    {selectedRow.packageNumber || selectedRow.packageId} - {selectedRow.packageName || selectedRow.externalKey || selectedRow.packageId}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {selectedRow.matchStrategy === 'none'
+                      ? 'No existing match'
+                      : `Matched by ${selectedRow.matchStrategy}`} | Duration {selectedRow.mappedTask.durationMinutes ? `${Math.round(selectedRow.mappedTask.durationMinutes)} min` : '-'} | % Done {selectedRow.mappedTask.percentComplete}
+                  </Typography>
+                  {selectedRow.warnings.map((warning) => (
+                    <Typography key={warning} variant="caption" color="warning.main">
+                      {warning}
+                    </Typography>
+                  ))}
+                  <Box sx={{ height: 240 }}>
+                    <DataGrid
+                      rows={selectedRow.assemblyRows}
+                      columns={assemblyColumns}
+                      getRowId={(row) => row.externalKey}
+                      disableRowSelectionOnClick
+                      pageSizeOptions={[10, 25, 50]}
+                      initialState={{
+                        pagination: {
+                          paginationModel: {
+                            pageSize: 10,
+                            page: 0,
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+                </Stack>
+              )}
+            </>
           )}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={closeDialog}>Close</Button>
+        <Button onClick={closeDialog} disabled={isRunning}>
+          Close
+        </Button>
+        <Button
+          onClick={() => {
+            void runPreview();
+          }}
+          disabled={isRunning || !activeProjectId}
+        >
+          Preview
+        </Button>
+        <Button
+          onClick={() => {
+            void handleQuickPull('full');
+          }}
+          disabled={isRunning || !activeProjectId}
+        >
+          Full Refresh
+        </Button>
         <Button
           variant="contained"
-          onClick={handleApply}
-          disabled={loading || applying || actionableRows === 0}
+          onClick={() => {
+            void handleQuickPull('incremental');
+          }}
+          disabled={isRunning || !activeProjectId || (preview !== null && actionableRows === 0)}
         >
-          {applying ? 'Applying...' : 'Apply Pull'}
+          Quick Pull
         </Button>
       </DialogActions>
     </Dialog>

@@ -217,6 +217,94 @@ describe("stratusSyncService", () => {
     expect(rows[0]?.mappedTask.percentComplete).toBe(50);
   });
 
+  it("marks unchanged incremental bundles as skipped without remote assembly updates", () => {
+    const rows = buildPullPreviewRows(
+      [
+        {
+          package: {
+            id: "pkg-unchanged",
+            projectId: "stratus-project",
+            modelId: "model-1",
+            packageNumber: "PKG-UNCHANGED",
+            packageName: "Package Unchanged",
+            trackingStatusId: "track-1",
+            trackingStatusName: "Ready to Ship",
+            externalKey: "1001-PKG-UNCHANGED",
+            normalizedFields: {
+              "STRATUS.Package.Name": "Package Unchanged",
+              "STRATUS.Field.SMC_Package Start Date":
+                "2026-03-01T00:00:00.000Z",
+              "STRATUS.Field.SMC_Package Estimated Finish Date":
+                "2026-03-02T00:00:00.000Z",
+            },
+            assemblyIds: ["asm-1"],
+            rawPackage: {},
+          },
+          assemblies: [
+            {
+              id: "asm-1",
+              packageId: "pkg-unchanged",
+              projectId: "stratus-project",
+              modelId: "model-1",
+              name: "Assembly Local",
+              externalKey: "1001-PKG-UNCHANGED::assembly:asm-1",
+              trackingStatusId: null,
+              trackingStatusName: null,
+              notes: "",
+              rawAssembly: {},
+            },
+          ],
+          syncMeta: {
+            unchanged: true,
+            skippedReason: "Package unchanged since last pull.",
+            localHierarchy: {
+              packageTask: {
+                id: "task-package",
+                name: "Package Unchanged",
+                externalKey: "1001-PKG-UNCHANGED",
+                parentId: null,
+                start: new Date("2026-03-01T00:00:00.000Z"),
+                finish: new Date("2026-03-02T00:00:00.000Z"),
+                deadline: null,
+                durationMinutes: 480,
+                percentComplete: 99,
+                notes: "No changes",
+                sortOrder: 0,
+                stratusSync: null,
+              },
+              assemblyTasks: [
+                {
+                  id: "task-assembly",
+                  name: "Assembly Local",
+                  externalKey: "1001-PKG-UNCHANGED::assembly:asm-1",
+                  parentId: "task-package",
+                  start: new Date("2026-03-01T00:00:00.000Z"),
+                  finish: new Date("2026-03-02T00:00:00.000Z"),
+                  deadline: null,
+                  durationMinutes: 480,
+                  percentComplete: 99,
+                  notes: "No changes",
+                  sortOrder: 1,
+                  stratusSync: null,
+                },
+              ],
+            },
+          },
+        },
+      ],
+      [],
+      480,
+      normalizeStratusConfig(),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.action).toBe("skip");
+    expect(rows[0]?.taskId).toBe("task-package");
+    expect(rows[0]?.warnings).toContain("Package unchanged since last pull.");
+    expect(rows[0]?.assemblyRows[0]?.action).toBe("skip");
+    expect(rows[0]?.assemblyRows[0]?.taskId).toBe("task-assembly");
+  });
+
   it("prefers SQL-native shop percent complete values over seeded status mappings when available", () => {
     const rows = buildPullPreviewRows(
       [

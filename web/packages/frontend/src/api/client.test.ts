@@ -94,6 +94,51 @@ describe("API client request headers", () => {
     expect(headers.get("Content-Type")).toBe("application/json");
   });
 
+  it("sends JSON bodies for Stratus job requests", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "job-1",
+          kind: "pullApply",
+          status: "queued",
+          progress: {
+            phase: "idle",
+            message: null,
+            processedPackages: 0,
+            totalPackages: 0,
+            processedAssemblies: 0,
+            totalAssemblies: 0,
+            skippedUnchangedPackages: 0,
+            source: null,
+          },
+          createdAt: "2026-03-11T00:00:00.000Z",
+          startedAt: null,
+          finishedAt: null,
+          error: null,
+          result: null,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await stratusApi.createPullJob("project-1", {
+      mode: "apply",
+      refreshMode: "incremental",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init?.headers);
+    expect(init?.method).toBe("POST");
+    expect(init?.body).toBe(
+      JSON.stringify({ mode: "apply", refreshMode: "incremental" }),
+    );
+    expect(headers.get("Content-Type")).toBe("application/json");
+  });
+
   it("prefers backend message over generic error field", async () => {
     fetchMock.mockResolvedValue(
       new Response(
