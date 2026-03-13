@@ -1,0 +1,4 @@
+- generic [ref=e10]:
+  - heading "Sign in to ScheduleSync" [level=5] [ref=e11]
+  - paragraph [ref=e12]: Your organization account is required to access the scheduling workspace.
+  - button "Sign in with SSO" [ref=e13] [cursor=pointer]

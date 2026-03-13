@@ -29,6 +29,7 @@ function createSnapshot(name: string, revision = 1): ProjectSnapshotResponse {
       defaultCalendarId: '__default__',
       scheduleFrom: 'start',
       statusDate: null,
+      stratusLocalMetadataVersion: 1,
     },
     tasks: [
       {

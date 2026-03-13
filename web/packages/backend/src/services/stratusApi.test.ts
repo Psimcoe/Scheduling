@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  compute429RetryDelayMs,
   getConfiguredPackageFieldValue,
   getRequestedStratusFieldKeys,
   isImportableStratusAssemblyRecord,
@@ -8,10 +9,17 @@ import {
   normalizeStratusPackage,
   normalizeStratusProject,
   resolveFieldIdsFromDefinitions,
+  stratusRequestJson,
 } from "./stratusApi.js";
 import { normalizeStratusConfig } from "./stratusConfig.js";
 
 describe("stratusApi", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
   it("resolves company field ids from exact Stratus field names", () => {
     const config = normalizeStratusConfig();
     const result = resolveFieldIdsFromDefinitions(
@@ -267,5 +275,77 @@ describe("stratusApi", () => {
         },
       }),
     ).toBe(false);
+  });
+
+  it("computes capped 429 retry delays with exponential backoff and jitter", () => {
+    expect(compute429RetryDelayMs(0, 1_000, 0)).toBe(2_000);
+    expect(compute429RetryDelayMs(2, 10_000, 0.5)).toBe(10_125);
+    expect(compute429RetryDelayMs(10, 0, 1)).toBe(30_000);
+  });
+
+  it("retries 429 responses with exponential backoff and succeeds", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response("Rate limit exceeded.", {
+          status: 429,
+          headers: { "retry-after": "1" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+
+    const config = normalizeStratusConfig({
+      baseUrl: "https://api.example.test/v1",
+      appKey: "app-key",
+    });
+    const responsePromise = stratusRequestJson<{ ok: boolean }>(
+      config,
+      "/v1/packages",
+    );
+
+    await Promise.resolve();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    await expect(responsePromise).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("surfaces a final 429 failure after the retry cap", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValue(
+      new Response("Rate limit exceeded.", {
+        status: 429,
+        headers: { "retry-after": "1" },
+      }),
+    );
+
+    const config = normalizeStratusConfig({
+      baseUrl: "https://api.example.test/v1",
+      appKey: "app-key",
+    });
+    const responsePromise = stratusRequestJson(config, "/v1/packages");
+    const rejectionExpectation = expect(responsePromise).rejects.toThrow(
+      "Stratus request failed (429): Rate limit exceeded.",
+    );
+
+    await vi.runAllTimersAsync();
+
+    await rejectionExpectation;
+    expect(fetchMock).toHaveBeenCalledTimes(6);
   });
 });

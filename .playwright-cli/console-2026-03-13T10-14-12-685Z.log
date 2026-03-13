@@ -1,0 +1,2 @@
+[    1056ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:5173/auth/session:0
+[   40219ms] [ERROR] Failed to load resource: the server responded with a status of 503 (Service Unavailable) @ http://localhost:5173/auth/login?mode=redirect&returnTo=%2F:0

@@ -43,4 +43,41 @@ describe("stratusJobService", () => {
 
     expect(getStratusJob(job.id)?.error).toBe("boom");
   });
+
+  it("reuses the active single-flight job for the same key", async () => {
+    let releaseRunner: () => void = () => undefined;
+    const runner = vi.fn(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          releaseRunner = () => resolve({ ok: true });
+        }),
+    );
+
+    const firstJob = createStratusJob("pullApply", runner, {
+      singleFlightKey: "pull:project-1:full",
+    });
+    const secondJob = createStratusJob("pullApply", runner, {
+      singleFlightKey: "pull:project-1:full",
+    });
+
+    expect(secondJob.id).toBe(firstJob.id);
+    await vi.waitFor(() => {
+      expect(runner).toHaveBeenCalledTimes(1);
+    });
+
+    releaseRunner();
+    await vi.waitFor(() => {
+      expect(getStratusJob(firstJob.id)?.status).toBe("succeeded");
+    });
+
+    const thirdJob = createStratusJob(
+      "pullApply",
+      async () => ({ ok: true }),
+      {
+        singleFlightKey: "pull:project-1:full",
+      },
+    );
+
+    expect(thirdJob.id).not.toBe(firstJob.id);
+  });
 });

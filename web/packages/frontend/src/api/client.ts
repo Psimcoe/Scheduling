@@ -168,11 +168,18 @@ export interface ProjectDetailResponse extends ProjectSummaryResponse {
   defaultCalendarId: string;
   scheduleFrom: string;
   statusDate: string | null;
+  stratusLocalMetadataVersion: number;
   _count?: {
     tasks: number;
     calendars: number;
     resources: number;
   };
+}
+
+export interface StratusStatusSummaryResponse {
+  sourceType: "package" | "assembly";
+  trackingStatusId: string | null;
+  trackingStatusName: string | null;
 }
 
 export interface TaskResponse {
@@ -203,6 +210,7 @@ export interface TaskResponse {
   externalKey: string | null;
   sortOrder: number;
   stratusSync: StratusSyncSummary | null;
+  stratusStatus?: StratusStatusSummaryResponse | null;
   fixedCost: number | null;
   fixedCostAccrual: string | null;
   cost: number | null;
@@ -751,6 +759,26 @@ export interface StratusBigDataConnectionTestResponse
   fieldMappings: StratusBigDataFieldValidationResponse[];
 }
 
+export interface StratusProjectTargetPayload {
+  stratusProjectId: string | null;
+  stratusModelId: string | null;
+  stratusPackageWhere: string | null;
+}
+
+export interface StratusStatusMappingsSaveRequest {
+  config: Record<string, unknown>;
+  project: StratusProjectTargetPayload;
+}
+
+export interface StratusStatusMappingsSaveResponse {
+  mode: "saved" | "localRemap" | "seedRequired";
+  revision: number;
+  snapshot: ProjectSnapshotResponse;
+  affectedPackages: number;
+  affectedAssemblies: number;
+  jobId?: string;
+}
+
 export interface StratusProjectImportPreviewRow {
   action: "create" | "update" | "skip" | "exclude";
   stratusProjectId: string;
@@ -1105,6 +1133,17 @@ export const stratusApi = {
     request<StratusJobResponse>(`/stratus/jobs/${jobId}`),
   getStatus: (projectId: string) =>
     request<StratusStatusResponse>(`/projects/${projectId}/stratus/status`),
+  saveStatusMappings: (
+    projectId: string,
+    data: StratusStatusMappingsSaveRequest,
+  ) =>
+    request<StratusStatusMappingsSaveResponse>(
+      `/projects/${projectId}/stratus/status-mappings/save`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    ),
   previewPull: (projectId: string) =>
     request<StratusPullPreviewResponse>(
       `/projects/${projectId}/stratus/pull/preview`,

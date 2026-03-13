@@ -8,7 +8,10 @@ import { prisma } from '../db.js';
 import { logTaskMutation } from '../services/aiLearningService.js';
 import { recalculateProject } from '../services/schedulingService.js';
 import { markProjectKnowledgeDirty } from '../services/scheduleKnowledgeService.js';
-import { toStratusSyncSummary } from '../services/stratusSyncService.js';
+import {
+  toStratusStatusSummary,
+  toStratusSyncSummary,
+} from '../services/stratusSyncService.js';
 import { captureUndo } from '../services/undoService.js';
 import { loadProjectSnapshot } from '../services/projectSnapshotService.js';
 
@@ -84,7 +87,7 @@ export default async function taskRoutes(app: FastifyInstance) {
       const tasks = await prisma.task.findMany({
         where: { projectId },
         orderBy: { sortOrder: 'asc' },
-        include: { stratusSync: true },
+        include: { stratusSync: true, stratusAssemblySync: true },
       });
       return tasks.map(serializeTask);
     },
@@ -97,7 +100,7 @@ export default async function taskRoutes(app: FastifyInstance) {
       const { taskId } = req.params;
       const task = await prisma.task.findUnique({
         where: { id: taskId },
-        include: { stratusSync: true },
+        include: { stratusSync: true, stratusAssemblySync: true },
       });
       if (!task) return reply.code(404).send({ error: 'Task not found' });
       return serializeTask(task);
@@ -407,10 +410,15 @@ function toTaskMutationSnapshot(task: {
 function serializeTask(
   task: Record<string, unknown> & {
     stratusSync?: Parameters<typeof toStratusSyncSummary>[0] | null;
+    stratusAssemblySync?: Parameters<typeof toStratusStatusSummary>[1];
   },
 ) {
   return {
     ...task,
     stratusSync: toStratusSyncSummary(task.stratusSync ?? null),
+    stratusStatus: toStratusStatusSummary(
+      task.stratusSync ?? null,
+      task.stratusAssemblySync,
+    ),
   };
 }

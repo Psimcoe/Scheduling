@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { runtimeConfig } from "../runtimeConfig.js";
 
 export const DEFAULT_STRATUS_BASE_URL = "https://api.gtpstratus.com/v1";
@@ -320,10 +321,10 @@ export function getStratusConfig(): StratusConfig {
   return cachedConfig;
 }
 
-export function setStratusConfig(
+export function resolveNextStratusConfig(
   partial: Partial<StratusConfig>,
+  current = getStratusConfig(),
 ): StratusConfig {
-  const current = getStratusConfig();
   const merged = {
     ...current,
     ...partial,
@@ -353,16 +354,27 @@ export function setStratusConfig(
     merged.cachedDeadlineFieldId = "";
   }
 
-  const nextConfig = normalizeStratusConfig({
+  return normalizeStratusConfig({
     ...merged,
   });
-  cachedConfig = nextConfig;
-  writeFileSync(CONFIG_PATH, JSON.stringify(nextConfig, null, 2));
-  return nextConfig;
 }
 
-export function getSafeStratusConfig(): SafeStratusConfig {
-  const config = getStratusConfig();
+export async function writeStratusConfig(
+  config: StratusConfig,
+): Promise<StratusConfig> {
+  cachedConfig = config;
+  await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), "utf8");
+  return config;
+}
+
+export async function setStratusConfig(
+  partial: Partial<StratusConfig>,
+): Promise<StratusConfig> {
+  const nextConfig = resolveNextStratusConfig(partial);
+  return writeStratusConfig(nextConfig);
+}
+
+export function toSafeStratusConfig(config: StratusConfig): SafeStratusConfig {
   return {
     baseUrl: config.baseUrl,
     appKeySet: config.appKey.length > 0,
@@ -397,6 +409,10 @@ export function getSafeStratusConfig(): SafeStratusConfig {
     })),
     excludedProjectIds: config.excludedProjectIds,
   };
+}
+
+export function getSafeStratusConfig(): SafeStratusConfig {
+  return toSafeStratusConfig(getStratusConfig());
 }
 
 export function normalizeStratusConfig(

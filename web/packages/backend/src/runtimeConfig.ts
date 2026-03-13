@@ -31,6 +31,18 @@ function parseCsvEnv(name: string): string[] {
     .filter((entry) => entry.length > 0);
 }
 
+function parseAuthRoleEnv(
+  name: string,
+  fallback: 'viewer' | 'editor' | 'admin',
+): 'viewer' | 'editor' | 'admin' {
+  const value = getTrimmedEnv(name)?.toLowerCase();
+  if (value === 'viewer' || value === 'editor' || value === 'admin') {
+    return value;
+  }
+
+  return fallback;
+}
+
 function toPrismaSqliteUrl(filePath: string): string {
   return `file:${filePath.replace(/\\/g, '/')}`;
 }
@@ -79,6 +91,16 @@ const defaultAllowedOrigins =
 const oidcScopes = getTrimmedEnv('OIDC_SCOPES') ?? 'openid profile email';
 const defaultRedirectUri = !isProduction ? 'http://localhost:5173/auth/callback' : null;
 const oidcAdminEmails = parseCsvEnv('OIDC_ADMIN_EMAILS').map((entry) => entry.toLowerCase());
+const devAuthBypassEnabled =
+  !isProduction && getTrimmedEnv('SCHEDULESYNC_DEV_AUTH_BYPASS') === '1';
+const devAuthBypassEmail =
+  getTrimmedEnv('SCHEDULESYNC_DEV_AUTH_EMAIL') ??
+  `${(getTrimmedEnv('USERNAME') ?? 'local-dev-user').toLowerCase()}@local.schedulesync.dev`;
+const devAuthBypassDisplayName =
+  getTrimmedEnv('SCHEDULESYNC_DEV_AUTH_NAME') ??
+  getTrimmedEnv('USERNAME') ??
+  'Local Developer';
+const devAuthBypassRole = parseAuthRoleEnv('SCHEDULESYNC_DEV_AUTH_ROLE', 'admin');
 
 export const runtimeConfig = {
   host: getTrimmedEnv('HOST') ?? '0.0.0.0',
@@ -106,6 +128,12 @@ export const runtimeConfig = {
       redirectUri: getTrimmedEnv('OIDC_REDIRECT_URI') ?? defaultRedirectUri,
       scopes: oidcScopes,
       adminEmails: oidcAdminEmails,
+    },
+    devBypass: {
+      enabled: devAuthBypassEnabled,
+      email: devAuthBypassEmail,
+      displayName: devAuthBypassDisplayName,
+      role: devAuthBypassRole,
     },
   },
 };

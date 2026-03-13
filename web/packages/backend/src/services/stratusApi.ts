@@ -12,8 +12,10 @@ import {
 } from "./stratusConfig.js";
 
 export const STRATUS_PAGE_SIZE = 200;
+export const STRATUS_ASSEMBLY_PAGE_SIZE = 500;
 const STRATUS_MAX_429_RETRIES = 5;
 const DEFAULT_429_WAIT_MS = 2_000;
+const MAX_429_WAIT_MS = 30_000;
 
 const BASE_STRATUS_FIELD_KEYS = [
   "STRATUS.Field.Project Number",
@@ -728,14 +730,18 @@ export async function fetchActiveProjectsFromStratus(
 export async function fetchAssembliesForPackage(
   config: StratusConfig,
   packageId: string,
+  options: {
+    pageSize?: number;
+  } = {},
 ): Promise<Record<string, unknown>[]> {
   ensureStratusConfigured(config);
   const results: Record<string, unknown>[] = [];
+  const pageSize = Math.max(1, options.pageSize ?? STRATUS_ASSEMBLY_PAGE_SIZE);
 
   for (let page = 0; ; page++) {
     const searchParams = new URLSearchParams({
       page: String(page),
-      pagesize: "1000",
+      pagesize: String(pageSize),
       disabletotal: "true",
     });
     const response = await stratusRequestJson<{ data?: unknown[] }>(
@@ -749,7 +755,7 @@ export async function fetchAssembliesForPackage(
           isRecord(item) && isImportableStratusAssemblyRecord(item),
       ),
     );
-    if (items.length < 1000) {
+    if (items.length < pageSize) {
       break;
     }
   }
@@ -793,15 +799,19 @@ export async function fetchModelsForProject(
 export async function fetchAssembliesForModel(
   config: StratusConfig,
   modelId: string,
+  options: {
+    pageSize?: number;
+  } = {},
 ): Promise<Record<string, unknown>[]> {
   ensureStratusConfigured(config);
   const results: Record<string, unknown>[] = [];
   const where = `modelId eq '${escapeStratusWhereValue(modelId)}'`;
+  const pageSize = Math.max(1, options.pageSize ?? STRATUS_ASSEMBLY_PAGE_SIZE);
 
   for (let page = 0; ; page++) {
     const searchParams = new URLSearchParams({
       page: String(page),
-      pagesize: "1000",
+      pagesize: String(pageSize),
       disabletotal: "true",
       where,
     });
@@ -816,7 +826,7 @@ export async function fetchAssembliesForModel(
           isRecord(item) && isImportableStratusAssemblyRecord(item),
       ),
     );
-    if (items.length < 1000) {
+    if (items.length < pageSize) {
       break;
     }
   }
@@ -887,7 +897,12 @@ async function stratusRequest(
 
   const response = await fetch(url, { ...init, headers });
   if (response.status === 429 && attempt < STRATUS_MAX_429_RETRIES) {
-    await delay(parseRetryAfterMs(response.headers.get("retry-after")));
+    await delay(
+      compute429RetryDelayMs(
+        attempt,
+        parseRetryAfterMs(response.headers.get("retry-after")),
+      ),
+    );
     return stratusRequest(config, path, init, attempt + 1);
   }
 
@@ -1141,6 +1156,19 @@ function parseRetryAfterMs(headerValue: string | null): number {
   return Number.isFinite(seconds) && seconds > 0
     ? seconds * 1_000
     : DEFAULT_429_WAIT_MS;
+}
+
+export function compute429RetryDelayMs(
+  attempt: number,
+  retryAfterMs: number,
+  randomValue = Math.random(),
+): number {
+  const exponentialDelay = DEFAULT_429_WAIT_MS * 2 ** attempt;
+  const jitterMs = Math.round(Math.max(0, Math.min(1, randomValue)) * 250);
+  return Math.min(
+    MAX_429_WAIT_MS,
+    Math.max(retryAfterMs, exponentialDelay) + jitterMs,
+  );
 }
 
 function escapeStratusWhereValue(value: string): string {

@@ -330,6 +330,28 @@ function Wait-ForUrl {
     return $false
 }
 
+function Enable-DefaultLocalAuthBypass {
+    if ($env:NODE_ENV -eq 'production') {
+        return
+    }
+
+    if ($env:OIDC_ISSUER_URL -or $env:SCHEDULESYNC_DEV_AUTH_BYPASS) {
+        return
+    }
+
+    $defaultUser = if ($env:USERNAME) { $env:USERNAME } else { 'local-dev-user' }
+    $env:SCHEDULESYNC_DEV_AUTH_BYPASS = '1'
+    if (-not $env:SCHEDULESYNC_DEV_AUTH_EMAIL) {
+        $env:SCHEDULESYNC_DEV_AUTH_EMAIL = "$($defaultUser.ToLowerInvariant())@local.schedulesync.dev"
+    }
+    if (-not $env:SCHEDULESYNC_DEV_AUTH_NAME) {
+        $env:SCHEDULESYNC_DEV_AUTH_NAME = $defaultUser
+    }
+    if (-not $env:SCHEDULESYNC_DEV_AUTH_ROLE) {
+        $env:SCHEDULESYNC_DEV_AUTH_ROLE = 'admin'
+    }
+}
+
 function Test-PortListening {
     param(
         [Parameter(Mandatory = $true)]
@@ -457,6 +479,7 @@ try {
     $pnpmInvoker = Resolve-PnpmInvoker -NodeCommand $nodeCommand
     $script:PnpmCommand = $pnpmInvoker.Command
     $script:PnpmPrefixArguments = @($pnpmInvoker.PrefixArguments)
+    Enable-DefaultLocalAuthBypass
 
     switch ($Mode) {
         'Backend' {

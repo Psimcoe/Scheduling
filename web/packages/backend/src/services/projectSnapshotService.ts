@@ -1,5 +1,8 @@
 import { prisma } from '../db.js';
-import { toStratusSyncSummary } from './stratusSyncService.js';
+import {
+  toStratusStatusSummary,
+  toStratusSyncSummary,
+} from './stratusSyncService.js';
 
 export interface ProjectSnapshotResponse {
   revision: number;
@@ -50,19 +53,27 @@ async function loadTasks(projectId: string) {
   return prisma.task.findMany({
     where: { projectId },
     orderBy: { sortOrder: 'asc' },
-    include: { stratusSync: true },
+    include: { stratusSync: true, stratusAssemblySync: true },
   });
 }
 
 type LoadedTask = Awaited<ReturnType<typeof loadTasks>>[number];
-export type SerializedTask = Omit<LoadedTask, 'stratusSync'> & {
+export type SerializedTask = Omit<
+  LoadedTask,
+  'stratusSync' | 'stratusAssemblySync'
+> & {
   stratusSync: ReturnType<typeof toStratusSyncSummary>;
+  stratusStatus: ReturnType<typeof toStratusStatusSummary>;
 };
 
 function serializeTasks(tasks: LoadedTask[]): SerializedTask[] {
   return tasks.map((task) => ({
     ...task,
     stratusSync: toStratusSyncSummary(task.stratusSync ?? null),
+    stratusStatus: toStratusStatusSummary(
+      task.stratusSync ?? null,
+      task.stratusAssemblySync,
+    ),
   }));
 }
 

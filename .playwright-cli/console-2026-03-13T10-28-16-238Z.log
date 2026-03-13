@@ -1,0 +1,4 @@
+[  308495ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/api/stratus/jobs/7466066a-baaa-4712-b32e-c18bd4598638:0
+[ 5402403ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/auth/session:0
+[ 5527360ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/auth/session:0
+[ 5586341ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/auth/session:0

@@ -231,6 +231,7 @@ function buildOptimisticTask(
     sortOrder:
       typeof data.sortOrder === 'number' ? data.sortOrder : maxSortOrder + 1,
     stratusSync: null,
+    stratusStatus: null,
     fixedCost: null,
     fixedCostAccrual: null,
     cost: null,

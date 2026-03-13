@@ -14,6 +14,7 @@ import {
   createStratusJob,
   getStratusJob,
 } from "../services/stratusJobService.js";
+import { saveStratusSettingsForProject } from "../services/stratusStatusMappingService.js";
 import {
   applyStratusProjectImport,
   applyStratusPull,
@@ -76,6 +77,50 @@ const pullJobSchema = z.object({
   refreshMode: z.enum(["incremental", "full"]).optional(),
 });
 
+const projectTargetSchema = z.object({
+  stratusProjectId: z.string().nullable(),
+  stratusModelId: z.string().nullable(),
+  stratusPackageWhere: z.string().nullable(),
+});
+
+const statusMappingSaveSchema = z.object({
+  config: configSchema,
+  project: projectTargetSchema,
+});
+
+function buildPullSingleFlightKey(
+  projectId: string,
+  refreshMode: "incremental" | "full",
+) {
+  return refreshMode === "full"
+    ? `stratus-pull:${projectId}:apply:${refreshMode}`
+    : undefined;
+}
+
+async function finalizePullApplyLogging(
+  projectId: string,
+  result: Awaited<ReturnType<typeof applyStratusPull>>,
+) {
+  if (
+    result.summary.created > 0 ||
+    result.summary.updated > 0 ||
+    result.summary.createdAssemblies > 0 ||
+    result.summary.updatedAssemblies > 0
+  ) {
+    await logImportEvent(projectId, "stratus-pull", {
+      created: result.summary.created,
+      updated: result.summary.updated,
+      skipped: result.summary.skipped,
+      failed: result.summary.failed,
+      createdAssemblies: result.summary.createdAssemblies,
+      updatedAssemblies: result.summary.updatedAssemblies,
+      skippedAssemblies: result.summary.skippedAssemblies,
+      failedAssemblies: result.summary.failedAssemblies,
+    });
+    markProjectKnowledgeDirty(projectId);
+  }
+}
+
 export default async function stratusRoutes(app: FastifyInstance) {
   app.get("/stratus/config", async () => {
     return getSafeStratusConfig();
@@ -83,7 +128,7 @@ export default async function stratusRoutes(app: FastifyInstance) {
 
   app.put("/stratus/config", async (req) => {
     const body = configSchema.parse(req.body);
-    setStratusConfig(body);
+    await setStratusConfig(body);
     return getSafeStratusConfig();
   });
 
@@ -156,10 +201,10 @@ export default async function stratusRoutes(app: FastifyInstance) {
       const body = pullJobSchema.parse(req.body ?? {});
       const { projectId } = req.params;
       const kind = body.mode === "apply" ? "pullApply" : "pullPreview";
+      const refreshMode = body.refreshMode ?? "incremental";
 
       return createStratusJob(kind, async (reportProgress) => {
         const config = getStratusConfig();
-        const refreshMode = body.refreshMode ?? "incremental";
 
         if (body.mode === "apply") {
           await captureUndo(projectId, "Stratus pull");
@@ -168,24 +213,7 @@ export default async function stratusRoutes(app: FastifyInstance) {
             refreshMode,
             progress: reportProgress,
           });
-          if (
-            result.summary.created > 0 ||
-            result.summary.updated > 0 ||
-            result.summary.createdAssemblies > 0 ||
-            result.summary.updatedAssemblies > 0
-          ) {
-            await logImportEvent(projectId, "stratus-pull", {
-              created: result.summary.created,
-              updated: result.summary.updated,
-              skipped: result.summary.skipped,
-              failed: result.summary.failed,
-              createdAssemblies: result.summary.createdAssemblies,
-              updatedAssemblies: result.summary.updatedAssemblies,
-              skippedAssemblies: result.summary.skippedAssemblies,
-              failedAssemblies: result.summary.failedAssemblies,
-            });
-            markProjectKnowledgeDirty(projectId);
-          }
+          await finalizePullApplyLogging(projectId, result);
           return result;
         }
 
@@ -194,6 +222,11 @@ export default async function stratusRoutes(app: FastifyInstance) {
           refreshMode,
           progress: reportProgress,
         });
+      }, {
+        singleFlightKey:
+          body.mode === "apply"
+            ? buildPullSingleFlightKey(projectId, refreshMode)
+            : undefined,
       });
     },
   );
@@ -204,25 +237,64 @@ export default async function stratusRoutes(app: FastifyInstance) {
       const { projectId } = req.params;
       await captureUndo(projectId, "Stratus pull");
       const result = await applyStratusPull(projectId, getStratusConfig());
-      if (
-        result.summary.created > 0 ||
-        result.summary.updated > 0 ||
-        result.summary.createdAssemblies > 0 ||
-        result.summary.updatedAssemblies > 0
-      ) {
-        await logImportEvent(projectId, "stratus-pull", {
-          created: result.summary.created,
-          updated: result.summary.updated,
-          skipped: result.summary.skipped,
-          failed: result.summary.failed,
-          createdAssemblies: result.summary.createdAssemblies,
-          updatedAssemblies: result.summary.updatedAssemblies,
-          skippedAssemblies: result.summary.skippedAssemblies,
-          failedAssemblies: result.summary.failedAssemblies,
-        });
-        markProjectKnowledgeDirty(projectId);
-      }
+      await finalizePullApplyLogging(projectId, result);
       return result;
+    },
+  );
+
+  app.post<{ Params: { projectId: string } }>(
+    "/projects/:projectId/stratus/status-mappings/save",
+    {
+      config: {
+        rateLimit: {
+          groupId: "stratus-status-mappings-save",
+          max: 6,
+          timeWindow: "1 minute",
+          keyGenerator: (request) => request.auth?.user.id ?? request.ip,
+        },
+      },
+    },
+    async (req) => {
+      const { projectId } = req.params;
+      const body = statusMappingSaveSchema.parse(req.body ?? {});
+      const result = await saveStratusSettingsForProject({
+        projectId,
+        configPatch: body.config,
+        projectPatch: body.project,
+      });
+
+      if (result.mode !== "seedRequired") {
+        return result;
+      }
+
+      const job = createStratusJob(
+        "pullApply",
+        async (reportProgress) => {
+          await captureUndo(projectId, "Stratus seed upgrade");
+          const pullResult = await applyStratusPull(projectId, getStratusConfig(), {
+            forceApiRead: true,
+            refreshMode: "full",
+            seedUpgrade: true,
+            progress: (update) =>
+              reportProgress({
+                ...update,
+                message: update.message
+                  ? `Legacy seed upgrade. ${update.message}`
+                  : "Legacy seed upgrade running.",
+              }),
+          });
+          await finalizePullApplyLogging(projectId, pullResult);
+          return pullResult;
+        },
+        {
+          singleFlightKey: buildPullSingleFlightKey(projectId, "full"),
+        },
+      );
+
+      return {
+        ...result,
+        jobId: job.id,
+      };
     },
   );
 

@@ -21,6 +21,23 @@ import { useStratusJob } from '../../hooks/useStratusJob';
 import { useProjectStore, useUIStore } from '../../stores';
 import StratusJobStatusCard from './StratusJobStatusCard';
 
+interface StratusPullPreviewDialogPayload {
+  jobId?: string;
+  mode?: 'seedUpgrade';
+}
+
+function readDialogPayload(payload: unknown): StratusPullPreviewDialogPayload | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const candidate = payload as Record<string, unknown>;
+  return {
+    jobId: typeof candidate.jobId === 'string' ? candidate.jobId : undefined,
+    mode: candidate.mode === 'seedUpgrade' ? 'seedUpgrade' : undefined,
+  };
+}
+
 function formatDate(value: string | null): string {
   return value ? value.slice(0, 10) : '-';
 }
@@ -36,10 +53,12 @@ function formatDateTime(value: string | null): string {
 const StratusPullPreviewDialog: React.FC = () => {
   const open = useUIStore((s) => s.openDialog === 'stratusPullPreview');
   const closeDialog = useUIStore((s) => s.closeDialog);
+  const dialogPayload = useUIStore((s) => s.dialogPayload);
   const showSnackbar = useUIStore((s) => s.showSnackbar);
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
-  const { job, startJob, clearJob, isRunning } = useStratusJob();
+  const { job, setJob, startJob, clearJob, isRunning } = useStratusJob();
   const [, startTransition] = useTransition();
+  const payload = readDialogPayload(dialogPayload);
 
   const [preview, setPreview] = useState<StratusPullPreviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +75,37 @@ const StratusPullPreviewDialog: React.FC = () => {
     setSelectedPackageId(null);
     clearJob();
   }, [open, clearJob]);
+
+  useEffect(() => {
+    if (!open || !payload?.jobId) {
+      return;
+    }
+
+    let cancelled = false;
+    setError(null);
+    setHandledJobId(null);
+
+    void stratusApi
+      .getJob(payload.jobId)
+      .then((loadedJob) => {
+        if (!cancelled) {
+          setJob(loadedJob);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setError(
+            error instanceof Error
+              ? error.message
+              : 'Stratus job status could not be loaded.',
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, payload?.jobId, setJob]);
 
   useEffect(() => {
     if (!job || job.id === handledJobId) {
@@ -219,6 +269,14 @@ const StratusPullPreviewDialog: React.FC = () => {
       <DialogTitle>Stratus Pull</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Stack spacing={2}>
+          {payload?.mode === 'seedUpgrade' && (
+            <Alert severity="info">
+              One-time Stratus data upgrade is running. This full refresh seeds
+              assembly status metadata so future status mapping saves can remap
+              locally without another API sync.
+            </Alert>
+          )}
+
           <Alert severity="info">
             Quick Pull runs immediately in the background using the Stratus API. Preview remains available when you want to review package and assembly changes first. Full Refresh bypasses the incremental skip logic.
           </Alert>

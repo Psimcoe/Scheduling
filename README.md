@@ -30,6 +30,8 @@ That one-time bootstrap will:
 
 After that, use `Run-ScheduleSync.cmd` from the repo root to relaunch the repo-hosted web app.
 
+If the local ports get stuck or the backend/frontend need a clean restart, use `Restart-ScheduleSync.cmd` from the repo root.
+
 ## Solution Structure
 
 ```

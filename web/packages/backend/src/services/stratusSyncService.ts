@@ -1,4 +1,8 @@
-import type { StratusTaskSync, Task } from "@prisma/client";
+import type {
+  StratusAssemblySync,
+  StratusTaskSync,
+  Task,
+} from "@prisma/client";
 import { prisma } from "../db.js";
 import {
   type StratusConfig,
@@ -48,6 +52,12 @@ export interface StratusSyncSummary {
   pulledStart: string | null;
   pulledFinish: string | null;
   pulledDeadline: string | null;
+}
+
+export interface StratusStatusSummary {
+  sourceType: "package" | "assembly";
+  trackingStatusId: string | null;
+  trackingStatusName: string | null;
 }
 
 export interface ProjectImportPreviewRow {
@@ -207,6 +217,7 @@ export interface StratusExecutionOptions {
   forceApiRead?: boolean;
   refreshMode?: "incremental" | "full";
   progress?: StratusJobProgressReporter;
+  seedUpgrade?: boolean;
 }
 
 export interface PushPreviewResult {
@@ -346,7 +357,12 @@ interface LoadedProjectTarget extends StratusProjectTarget {
 
 interface TaskWithSync extends Task {
   stratusSync: StratusTaskSync | null;
+  stratusAssemblySync?: StratusAssemblySync | null;
 }
+
+type TaskWithAllSync = TaskWithSync & {
+  stratusAssemblySync: StratusAssemblySync | null;
+};
 
 interface PreviewTaskRecord {
   id: string;
@@ -364,6 +380,13 @@ interface PreviewTaskRecord {
     | {
         packageId: string;
         rawPackageJson?: string;
+      }
+    | null;
+  stratusAssemblySync?:
+    | {
+        assemblyId: string;
+        trackingStatusId: string | null;
+        trackingStatusName: string | null;
       }
     | null;
 }
@@ -419,6 +442,7 @@ interface ScheduleMirrorChange {
 }
 
 const STRATUS_FETCH_CONCURRENCY = 6;
+const STRATUS_SEED_FETCH_CONCURRENCY = 1;
 const STRATUS_PREVIEW_CACHE_TTL_MS = 15 * 60 * 1_000;
 const STRATUS_PREVIEW_CACHE_MAX_ENTRIES = 24;
 const UNDEFINED_PACKAGE_PREFIX = "stratus-undefined-package:";
@@ -555,7 +579,7 @@ export async function getResolvedPushFieldIds(
     patch.cachedDeadlineFieldId = "";
   }
   if (Object.keys(patch).length > 0) {
-    setStratusConfig(patch);
+    await setStratusConfig(patch);
   }
   return resolution;
 }
@@ -1019,6 +1043,13 @@ export async function previewStratusPull(
         select: {
           packageId: true,
           rawPackageJson: true,
+        },
+      },
+      stratusAssemblySync: {
+        select: {
+          assemblyId: true,
+          trackingStatusId: true,
+          trackingStatusName: true,
         },
       },
     },
@@ -2368,6 +2399,29 @@ export function toStratusSyncSummary(
   };
 }
 
+export function toStratusStatusSummary(
+  sync: StratusTaskSync | null,
+  assemblySync: StratusAssemblySync | null | undefined,
+): StratusStatusSummary | null {
+  if (sync) {
+    return {
+      sourceType: "package",
+      trackingStatusId: sync.trackingStatusId,
+      trackingStatusName: sync.trackingStatusName,
+    };
+  }
+
+  if (assemblySync) {
+    return {
+      sourceType: "assembly",
+      trackingStatusId: assemblySync.trackingStatusId,
+      trackingStatusName: assemblySync.trackingStatusName,
+    };
+  }
+
+  return null;
+}
+
 function isProjectReferenceSyncCandidate(
   task: TaskWithSync,
 ): task is TaskWithSync & { externalKey: string } {
@@ -2478,6 +2532,30 @@ function isStratusTaskSyncEquivalent(
     existingSync.syncedStartSignature === data.syncedStartSignature &&
     existingSync.syncedFinishSignature === data.syncedFinishSignature &&
     existingSync.syncedDeadlineSignature === data.syncedDeadlineSignature
+  );
+}
+
+function isStratusAssemblySyncEquivalent(
+  existingSync: StratusAssemblySync,
+  taskId: string,
+  data: Pick<
+    StratusAssemblySync,
+    | "localProjectId"
+    | "packageId"
+    | "assemblyId"
+    | "externalKey"
+    | "trackingStatusId"
+    | "trackingStatusName"
+  >,
+) {
+  return (
+    existingSync.taskId === taskId &&
+    existingSync.localProjectId === data.localProjectId &&
+    existingSync.packageId === data.packageId &&
+    existingSync.assemblyId === data.assemblyId &&
+    existingSync.externalKey === data.externalKey &&
+    existingSync.trackingStatusId === data.trackingStatusId &&
+    existingSync.trackingStatusName === data.trackingStatusName
   );
 }
 
@@ -2896,6 +2974,13 @@ async function loadPreviewTasksForProject(
           rawPackageJson: true,
         },
       },
+      stratusAssemblySync: {
+        select: {
+          assemblyId: true,
+          trackingStatusId: true,
+          trackingStatusName: true,
+        },
+      },
     },
   });
 }
@@ -3212,7 +3297,10 @@ function buildSyntheticAssembliesFromLocalHierarchy(
   hierarchy: LocalPackageHierarchy,
 ): NormalizedStratusAssembly[] {
   return hierarchy.assemblyTasks.map((task) => ({
-    id: extractAssemblyIdFromExternalKey(task.externalKey) ?? task.id,
+    id:
+      task.stratusAssemblySync?.assemblyId ??
+      extractAssemblyIdFromExternalKey(task.externalKey) ??
+      task.id,
     packageId: pkg.id,
     projectId: pkg.projectId,
     modelId: pkg.modelId,
@@ -3220,8 +3308,8 @@ function buildSyntheticAssembliesFromLocalHierarchy(
     externalKey:
       task.externalKey ??
       `${pkg.externalKey ?? pkg.id}::assembly:${task.id}`,
-    trackingStatusId: null,
-    trackingStatusName: null,
+    trackingStatusId: task.stratusAssemblySync?.trackingStatusId ?? null,
+    trackingStatusName: task.stratusAssemblySync?.trackingStatusName ?? null,
     percentCompleteShop: task.percentComplete ?? 0,
     notes: task.notes ?? "",
     rawAssembly: {},
@@ -3306,10 +3394,13 @@ async function loadApiStratusPackageBundles(
   let processedPackages = 0;
   let processedAssemblies = 0;
   let skippedUnchangedPackages = 0;
+  const fetchConcurrency = options.seedUpgrade
+    ? STRATUS_SEED_FETCH_CONCURRENCY
+    : STRATUS_FETCH_CONCURRENCY;
 
   const bundles = await mapWithConcurrency(
     packages,
-    STRATUS_FETCH_CONCURRENCY,
+    fetchConcurrency,
     async (pkg) => {
       const syncMeta = shouldUseIncremental
         ? resolveIncrementalBundleSyncMeta(
@@ -3342,7 +3433,9 @@ async function loadApiStratusPackageBundles(
       }
 
       const rawAssemblies = pkg.id
-        ? await fetchAssembliesForPackage(config, pkg.id)
+        ? await fetchAssembliesForPackage(config, pkg.id, {
+            pageSize: options.seedUpgrade ? 500 : undefined,
+          })
         : [];
       const assemblies = rawAssemblies
         .map((rawAssembly) =>
@@ -3353,7 +3446,9 @@ async function loadApiStratusPackageBundles(
       processedAssemblies += assemblies.length;
       options.progress?.({
         phase: "loadingAssemblies",
-        message: `Loaded ${assemblies.length} assemblies for ${pkg.packageNumber ?? pkg.id}.`,
+        message: options.seedUpgrade
+          ? `Seed upgrade loaded ${assemblies.length} assemblies for ${pkg.packageNumber ?? pkg.id}.`
+          : `Loaded ${assemblies.length} assemblies for ${pkg.packageNumber ?? pkg.id}.`,
         processedPackages,
         processedAssemblies,
         skippedUnchangedPackages,
@@ -3522,6 +3617,82 @@ async function upsertStratusTaskSync(
 
   return prisma.stratusTaskSync.create({
     data: { taskId, ...data },
+  });
+}
+
+async function upsertStratusAssemblySync(
+  taskId: string,
+  localProjectId: string,
+  packageId: string,
+  assembly: NormalizedStratusAssembly,
+  now: Date,
+  existing?: {
+    byAssembly: StratusAssemblySync | null;
+    byTask: StratusAssemblySync | null;
+  },
+): Promise<StratusAssemblySync> {
+  const data = {
+    localProjectId,
+    packageId,
+    assemblyId: assembly.id,
+    externalKey: assembly.externalKey,
+    trackingStatusId: assembly.trackingStatusId,
+    trackingStatusName: assembly.trackingStatusName,
+    lastPulledAt: now,
+  };
+
+  const existingByAssembly =
+    existing?.byAssembly ??
+    (await prisma.stratusAssemblySync.findUnique({
+      where: {
+        localProjectId_assemblyId: {
+          localProjectId,
+          assemblyId: assembly.id,
+        },
+      },
+    }));
+  const existingByTask =
+    existing?.byTask ??
+    (await prisma.stratusAssemblySync.findUnique({
+      where: { taskId },
+    }));
+
+  if (existingByAssembly) {
+    if (existingByTask && existingByTask.id !== existingByAssembly.id) {
+      await prisma.stratusAssemblySync.delete({
+        where: { taskId },
+      });
+    }
+
+    if (isStratusAssemblySyncEquivalent(existingByAssembly, taskId, data)) {
+      return existingByAssembly;
+    }
+
+    return prisma.stratusAssemblySync.update({
+      where: { id: existingByAssembly.id },
+      data: {
+        taskId,
+        ...data,
+      },
+    });
+  }
+
+  if (existingByTask) {
+    if (isStratusAssemblySyncEquivalent(existingByTask, taskId, data)) {
+      return existingByTask;
+    }
+
+    return prisma.stratusAssemblySync.update({
+      where: { taskId },
+      data,
+    });
+  }
+
+  return prisma.stratusAssemblySync.create({
+    data: {
+      taskId,
+      ...data,
+    },
   });
 }
 
@@ -3931,15 +4102,18 @@ async function syncStratusProjectGroupsToProject(
     referenceSourceProjectName?: string;
   },
 ) {
-  const existingTasks = await prisma.task.findMany({
+  const existingTasks: TaskWithAllSync[] = await prisma.task.findMany({
     where: { projectId: targetProject.id },
     orderBy: { sortOrder: "asc" },
-    include: { stratusSync: true },
+    include: { stratusSync: true, stratusAssemblySync: true },
   });
 
-  const taskById = new Map(existingTasks.map((task) => [task.id, task]));
-  const tasksByExternalKey = new Map<string, TaskWithSync[]>();
-  const syncByPackageId = new Map<string, TaskWithSync>();
+  const taskById = new Map<string, TaskWithAllSync>(
+    existingTasks.map((task) => [task.id, task]),
+  );
+  const tasksByExternalKey = new Map<string, TaskWithAllSync[]>();
+  const syncByPackageId = new Map<string, TaskWithAllSync>();
+  const syncByAssemblyId = new Map<string, TaskWithAllSync>();
 
   for (const task of existingTasks) {
     if (task.externalKey) {
@@ -3950,6 +4124,9 @@ async function syncStratusProjectGroupsToProject(
     if (task.stratusSync?.packageId) {
       syncByPackageId.set(task.stratusSync.packageId, task);
     }
+    if (task.stratusAssemblySync?.assemblyId) {
+      syncByAssemblyId.set(task.stratusAssemblySync.assemblyId, task);
+    }
   }
 
   const managedTaskIds = new Set<string>();
@@ -3959,6 +4136,7 @@ async function syncStratusProjectGroupsToProject(
   const upsertTask = async (params: {
     externalKey: string;
     packageId?: string;
+    assemblyId?: string;
     name: string;
     parentId: string | null;
     outlineLevel: number;
@@ -3970,13 +4148,19 @@ async function syncStratusProjectGroupsToProject(
     percentComplete: number;
     notes: string;
     syncPackage?: NormalizedStratusPackage;
+    syncAssembly?: NormalizedStratusAssembly;
   }) => {
     const bySync = params.packageId
       ? (syncByPackageId.get(params.packageId) ?? null)
       : null;
+    const byAssembly = params.assemblyId
+      ? (syncByAssemblyId.get(params.assemblyId) ?? null)
+      : null;
     const byExternalKey = tasksByExternalKey.get(params.externalKey) ?? [];
     const existingTask =
-      bySync ?? (byExternalKey.length > 0 ? (byExternalKey[0] ?? null) : null);
+      bySync ??
+      byAssembly ??
+      (byExternalKey.length > 0 ? (byExternalKey[0] ?? null) : null);
 
     const data = {
       name: params.name,
@@ -3994,14 +4178,14 @@ async function syncStratusProjectGroupsToProject(
       sortOrder: nextSortOrder++,
     };
 
-    let task: TaskWithSync;
+    let task: TaskWithAllSync;
     if (existingTask) {
       task = isTaskDataEquivalent(existingTask, data)
         ? existingTask
         : await prisma.task.update({
             where: { id: existingTask.id },
             data,
-            include: { stratusSync: true },
+            include: { stratusSync: true, stratusAssemblySync: true },
           });
     } else {
       task = await prisma.task.create({
@@ -4011,11 +4195,17 @@ async function syncStratusProjectGroupsToProject(
           constraintType: 0,
           ...data,
         },
-        include: { stratusSync: true },
+        include: { stratusSync: true, stratusAssemblySync: true },
       });
     }
 
     if (params.syncPackage) {
+      if (existingTask?.stratusAssemblySync) {
+        syncByAssemblyId.delete(existingTask.stratusAssemblySync.assemblyId);
+        await prisma.stratusAssemblySync.delete({
+          where: { taskId: task.id },
+        });
+      }
       if (
         existingTask?.stratusSync?.packageId &&
         existingTask.stratusSync.packageId !== params.syncPackage.id
@@ -4044,14 +4234,61 @@ async function syncStratusProjectGroupsToProject(
       task = {
         ...task,
         stratusSync: syncRecord,
+        stratusAssemblySync: null,
       };
       syncByPackageId.set(params.syncPackage.id, task);
+    } else if (params.syncAssembly) {
+      if (existingTask?.stratusSync) {
+        syncByPackageId.delete(existingTask.stratusSync.packageId);
+        await prisma.stratusTaskSync.delete({ where: { taskId: task.id } });
+      }
+      if (
+        existingTask?.stratusAssemblySync?.assemblyId &&
+        existingTask.stratusAssemblySync.assemblyId !== params.syncAssembly.id
+      ) {
+        syncByAssemblyId.delete(existingTask.stratusAssemblySync.assemblyId);
+      }
+      const syncRecord = await upsertStratusAssemblySync(
+        task.id,
+        targetProject.id,
+        params.packageId ?? "",
+        params.syncAssembly,
+        new Date(),
+        {
+          byAssembly:
+            byAssembly?.stratusAssemblySync?.assemblyId === params.syncAssembly.id
+              ? byAssembly.stratusAssemblySync
+              : null,
+          byTask: existingTask?.stratusAssemblySync ?? null,
+        },
+      );
+      task = {
+        ...task,
+        stratusSync: null,
+        stratusAssemblySync: syncRecord,
+      };
+      syncByAssemblyId.set(params.syncAssembly.id, task);
     } else if (task.stratusSync) {
       syncByPackageId.delete(task.stratusSync.packageId);
       await prisma.stratusTaskSync.delete({ where: { taskId: task.id } });
       task = {
         ...task,
         stratusSync: null,
+      };
+      if (task.stratusAssemblySync) {
+        syncByAssemblyId.delete(task.stratusAssemblySync.assemblyId);
+        await prisma.stratusAssemblySync.delete({ where: { taskId: task.id } });
+        task = {
+          ...task,
+          stratusAssemblySync: null,
+        };
+      }
+    } else if (task.stratusAssemblySync) {
+      syncByAssemblyId.delete(task.stratusAssemblySync.assemblyId);
+      await prisma.stratusAssemblySync.delete({ where: { taskId: task.id } });
+      task = {
+        ...task,
+        stratusAssemblySync: null,
       };
     }
 
@@ -4188,6 +4425,8 @@ async function syncStratusProjectGroupsToProject(
 
         await upsertTask({
           externalKey: assembly.externalKey,
+          packageId: bundle.package.id,
+          assemblyId: assembly.id,
           name: mappedAssembly.name,
           parentId: packageTask.id,
           outlineLevel: packageOutlineLevel + 1,
@@ -4202,6 +4441,7 @@ async function syncStratusProjectGroupsToProject(
             options.referenceSourceProjectName,
             assembly.externalKey,
           ),
+          syncAssembly: assembly,
         });
       }
     }
@@ -4250,6 +4490,11 @@ async function syncStratusProjectGroupsToProject(
       },
     });
   }
+
+  await prisma.project.update({
+    where: { id: targetProject.id },
+    data: { stratusLocalMetadataVersion: 1 },
+  });
 }
 
 function mapStratusProjectToLocalProjectData(

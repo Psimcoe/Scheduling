@@ -53,6 +53,11 @@ const STRATUS_JOB_MAX_ENTRIES = 48;
 const STRATUS_JOB_TTL_MS = 60 * 60 * 1_000;
 
 const jobs = new Map<string, StratusJobRecord>();
+const singleFlightJobs = new Map<string, string>();
+
+function isJobActive(job: StratusJobRecord | null | undefined): boolean {
+  return job?.status === "queued" || job?.status === "running";
+}
 
 function defaultProgress(): StratusJobProgress {
   return {
@@ -76,6 +81,13 @@ function cleanupJobs() {
     }
   }
 
+  for (const [key, jobId] of singleFlightJobs.entries()) {
+    const job = jobs.get(jobId);
+    if (!isJobActive(job)) {
+      singleFlightJobs.delete(key);
+    }
+  }
+
   if (jobs.size <= STRATUS_JOB_MAX_ENTRIES) {
     return;
   }
@@ -91,8 +103,22 @@ function cleanupJobs() {
 export function createStratusJob<TResult>(
   kind: StratusJobKind,
   runner: (reportProgress: StratusJobProgressReporter) => Promise<TResult>,
+  options: { singleFlightKey?: string } = {},
 ): StratusJobRecord<TResult> {
   cleanupJobs();
+
+  if (options.singleFlightKey) {
+    const existingJobId = singleFlightJobs.get(options.singleFlightKey);
+    const existingJob = existingJobId
+      ? (jobs.get(existingJobId) as StratusJobRecord<TResult> | undefined)
+      : undefined;
+    if (existingJob && isJobActive(existingJob)) {
+      return existingJob;
+    }
+    if (existingJobId) {
+      singleFlightJobs.delete(options.singleFlightKey);
+    }
+  }
 
   const id = randomUUID();
   const createdAt = new Date().toISOString();
@@ -108,6 +134,9 @@ export function createStratusJob<TResult>(
     result: null,
   };
   jobs.set(id, job as StratusJobRecord);
+  if (options.singleFlightKey) {
+    singleFlightJobs.set(options.singleFlightKey, id);
+  }
 
   queueMicrotask(async () => {
     const startedAt = new Date().toISOString();
@@ -153,6 +182,10 @@ export function createStratusJob<TResult>(
         error instanceof Error ? error.message : "Stratus job failed.";
       failedJob.result = null;
       jobs.set(id, failedJob);
+    } finally {
+      if (options.singleFlightKey && singleFlightJobs.get(options.singleFlightKey) === id) {
+        singleFlightJobs.delete(options.singleFlightKey);
+      }
     }
   });
 
@@ -168,4 +201,5 @@ export function getStratusJob<TResult = unknown>(
 
 export function clearStratusJobsForTests() {
   jobs.clear();
+  singleFlightJobs.clear();
 }

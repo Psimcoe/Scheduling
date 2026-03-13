@@ -66,6 +66,7 @@ model Project {
   stratusPackageWhere   String?
   stratusLastPullAt     DateTime?
   stratusLastPushAt     DateTime?
+  stratusLocalMetadataVersion Int @default(0)
   defaultCalendarId     String   @default("__default__")
   scheduleFrom          String   @default("start") // "start" | "finish"
   statusDate            DateTime?
@@ -90,6 +91,7 @@ model Project {
   resources    Resource[]
   aiScheduleChunks AiScheduleChunk[]
   stratusTaskSyncs StratusTaskSync[]
+  stratusAssemblySyncs StratusAssemblySync[]
 
   @@index([updatedAt])
 }
@@ -185,6 +187,7 @@ model Task {
   timephasedData        TimephasedData[]
   splits                TaskSplit[]
   stratusSync           StratusTaskSync?
+  stratusAssemblySync   StratusAssemblySync?
 
   @@index([projectId])
   @@index([parentId])
@@ -220,6 +223,29 @@ model StratusTaskSync {
   @@index([projectId])
   @@index([modelId])
   @@index([externalKey])
+}
+
+model StratusAssemblySync {
+  id                 String   @id @default(uuid())
+  taskId             String   @unique
+  task               Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  localProjectId     String
+  project            Project  @relation(fields: [localProjectId], references: [id], onDelete: Cascade)
+  packageId          String
+  assemblyId         String
+  externalKey        String
+  trackingStatusId   String?
+  trackingStatusName String?
+  lastPulledAt       DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([localProjectId, assemblyId])
+  @@index([localProjectId])
+  @@index([packageId])
+  @@index([externalKey])
+  @@index([trackingStatusId])
+  @@index([localProjectId, trackingStatusId])
 }
 
 // ---------------------------------------------------------------------------

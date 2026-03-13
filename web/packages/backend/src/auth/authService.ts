@@ -30,6 +30,14 @@ interface OidcIdentity {
   displayName: string;
 }
 
+interface DevBypassIdentity {
+  issuer: string;
+  subject: string;
+  email: string | null;
+  displayName: string;
+  role: AuthRole;
+}
+
 interface StoredOidcState {
   state: string;
   codeVerifier: string;
@@ -37,6 +45,7 @@ interface StoredOidcState {
   mode: 'redirect' | 'popup';
 }
 
+const DEV_BYPASS_ISSUER = 'dev-bypass.local';
 let discoveryCache:
   | {
       issuerUrl: string;
@@ -75,6 +84,10 @@ export function isOidcConfigured(): boolean {
       runtimeConfig.auth.oidc.redirectUri &&
       runtimeConfig.auth.sessionCookieSecret,
   );
+}
+
+export function isDevAuthBypassEnabled(): boolean {
+  return runtimeConfig.auth.devBypass.enabled;
 }
 
 function normalizeEmail(email: string | null | undefined): string | null {
@@ -358,6 +371,57 @@ async function upsertUser(identity: OidcIdentity) {
   });
 }
 
+function getDevBypassIdentity(): DevBypassIdentity {
+  const email = normalizeEmail(runtimeConfig.auth.devBypass.email);
+  const configuredDisplayName = runtimeConfig.auth.devBypass.displayName.trim();
+  const displayName = configuredDisplayName || email || 'Local Developer';
+  const subject = email ?? 'local-dev-user';
+
+  return {
+    issuer: DEV_BYPASS_ISSUER,
+    subject,
+    email,
+    displayName,
+    role: runtimeConfig.auth.devBypass.role,
+  };
+}
+
+async function upsertDevBypassUser(identity: DevBypassIdentity) {
+  const existing = await prisma.user.findUnique({
+    where: {
+      issuer_subject: {
+        issuer: identity.issuer,
+        subject: identity.subject,
+      },
+    },
+  });
+
+  if (existing) {
+    return prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        email: identity.email,
+        emailNormalized: identity.email,
+        displayName: identity.displayName,
+        role: identity.role,
+        lastLoginAt: new Date(),
+      },
+    });
+  }
+
+  return prisma.user.create({
+    data: {
+      issuer: identity.issuer,
+      subject: identity.subject,
+      email: identity.email,
+      emailNormalized: identity.email,
+      displayName: identity.displayName,
+      role: identity.role,
+      lastLoginAt: new Date(),
+    },
+  });
+}
+
 export function sanitizeReturnTo(value: unknown): string {
   if (typeof value !== 'string') {
     return '/';
@@ -451,11 +515,15 @@ export function clearSessionCookie(reply: FastifyReply): void {
   clearSignedCookie(reply, runtimeConfig.auth.cookieName);
 }
 
-export async function createSessionFromAuthorizationCode(
+async function createSessionForUser(
   request: FastifyRequest,
   reply: FastifyReply,
-  code: string,
-  codeVerifier: string,
+  user: {
+    id: string;
+    email: string | null;
+    displayName: string;
+    role: string;
+  },
 ): Promise<RequestAuthContext> {
   const existingToken = getSignedCookieValue(request, runtimeConfig.auth.cookieName);
   if (existingToken) {
@@ -463,10 +531,6 @@ export async function createSessionFromAuthorizationCode(
       where: { tokenHash: hashOpaqueToken(existingToken) },
     });
   }
-
-  const { accessToken, discovery } = await exchangeAuthorizationCode(code, codeVerifier);
-  const identity = await fetchIdentity(accessToken, discovery);
-  const user = await upsertUser(identity);
 
   const rawSessionToken = buildOpaqueToken(32);
   const now = new Date();
@@ -500,6 +564,30 @@ export async function createSessionFromAuthorizationCode(
       absoluteExpiresAt: session.absoluteExpiresAt,
     },
   };
+}
+
+export async function provisionDevBypassSession(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<RequestAuthContext | null> {
+  if (!isDevAuthBypassEnabled()) {
+    return null;
+  }
+
+  const user = await upsertDevBypassUser(getDevBypassIdentity());
+  return createSessionForUser(request, reply, user);
+}
+
+export async function createSessionFromAuthorizationCode(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  code: string,
+  codeVerifier: string,
+): Promise<RequestAuthContext> {
+  const { accessToken, discovery } = await exchangeAuthorizationCode(code, codeVerifier);
+  const identity = await fetchIdentity(accessToken, discovery);
+  const user = await upsertUser(identity);
+  return createSessionForUser(request, reply, user);
 }
 
 async function deleteSessionByTokenHash(tokenHash: string): Promise<void> {
@@ -545,6 +633,12 @@ export async function resolveRequestAuth(
   ensureCookieSecretConfigured();
   const rawSessionToken = getSignedCookieValue(request, runtimeConfig.auth.cookieName);
   if (!rawSessionToken) {
+    const devBypassSession = await provisionDevBypassSession(request, reply);
+    if (devBypassSession) {
+      request.auth = devBypassSession;
+      return devBypassSession;
+    }
+
     return null;
   }
 
@@ -555,6 +649,12 @@ export async function resolveRequestAuth(
 
   if (!session) {
     clearSessionCookie(reply);
+    const devBypassSession = await provisionDevBypassSession(request, reply);
+    if (devBypassSession) {
+      request.auth = devBypassSession;
+      return devBypassSession;
+    }
+
     return null;
   }
 
@@ -565,6 +665,12 @@ export async function resolveRequestAuth(
   ) {
     await deleteSessionByTokenHash(session.tokenHash);
     clearSessionCookie(reply);
+    const devBypassSession = await provisionDevBypassSession(request, reply);
+    if (devBypassSession) {
+      request.auth = devBypassSession;
+      return devBypassSession;
+    }
+
     return null;
   }
 

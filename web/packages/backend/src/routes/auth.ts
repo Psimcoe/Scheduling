@@ -7,6 +7,8 @@ import {
   destroyCurrentSession,
   ensureCsrf,
   getOidcLoginUrl,
+  isDevAuthBypassEnabled,
+  provisionDevBypassSession,
   requireRequestAuth,
   sanitizeReturnTo,
 } from '../auth/authService.js';
@@ -67,9 +69,24 @@ function redirectWithError(reply: { redirect: (url: string, statusCode?: number)
 export default async function authRoutes(app: FastifyInstance) {
   app.get('/login', async (request, reply) => {
     const query = loginQuerySchema.parse(request.query);
+    const returnTo = sanitizeReturnTo(query.returnTo);
+
+    if (isDevAuthBypassEnabled()) {
+      await provisionDevBypassSession(request, reply);
+
+      if (query.mode === 'popup') {
+        return reply
+          .code(200)
+          .type('text/html; charset=utf-8')
+          .send(renderPopupCallbackHtml('success', { returnTo }));
+      }
+
+      return reply.redirect(returnTo, 302);
+    }
+
     const authorizationUrl = await getOidcLoginUrl(reply, {
       mode: query.mode,
-      returnTo: sanitizeReturnTo(query.returnTo),
+      returnTo,
     });
 
     return reply.redirect(authorizationUrl, 302);

@@ -86,6 +86,10 @@ describe('auth integration', () => {
     delete process.env.OIDC_CLIENT_ID;
     delete process.env.OIDC_REDIRECT_URI;
     delete process.env.SCHEDULESYNC_ALLOWED_ORIGINS;
+    delete process.env.SCHEDULESYNC_DEV_AUTH_BYPASS;
+    delete process.env.SCHEDULESYNC_DEV_AUTH_EMAIL;
+    delete process.env.SCHEDULESYNC_DEV_AUTH_NAME;
+    delete process.env.SCHEDULESYNC_DEV_AUTH_ROLE;
   });
 
   it('completes login, callback, session lookup, csrf lookup, and logout', async () => {
@@ -211,6 +215,43 @@ describe('auth integration', () => {
 
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toContain('authError=state_mismatch');
+  });
+
+  it('auto-provisions a local admin session when dev auth bypass is enabled', async () => {
+    process.env.SCHEDULESYNC_DEV_AUTH_BYPASS = '1';
+    process.env.SCHEDULESYNC_DEV_AUTH_EMAIL = 'owner@example.com';
+    process.env.SCHEDULESYNC_DEV_AUTH_NAME = 'Local Owner';
+    process.env.SCHEDULESYNC_DEV_AUTH_ROLE = 'admin';
+
+    const harness = await createHarness();
+    cleanup = harness.cleanup;
+
+    const sessionResponse = await harness.app.inject({
+      method: 'GET',
+      url: '/auth/session',
+    });
+
+    expect(sessionResponse.statusCode).toBe(200);
+    expect(sessionResponse.json()).toMatchObject({
+      user: {
+        email: 'owner@example.com',
+        displayName: 'Local Owner',
+        role: 'admin',
+      },
+    });
+
+    const sessionCookie = extractCookie(sessionResponse, 'schedulesync_session');
+
+    const loginResponse = await harness.app.inject({
+      method: 'GET',
+      url: '/auth/login?returnTo=%2Fprojects',
+      headers: {
+        cookie: sessionCookie,
+      },
+    });
+
+    expect(loginResponse.statusCode).toBe(302);
+    expect(loginResponse.headers.location).toBe('/projects');
   });
 
   it('applies CORS allow and deny behavior for configured origins', async () => {

@@ -2,6 +2,19 @@
   "baseUrl": "https://api.gtpstratus.com/v1",
   "appKey": "10fce333-54bf-4fa7-83a4-3d22a1c02fe9",
   "companyId": "068aa999-feb6-436b-900b-6c02dbd728e5",
+  "importReadSource": "apiOnly",
+  "bigDataServer": "",
+  "bigDataDatabase": "",
+  "bigDataUsername": "",
+  "bigDataPassword": "",
+  "bigDataEncrypt": false,
+  "bigDataTrustServerCertificate": true,
+  "bigDataTaskNameColumn": "",
+  "bigDataDurationDaysColumn": "",
+  "bigDataDurationHoursColumn": "",
+  "bigDataStartDateColumn": "",
+  "bigDataFinishDateColumn": "",
+  "bigDataDeadlineColumn": "",
   "taskNameField": "STRATUS.Package.Name",
   "durationDaysField": "STRATUS.Field.SMC_Overview Days Estimate_Not Editable",
   "durationHoursField": "STRATUS.Field.PREFAB ESTIMATED BUILD TIME",
@@ -133,7 +146,7 @@
     {
       "statusId": "1ba0d975-3487-40b0-b1e3-50fbfe1b7054",
       "statusName": "Shipped to Jobsite",
-      "percentCompleteShop": 99
+      "percentCompleteShop": 100
     },
     {
       "statusId": "493d0932-ee31-461e-97cf-c55c14dc0fbf",

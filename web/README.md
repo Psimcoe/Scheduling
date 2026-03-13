@@ -91,6 +91,10 @@ The backend reads these values from process environment. `web/.env.example` is a
 | `OIDC_REDIRECT_URI` | Yes in production | Local development defaults to `http://localhost:5173/auth/callback`. |
 | `OIDC_SCOPES` | No | Defaults to `openid profile email`. |
 | `OIDC_ADMIN_EMAILS` | No | Comma-separated bootstrap admin allowlist. The first authenticated user becomes admin if no admin is configured yet. |
+| `SCHEDULESYNC_DEV_AUTH_BYPASS` | No | Development-only local auth bypass. Ignored when `NODE_ENV=production`. |
+| `SCHEDULESYNC_DEV_AUTH_EMAIL` | No | Email to stamp onto the local bypass user. |
+| `SCHEDULESYNC_DEV_AUTH_NAME` | No | Display name for the local bypass user. |
+| `SCHEDULESYNC_DEV_AUTH_ROLE` | No | `viewer`, `editor`, or `admin` for the local bypass user. Defaults to `admin`. |
 
 ### Auth Endpoints
 
@@ -103,6 +107,10 @@ The backend exposes these auth endpoints:
 - `POST /auth/logout`
 
 All other `/api/*` routes require an authenticated session except `/api/health`.
+
+### Local Single-User Mode
+
+For local development, you can bypass OIDC entirely with `SCHEDULESYNC_DEV_AUTH_BYPASS=1`. The backend will auto-provision a local session and the Windows launcher will enable that mode automatically when no OIDC issuer is configured. This mode is intentionally ignored when `NODE_ENV=production`.
 
 ## Scripts
 

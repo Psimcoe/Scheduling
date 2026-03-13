@@ -62,6 +62,7 @@ describe('DeleteConfirmationDialog', () => {
         defaultCalendarId: 'calendar-1',
         scheduleFrom: 'start',
         statusDate: null,
+        stratusLocalMetadataVersion: 1,
         projectType: null,
         sector: null,
         region: null,

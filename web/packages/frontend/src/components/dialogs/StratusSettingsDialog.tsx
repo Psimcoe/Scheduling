@@ -18,12 +18,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { projectsApi, stratusApi } from "../../api";
+import { stratusApi } from "../../api";
 import type {
   SafeStratusConfigResponse,
   StratusBigDataConnectionTestResponse,
   StratusStatusProgressMapping,
 } from "../../api/client";
+import { useSaveStratusSettingsMutation } from "../../hooks/useSaveStratusSettingsMutation";
 import { useProjectStore, useUIStore } from "../../stores";
 
 type StatusProgressMappingDraft = {
@@ -72,9 +73,10 @@ const StratusSettingsDialog: React.FC = () => {
   const showSnackbar = useUIStore((s) => s.showSnackbar);
   const activeProject = useProjectStore((s) => s.activeProject);
   const activeProjectId = useProjectStore((s) => s.activeProjectId);
+  const saveMutation = useSaveStratusSettingsMutation();
 
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [savingConfigOnly, setSavingConfigOnly] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testingBigData, setTestingBigData] = useState(false);
   const [appKeySet, setAppKeySet] = useState(false);
@@ -118,9 +120,13 @@ const StratusSettingsDialog: React.FC = () => {
   const [statusProgressMappings, setStatusProgressMappings] = useState<
     StatusProgressMappingDraft[]
   >([]);
+  const [originalStatusProgressMappings, setOriginalStatusProgressMappings] =
+    useState<StratusStatusProgressMapping[]>([]);
   const [stratusProjectId, setStratusProjectId] = useState("");
   const [stratusModelId, setStratusModelId] = useState("");
   const [stratusPackageWhere, setStratusPackageWhere] = useState("");
+  const saving = saveMutation.isPending || savingConfigOnly;
+  const formDisabled = loading || saving || testing || testingBigData;
 
   const applyConfig = (config: SafeStratusConfigResponse) => {
     setBaseUrl(config.baseUrl);
@@ -158,6 +164,7 @@ const StratusSettingsDialog: React.FC = () => {
     setStatusProgressMappings(
       mapStatusProgressRows(config.statusProgressMappings ?? []),
     );
+    setOriginalStatusProgressMappings(config.statusProgressMappings ?? []);
     setBigDataStatus(null);
     setStratusProjectId(activeProject?.stratusProjectId ?? "");
     setStratusModelId(activeProject?.stratusModelId ?? "");
@@ -231,7 +238,20 @@ const StratusSettingsDialog: React.FC = () => {
     );
   };
 
+  const buildNormalizedStatusProgressMappings =
+    (): StratusStatusProgressMapping[] =>
+      statusProgressMappings
+        .map((row) => ({
+          statusId: row.statusId.trim(),
+          statusName: row.statusName.trim(),
+          percentCompleteShop: parsePercentInput(row.percentCompleteShop),
+        }))
+        .filter(
+          (row) => row.statusId.length > 0 || row.statusName.length > 0,
+        );
+
   const buildConfigPayload = () => {
+    const nextStatusProgressMappings = buildNormalizedStatusProgressMappings();
     const payload: Record<string, unknown> = {
       baseUrl: baseUrl.trim(),
       companyId: companyId.trim(),
@@ -256,13 +276,7 @@ const StratusSettingsDialog: React.FC = () => {
       startDateFieldIdOverride: startDateFieldIdOverride.trim(),
       finishDateFieldIdOverride: finishDateFieldIdOverride.trim(),
       deadlineFieldIdOverride: deadlineFieldIdOverride.trim(),
-      statusProgressMappings: statusProgressMappings
-        .map((row) => ({
-          statusId: row.statusId.trim(),
-          statusName: row.statusName.trim(),
-          percentCompleteShop: parsePercentInput(row.percentCompleteShop),
-        }))
-        .filter((row) => row.statusId.length > 0 || row.statusName.length > 0),
+      statusProgressMappings: nextStatusProgressMappings,
     };
     if (appKey.trim().length > 0 || !appKeySet) {
       payload.appKey = appKey.trim();
@@ -270,39 +284,52 @@ const StratusSettingsDialog: React.FC = () => {
     if (bigDataPassword.trim().length > 0 || !bigDataPasswordSet) {
       payload.bigDataPassword = bigDataPassword.trim();
     }
-    return payload;
+    return { payload, nextStatusProgressMappings };
   };
 
   const handleSave = async () => {
-    setSaving(true);
+    const { payload, nextStatusProgressMappings } = buildConfigPayload();
+
     try {
-      await stratusApi.updateConfig(buildConfigPayload());
-      if (activeProjectId) {
-        await projectsApi.update(activeProjectId, {
+      if (!activeProjectId) {
+        setSavingConfigOnly(true);
+        await stratusApi.updateConfig(payload);
+        closeDialog();
+        showSnackbar("Stratus settings saved", "success");
+        return;
+      }
+
+      await saveMutation.mutateAsync({
+        projectId: activeProjectId,
+        config: payload,
+        project: {
           stratusProjectId: stratusProjectId.trim() || null,
           stratusModelId: stratusModelId.trim() || null,
           stratusPackageWhere: stratusPackageWhere.trim() || null,
-        });
-        await useProjectStore.getState().setActiveProject(activeProjectId);
-      }
-      closeDialog();
-      showSnackbar("Stratus settings saved", "success");
+        },
+        originalStatusProgressMappings,
+        nextStatusProgressMappings,
+        localMetadataVersion: activeProject?.stratusLocalMetadataVersion ?? 0,
+      });
     } catch (error: unknown) {
-      showSnackbar(
-        error instanceof Error
-          ? error.message
-          : "Failed to save Stratus settings",
-        "error",
-      );
+      if (!activeProjectId) {
+        showSnackbar(
+          error instanceof Error
+            ? error.message
+            : "Failed to save Stratus settings",
+          "error",
+        );
+      }
     } finally {
-      setSaving(false);
+      setSavingConfigOnly(false);
     }
   };
 
   const handleTest = async () => {
     setTesting(true);
     try {
-      const updated = await stratusApi.updateConfig(buildConfigPayload());
+      const { payload } = buildConfigPayload();
+      const updated = await stratusApi.updateConfig(payload);
       applyConfig(updated);
       const result = await stratusApi.testConnection();
       showSnackbar(result.message, result.ok ? "success" : "error");
@@ -319,7 +346,8 @@ const StratusSettingsDialog: React.FC = () => {
   const handleTestBigData = async () => {
     setTestingBigData(true);
     try {
-      const updated = await stratusApi.updateConfig(buildConfigPayload());
+      const { payload } = buildConfigPayload();
+      const updated = await stratusApi.updateConfig(payload);
       applyConfig(updated);
       const result = await stratusApi.testBigDataConnection();
       setBigDataStatus(result);
@@ -336,7 +364,13 @@ const StratusSettingsDialog: React.FC = () => {
   };
 
   return (
-    <Dialog open={open} onClose={closeDialog} maxWidth="lg" fullWidth>
+    <Dialog
+      open={open}
+      onClose={saving ? undefined : closeDialog}
+      maxWidth="lg"
+      fullWidth
+      aria-busy={formDisabled}
+    >
       <DialogTitle>Stratus Settings</DialogTitle>
       <DialogContent dividers sx={{ pt: 1 }}>
         <Stack spacing={2}>
@@ -347,7 +381,7 @@ const StratusSettingsDialog: React.FC = () => {
             onChange={(e) => setBaseUrl(e.target.value)}
             size="small"
             fullWidth
-            disabled={loading || saving}
+            disabled={formDisabled}
           />
           <Alert severity="info">
             Use the Stratus API root URL or the legacy `/v1` URL. Versioned
@@ -360,7 +394,7 @@ const StratusSettingsDialog: React.FC = () => {
             size="small"
             type="password"
             fullWidth
-            disabled={loading || saving}
+            disabled={formDisabled}
             helperText={
               appKeySet
                 ? "A key is already stored. Leave blank to keep it unchanged."
@@ -373,7 +407,7 @@ const StratusSettingsDialog: React.FC = () => {
             onChange={(e) => setCompanyId(e.target.value)}
             size="small"
             fullWidth
-            disabled={loading || saving}
+            disabled={formDisabled}
           />
 
           <Divider />
