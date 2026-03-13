@@ -10,7 +10,10 @@ import {
   markProjectKnowledgeDirty,
   removeProjectKnowledge,
 } from '../services/scheduleKnowledgeService.js';
-import { loadProjectSnapshot } from '../services/projectSnapshotService.js';
+import {
+  loadProjectSnapshot,
+  type ProjectSnapshotDetailLevel,
+} from '../services/projectSnapshotService.js';
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -39,6 +42,10 @@ const updateSchema = z.object({
   stratusPackageWhere: z.string().nullable().optional(),
 });
 
+const snapshotQuerySchema = z.object({
+  detailLevel: z.enum(['shell', 'full']).optional().default('full'),
+});
+
 export default async function projectRoutes(app: FastifyInstance) {
   // List all projects
   app.get('/', async () => {
@@ -65,9 +72,13 @@ export default async function projectRoutes(app: FastifyInstance) {
   });
 
   // Get single project with counts
-  app.get<{ Params: { id: string } }>('/:id/snapshot', async (req) => {
-    return loadProjectSnapshot(req.params.id);
-  });
+  app.get<{ Params: { id: string }; Querystring: { detailLevel?: ProjectSnapshotDetailLevel } }>(
+    '/:id/snapshot',
+    async (req) => {
+      const { detailLevel } = snapshotQuerySchema.parse(req.query);
+      return loadProjectSnapshot(req.params.id, detailLevel);
+    },
+  );
 
   app.get<{ Params: { id: string } }>('/:id', async (req, reply) => {
     const { id } = req.params;

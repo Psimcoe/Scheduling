@@ -1,10 +1,19 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { projectsApi, type ProjectSnapshotResponse, type ProjectSummaryResponse } from '../api';
+import {
+  projectsApi,
+  type ProjectSnapshotResponse,
+  type ProjectSummaryResponse,
+  type SnapshotDetailLevel,
+} from '../api';
 
 export const projectQueryKeys = {
   all: ['projects'] as const,
   list: () => ['projects', 'list'] as const,
-  snapshot: (projectId: string) => ['projects', 'snapshot', projectId] as const,
+  snapshotBase: (projectId: string) => ['projects', 'snapshot', projectId] as const,
+  snapshot: (projectId: string, detailLevel: SnapshotDetailLevel) =>
+    ['projects', 'snapshot', projectId, detailLevel] as const,
+  taskDetail: (projectId: string, taskId: string) =>
+    ['projects', 'task', projectId, taskId] as const,
 };
 
 export function useProjectsQuery() {
@@ -22,10 +31,16 @@ export function useProjectsQueryEnabled(enabled: boolean) {
   });
 }
 
-export function useProjectSnapshotQuery(projectId: string | null, enabled = true) {
+export function useProjectSnapshotQuery(
+  projectId: string | null,
+  enabled = true,
+  detailLevel: SnapshotDetailLevel = 'full',
+) {
   return useQuery<ProjectSnapshotResponse>({
-    queryKey: projectId ? projectQueryKeys.snapshot(projectId) : ['projects', 'snapshot', 'idle'],
-    queryFn: () => projectsApi.snapshot(projectId!),
+    queryKey: projectId
+      ? projectQueryKeys.snapshot(projectId, detailLevel)
+      : ['projects', 'snapshot', 'idle', detailLevel],
+    queryFn: () => projectsApi.snapshot(projectId!, detailLevel),
     enabled: !!projectId && enabled,
     placeholderData: keepPreviousData,
   });

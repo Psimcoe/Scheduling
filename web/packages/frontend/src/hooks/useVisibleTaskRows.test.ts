@@ -5,6 +5,7 @@ import type { DependencyRow, TaskRow } from '../stores';
 function makeTask(overrides: Partial<TaskRow>): TaskRow {
   return {
     id: 'task',
+    detailLevel: 'full',
     projectId: 'project-1',
     wbsCode: '',
     outlineLevel: 0,

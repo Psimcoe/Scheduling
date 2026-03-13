@@ -1,0 +1,3 @@
+[   94737ms] [ERROR] Failed to load resource: the server responded with a status of 400 (Bad Request) @ http://127.0.0.1:3001/api/projects/e40aeab9-b7e8-4d60-bb7c-56b3fce3c1d2/tasks/89ebda66-7bcd-4377-8127-a48d17312ed1:0
+[  214244ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://127.0.0.1:3001/api/stratus/jobs/1c8e31d1-e9d8-4c73-a5bf-a2c94850264e:0
+[  327051ms] [ERROR] Failed to load resource: the server responded with a status of 400 (Bad Request) @ http://127.0.0.1:3001/api/projects/7fefbd76-a5b2-4179-8c8c-844d1d9af458/tasks/27faf5d9-3f69-4271-9f98-d2d806d8484a:0

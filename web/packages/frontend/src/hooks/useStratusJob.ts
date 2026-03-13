@@ -1,8 +1,22 @@
 import { useEffect, useState } from 'react';
-import { stratusApi, type StratusJobResponse } from '../api/client';
+import { ApiError, stratusApi, type StratusJobResponse } from '../api/client';
+
+const DEFAULT_POLL_DELAY_MS = 2_000;
+const MAX_POLL_DELAY_MS = 10_000;
+const MAX_TRANSIENT_FAILURES = 6;
+
+function isTransientPollError(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return error.status === 429 || error.status >= 500;
+  }
+
+  return true;
+}
 
 export function useStratusJob() {
   const [job, setJob] = useState<StratusJobResponse | null>(null);
+  const [pollDelayMs, setPollDelayMs] = useState(DEFAULT_POLL_DELAY_MS);
+  const [transientFailureCount, setTransientFailureCount] = useState(0);
 
   useEffect(() => {
     if (!job || job.status === 'succeeded' || job.status === 'failed') {
@@ -14,10 +28,38 @@ export function useStratusJob() {
       try {
         const nextJob = await stratusApi.getJob(job.id);
         if (!cancelled) {
+          setPollDelayMs(DEFAULT_POLL_DELAY_MS);
+          setTransientFailureCount(0);
           setJob(nextJob);
         }
       } catch (error: unknown) {
         if (!cancelled) {
+          if (isTransientPollError(error)) {
+            const nextFailureCount = transientFailureCount + 1;
+            if (nextFailureCount >= MAX_TRANSIENT_FAILURES) {
+              setJob((currentJob) =>
+                currentJob
+                  ? {
+                      ...currentJob,
+                      status: 'failed',
+                      finishedAt: new Date().toISOString(),
+                      error:
+                        error instanceof Error
+                          ? error.message
+                          : 'Stratus job status could not be loaded.',
+                    }
+                  : null,
+              );
+              return;
+            }
+
+            setTransientFailureCount(nextFailureCount);
+            setPollDelayMs((currentDelay) =>
+              Math.min(MAX_POLL_DELAY_MS, currentDelay * 2),
+            );
+            return;
+          }
+
           setJob((currentJob) =>
             currentJob
               ? {
@@ -33,16 +75,18 @@ export function useStratusJob() {
           );
         }
       }
-    }, 1000);
+    }, pollDelayMs);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [job]);
+  }, [job, pollDelayMs, transientFailureCount]);
 
   const startJob = async (createJob: () => Promise<StratusJobResponse>) => {
     const createdJob = await createJob();
+    setPollDelayMs(DEFAULT_POLL_DELAY_MS);
+    setTransientFailureCount(0);
     setJob(createdJob);
     return createdJob;
   };
@@ -50,7 +94,11 @@ export function useStratusJob() {
   return {
     job,
     setJob,
-    clearJob: () => setJob(null),
+    clearJob: () => {
+      setPollDelayMs(DEFAULT_POLL_DELAY_MS);
+      setTransientFailureCount(0);
+      setJob(null);
+    },
     startJob,
     isRunning:
       job?.status === 'queued' || job?.status === 'running',

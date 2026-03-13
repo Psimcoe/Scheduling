@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
   DialogTitle,
@@ -35,6 +36,8 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 
+import { tasksApi } from '../../api/client';
+import { projectQueryKeys } from '../../data/projectQueries';
 import {
   useProjectStore,
   useUIStore,
@@ -106,6 +109,7 @@ const TaskInfoDialog: React.FC = () => {
   const closeDialog = useUIStore((s) => s.closeDialog);
   const updateTask = useProjectStore((s) => s.updateTask);
   const showSnackbar = useUIStore((s) => s.showSnackbar);
+  const activeProjectId = useProjectStore((s) => s.activeProjectId);
 
   const tasks = useProjectStore((s) => s.tasks);
   const dependencies = useProjectStore((s) => s.dependencies);
@@ -149,24 +153,36 @@ const TaskInfoDialog: React.FC = () => {
   const [deletingDependencyId, setDeletingDependencyId] = useState<string | null>(null);
   const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
 
+  const requiresTaskDetail = Boolean(payload && payload.detailLevel !== 'full');
+  const taskDetailQuery = useQuery({
+    queryKey:
+      activeProjectId && payload
+        ? projectQueryKeys.taskDetail(activeProjectId, payload.id)
+        : ['projects', 'task', 'idle'],
+    queryFn: () => tasksApi.get(activeProjectId!, payload!.id),
+    enabled: open && Boolean(activeProjectId && payload && requiresTaskDetail),
+  });
+  const task = payload?.detailLevel === 'full' ? payload : taskDetailQuery.data ?? null;
+  const displayTask = task ?? payload;
+
   useEffect(() => {
-    if (payload) {
-      setName(payload.name);
-      setDurationStr(durationDays(payload.durationMinutes));
-      setStart(isoDate(payload.start));
-      setFinish(isoDate(payload.finish));
-      setPercentComplete(payload.percentComplete);
-      setIsManuallyScheduled(payload.isManuallyScheduled);
-      setConstraintType(payload.constraintType);
-      setConstraintDate(payload.constraintDate ? isoDate(payload.constraintDate) : '');
-      setDeadline(payload.deadline ? isoDate(payload.deadline) : '');
-      setWbsCode(payload.wbsCode ?? '');
-      setNotes(payload.notes ?? '');
+    if (open && task) {
+      setName(task.name);
+      setDurationStr(durationDays(task.durationMinutes));
+      setStart(isoDate(task.start));
+      setFinish(isoDate(task.finish));
+      setPercentComplete(task.percentComplete);
+      setIsManuallyScheduled(task.isManuallyScheduled);
+      setConstraintType(task.constraintType);
+      setConstraintDate(task.constraintDate ? isoDate(task.constraintDate) : '');
+      setDeadline(task.deadline ? isoDate(task.deadline) : '');
+      setWbsCode(task.wbsCode ?? '');
+      setNotes(task.notes ?? '');
       setTab(0);
       setNewPredTaskId('');
       setNewResId('');
     }
-  }, [payload]);
+  }, [open, task]);
 
   // Predecessors for this task
   const predecessors = useMemo(
@@ -203,26 +219,26 @@ const TaskInfoDialog: React.FC = () => {
 
   // Available tasks for predecessor selection (exclude self)
   const availablePredTasks = useMemo(
-    () => (payload ? tasks.filter((t) => t.id !== payload.id) : []),
-    [tasks, payload],
+    () => (displayTask ? tasks.filter((t) => t.id !== displayTask.id) : []),
+    [displayTask, tasks],
   );
   const stratusAssemblyRef = useMemo(
-    () => parseStratusAssemblyExternalKey(payload?.externalKey),
-    [payload?.externalKey],
+    () => parseStratusAssemblyExternalKey(displayTask?.externalKey),
+    [displayTask?.externalKey],
   );
   const stratusProjectRef = useMemo(
-    () => parseStratusProjectExternalKey(payload?.externalKey),
-    [payload?.externalKey],
+    () => parseStratusProjectExternalKey(displayTask?.externalKey),
+    [displayTask?.externalKey],
   );
 
   const handleSave = async () => {
-    if (!payload) return;
+    if (!displayTask || !activeProjectId) return;
     setSaving(true);
     try {
       const mins = parseDuration(durationStr);
-      await updateTask(payload.id, {
+      await updateTask(displayTask.id, {
         name,
-        durationMinutes: mins !== null ? mins : payload.durationMinutes,
+        durationMinutes: mins !== null ? mins : displayTask.durationMinutes,
         start: new Date(start).toISOString(),
         finish: new Date(finish).toISOString(),
         percentComplete,
@@ -231,7 +247,7 @@ const TaskInfoDialog: React.FC = () => {
           ? new Date(constraintDate).toISOString()
           : null,
         isManuallyScheduled,
-        notes: notes || null,
+        notes,
         deadline: deadline ? new Date(deadline).toISOString() : null,
       });
       closeDialog();
@@ -281,11 +297,39 @@ const TaskInfoDialog: React.FC = () => {
   };
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : closeDialog} maxWidth="md" fullWidth aria-busy={saving || undefined}>
+    <Dialog
+      open={open}
+      onClose={saving ? undefined : closeDialog}
+      maxWidth="md"
+      fullWidth
+      aria-busy={saving || taskDetailQuery.isFetching || undefined}
+    >
       <DialogTitle sx={{ pb: 0 }}>
-        Task Information — {payload?.name ?? ''}
+        Task Information — {displayTask?.name ?? payload?.name ?? ''}
       </DialogTitle>
       <DialogContent sx={{ minHeight: 400 }}>
+        {requiresTaskDetail && !task && (
+          <Box
+            sx={{
+              minHeight: 320,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {taskDetailQuery.isError ? (
+              <Typography color="error">
+                {taskDetailQuery.error instanceof Error
+                  ? taskDetailQuery.error.message
+                  : 'Failed to load task details'}
+              </Typography>
+            ) : (
+              <CircularProgress size={24} />
+            )}
+          </Box>
+        )}
+        {(!requiresTaskDetail || task) && (
+          <>
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
@@ -311,7 +355,7 @@ const TaskInfoDialog: React.FC = () => {
                   size="small"
                 />
                 <AiSuggestButton
-                  taskId={payload?.id}
+                  taskId={displayTask?.id}
                   taskName={name}
                   field="name"
                   onAccept={(s) => setName(s)}
@@ -329,7 +373,7 @@ const TaskInfoDialog: React.FC = () => {
                   helperText="e.g. 5d, 2w, 4h"
                 />
                 <AiSuggestButton
-                  taskId={payload?.id}
+                  taskId={displayTask?.id}
                   taskName={name}
                   field="duration"
                   context={`Task: "${name}", Current duration: ${durationStr}`}
@@ -393,53 +437,53 @@ const TaskInfoDialog: React.FC = () => {
             {/* Read-only scheduling info */}
             <Grid size={12}>
               <Box sx={{ display: 'flex', gap: 3, mt: 1 }}>
-                {payload?.isCritical && (
+                {displayTask?.isCritical && (
                   <Chip label="Critical" color="error" size="small" />
                 )}
-                {payload?.totalSlackMinutes !== undefined && (
+                {displayTask?.totalSlackMinutes !== undefined && (
                   <Typography variant="body2" color="text.secondary">
-                    Total Slack: {durationDays(payload.totalSlackMinutes)}
+                    Total Slack: {durationDays(displayTask.totalSlackMinutes)}
                   </Typography>
                 )}
-                {payload?.freeSlackMinutes !== undefined && (
+                {displayTask?.freeSlackMinutes !== undefined && (
                   <Typography variant="body2" color="text.secondary">
-                    Free Slack: {durationDays(payload.freeSlackMinutes)}
+                    Free Slack: {durationDays(displayTask.freeSlackMinutes)}
                   </Typography>
                 )}
               </Box>
             </Grid>
-            {payload?.stratusSync && (
+            {displayTask?.stratusSync && (
               <Grid size={12}>
                 <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'grey.100' }}>
                   <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
                     Stratus
                   </Typography>
                   <Typography variant="caption" display="block">
-                    Package: {payload.stratusSync.packageNumber || payload.stratusSync.packageId}
+                    Package: {displayTask.stratusSync.packageNumber || displayTask.stratusSync.packageId}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    Package Id: {payload.stratusSync.packageId}
+                    Package Id: {displayTask.stratusSync.packageId}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    Name: {payload.stratusSync.packageName || '-'}
+                    Name: {displayTask.stratusSync.packageName || '-'}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    External Key: {payload?.externalKey || '-'}
+                    External Key: {displayTask?.externalKey || '-'}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    Tracking: {payload.stratusSync.trackingStatusName || payload.stratusSync.trackingStatusId || '-'}
+                    Tracking: {displayTask.stratusSync.trackingStatusName || displayTask.stratusSync.trackingStatusId || '-'}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    Pulled dates: {payload.stratusSync.pulledStart || '-'} / {payload.stratusSync.pulledFinish || '-'} / {payload.stratusSync.pulledDeadline || '-'}
+                    Pulled dates: {displayTask.stratusSync.pulledStart || '-'} / {displayTask.stratusSync.pulledFinish || '-'} / {displayTask.stratusSync.pulledDeadline || '-'}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    Last pull: {payload.stratusSync.lastPulledAt.slice(0, 10)}
-                    {payload.stratusSync.lastPushedAt ? ` | Last push: ${payload.stratusSync.lastPushedAt.slice(0, 10)}` : ''}
+                    Last pull: {displayTask.stratusSync.lastPulledAt.slice(0, 10)}
+                    {displayTask.stratusSync.lastPushedAt ? ` | Last push: ${displayTask.stratusSync.lastPushedAt.slice(0, 10)}` : ''}
                   </Typography>
                 </Box>
               </Grid>
             )}
-            {!payload?.stratusSync && stratusAssemblyRef && (
+            {!displayTask?.stratusSync && stratusAssemblyRef && (
               <Grid size={12}>
                 <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'grey.100' }}>
                   <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
@@ -452,12 +496,12 @@ const TaskInfoDialog: React.FC = () => {
                     Package Key: {stratusAssemblyRef.packageKey}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    External Key: {payload?.externalKey || '-'}
+                    External Key: {displayTask?.externalKey || '-'}
                   </Typography>
                 </Box>
               </Grid>
             )}
-            {!payload?.stratusSync && !stratusAssemblyRef && stratusProjectRef && (
+            {!displayTask?.stratusSync && !stratusAssemblyRef && stratusProjectRef && (
               <Grid size={12}>
                 <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 1, bgcolor: 'grey.100' }}>
                   <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
@@ -467,7 +511,7 @@ const TaskInfoDialog: React.FC = () => {
                     Project Id: {stratusProjectRef}
                   </Typography>
                   <Typography variant="caption" display="block">
-                    External Key: {payload?.externalKey || '-'}
+                    External Key: {displayTask?.externalKey || '-'}
                   </Typography>
                 </Box>
               </Grid>
@@ -756,7 +800,7 @@ const TaskInfoDialog: React.FC = () => {
             <Grid size={3}>
               <TextField
                 label="Early Start"
-                value={payload?.earlyStart ? isoDate(payload.earlyStart) : '—'}
+                value={displayTask?.earlyStart ? isoDate(displayTask.earlyStart) : '—'}
                 disabled
                 fullWidth
                 size="small"
@@ -765,7 +809,7 @@ const TaskInfoDialog: React.FC = () => {
             <Grid size={3}>
               <TextField
                 label="Early Finish"
-                value={payload?.earlyFinish ? isoDate(payload.earlyFinish) : '—'}
+                value={displayTask?.earlyFinish ? isoDate(displayTask.earlyFinish) : '—'}
                 disabled
                 fullWidth
                 size="small"
@@ -774,7 +818,7 @@ const TaskInfoDialog: React.FC = () => {
             <Grid size={3}>
               <TextField
                 label="Late Start"
-                value={payload?.lateStart ? isoDate(payload.lateStart) : '—'}
+                value={displayTask?.lateStart ? isoDate(displayTask.lateStart) : '—'}
                 disabled
                 fullWidth
                 size="small"
@@ -783,7 +827,7 @@ const TaskInfoDialog: React.FC = () => {
             <Grid size={3}>
               <TextField
                 label="Late Finish"
-                value={payload?.lateFinish ? isoDate(payload.lateFinish) : '—'}
+                value={displayTask?.lateFinish ? isoDate(displayTask.lateFinish) : '—'}
                 disabled
                 fullWidth
                 size="small"
@@ -804,12 +848,19 @@ const TaskInfoDialog: React.FC = () => {
             placeholder="Enter task notes here..."
           />
         </TabPanel>
+          </>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={closeDialog} disabled={saving}>
           Cancel
         </Button>
-        <Button variant="contained" onClick={handleSave} disabled={saving} aria-busy={saving || undefined}>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={saving || (requiresTaskDetail && !task)}
+          aria-busy={saving || undefined}
+        >
           {saving ? <CircularProgress size={16} color="inherit" /> : 'Save'}
         </Button>
       </DialogActions>

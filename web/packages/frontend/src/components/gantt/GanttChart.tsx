@@ -20,7 +20,6 @@ dayjs.extend(minMax);
 
 interface GanttChartProps {
   rows: VisibleTaskListRow[];
-  visibleTasks: TaskRow[];
   visibleDependencies: DependencyRow[];
   virtualRows: VirtualItem[];
   totalBodyHeight: number;
@@ -44,13 +43,13 @@ function dayWidthForZoom(zoom: GanttZoom): number {
 
 const GanttChart: React.FC<GanttChartProps> = ({
   rows,
-  visibleTasks,
   visibleDependencies,
   virtualRows,
   totalBodyHeight,
   headerHeight,
 }) => {
   const activeProject = useProjectStore((state) => state.activeProject);
+  const taskBounds = useProjectStore((state) => state.taskBounds);
   const selectedTaskIds = useProjectStore((state) => state.selectedTaskIds);
   const zoom = useUIStore((state) => state.ganttZoom);
   const dayWidth = dayWidthForZoom(zoom);
@@ -120,26 +119,30 @@ const GanttChart: React.FC<GanttChartProps> = ({
     [renderedTaskIds, visibleDependencies],
   );
 
+  const renderedTasks = useMemo(
+    () => renderedTaskRows.map(({ row }) => row.task),
+    [renderedTaskRows],
+  );
+
   const { timelineStart, timelineEnd } = useMemo(() => {
-    if (visibleTasks.length === 0) {
-      const fallbackStart = activeProject?.startDate
+    const fallbackStart = taskBounds?.start
+      ? dayjs.utc(taskBounds.start)
+      : activeProject?.startDate
         ? dayjs.utc(activeProject.startDate)
         : dayjs.utc();
-      return {
-        timelineStart: fallbackStart.startOf('month').toISOString(),
-        timelineEnd: fallbackStart.add(3, 'month').endOf('month').toISOString(),
-      };
-    }
+    const fallbackFinish = taskBounds?.finish
+      ? dayjs.utc(taskBounds.finish)
+      : activeProject?.finishDate
+        ? dayjs.utc(activeProject.finishDate)
+        : fallbackStart.add(3, 'month').endOf('month');
+    const earliest = fallbackStart.subtract(7, 'day').startOf('week');
+    const latest = fallbackFinish.add(14, 'day').endOf('week');
 
-    const starts = visibleTasks.map((task) => dayjs.utc(task.start));
-    const finishes = visibleTasks.map((task) => dayjs.utc(task.finish));
-    const earliest = dayjs.min(...starts)!.subtract(7, 'day').startOf('week');
-    const latest = dayjs.max(...finishes)!.add(14, 'day').endOf('week');
     return {
       timelineStart: earliest.toISOString(),
       timelineEnd: latest.toISOString(),
     };
-  }, [activeProject?.startDate, visibleTasks]);
+  }, [activeProject?.finishDate, activeProject?.startDate, taskBounds]);
 
   const totalDays = Math.max(dayjs.utc(timelineEnd).diff(dayjs.utc(timelineStart), 'day'), 1);
   const totalWidth = totalDays * dayWidth;
@@ -249,7 +252,7 @@ const GanttChart: React.FC<GanttChartProps> = ({
           ))}
 
           <DependencyLines
-            tasks={visibleTasks}
+            tasks={renderedTasks}
             dependencies={renderedDependencies}
             timelineStart={timelineStart}
             dayWidth={dayWidth}

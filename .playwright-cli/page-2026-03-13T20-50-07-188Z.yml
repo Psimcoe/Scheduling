@@ -1,0 +1,206 @@
+- generic [ref=e9]:
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - img "ScheduleSync logo" [ref=e450]
+      - generic [ref=e13]:
+        - heading "ScheduleSync" [level=6] [ref=e451]
+        - text: Desktop + web planning
+    - separator [ref=e15]
+    - generic [ref=e16]:
+      - heading "Projects" [level=6] [ref=e452]
+      - generic [ref=e18]:
+        - button "Stratus Settings" [ref=e453] [cursor=pointer]:
+          - img [ref=e20]
+        - button "Import Active Stratus Projects" [ref=e454] [cursor=pointer]:
+          - img [ref=e23]
+        - button "New Project" [ref=e455] [cursor=pointer]:
+          - img [ref=e26]
+    - separator [ref=e28]
+    - list [ref=e29]:
+      - button "test 3/13/2026" [ref=e456] [cursor=pointer]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: test
+          - paragraph [ref=e33]: 3/13/2026
+      - button "Prefab 3/13/2026" [ref=e457] [cursor=pointer]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: Prefab
+          - paragraph [ref=e37]: 3/13/2026
+      - button "320001TUR - MDX RESIDENTIAL TOWER 3/13/2026" [ref=e458] [cursor=pointer]:
+        - generic [ref=e39]:
+          - generic [ref=e40]: 320001TUR - MDX RESIDENTIAL TOWER
+          - paragraph [ref=e41]: 3/13/2026
+      - button "280011GGC - *PREFAB ONLY - TMC - FLOATING FA 3/13/2026" [ref=e459] [cursor=pointer]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+          - paragraph [ref=e45]: 3/13/2026
+      - button "210468WAL - 210468WAL - MGH WEST SPD ORs (R26) 3/13/2026" [ref=e460] [cursor=pointer]:
+        - generic [ref=e47]:
+          - generic [ref=e48]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+          - paragraph [ref=e49]: 3/13/2026
+      - button "Office Building Renovation 3/13/2026" [ref=e461] [cursor=pointer]:
+        - generic [ref=e51]:
+          - generic [ref=e52]: Office Building Renovation
+          - paragraph [ref=e53]: 3/13/2026
+  - generic [ref=e54]:
+    - banner [ref=e55]:
+      - tablist [ref=e59]:
+        - tab "Task" [selected] [ref=e462] [cursor=pointer]
+        - tab "Resource" [ref=e463] [cursor=pointer]
+        - tab "Project" [ref=e464] [cursor=pointer]
+        - tab "View" [ref=e465] [cursor=pointer]
+        - tab "Format" [ref=e466] [cursor=pointer]
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic "Add Task" [ref=e467]:
+              - button "Add Task" [ref=e468] [cursor=pointer]:
+                - img [ref=e185]
+            - generic "Add Milestone" [ref=e469]:
+              - button "Add Milestone" [ref=e470] [cursor=pointer]:
+                - img [ref=e188]
+            - generic "Delete Task" [ref=e471]:
+              - button "Delete Task" [ref=e472] [cursor=pointer]:
+                - img [ref=e279]
+            - generic "Recurring Task" [ref=e473]:
+              - button "Recurring Task" [ref=e474] [cursor=pointer]:
+                - img [ref=e191]
+          - generic [ref=e74]: Insert
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - generic "Indent" [ref=e475]:
+              - button "Indent" [ref=e476] [cursor=pointer]:
+                - img [ref=e282]
+            - generic "Outdent" [ref=e477]:
+              - button "Outdent" [ref=e478] [cursor=pointer]:
+                - img [ref=e285]
+            - generic "Link Tasks" [ref=e479]:
+              - button "Link Tasks" [disabled]:
+                - img
+            - generic "Unlink Tasks" [ref=e480]:
+              - button "Unlink Tasks" [ref=e481] [cursor=pointer]:
+                - img [ref=e288]
+          - generic [ref=e81]: Schedule
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic "Undo" [ref=e482]:
+              - button "Undo" [ref=e483] [cursor=pointer]:
+                - img [ref=e194]
+            - generic "Redo" [ref=e484]:
+              - button "Redo" [ref=e485] [cursor=pointer]:
+                - img [ref=e197]
+            - generic "Undo History" [ref=e486]:
+              - button "Undo History" [ref=e487] [cursor=pointer]:
+                - img [ref=e200]
+            - generic "Find & Replace" [ref=e488]:
+              - button "Find & Replace" [ref=e489] [cursor=pointer]:
+                - img [ref=e203]
+          - generic [ref=e88]: Editing
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - generic "Task Information" [ref=e490]:
+              - button "Task Information" [active] [ref=e491] [cursor=pointer]:
+                - img [ref=e291]
+            - generic "Mark on Track" [ref=e492]:
+              - button "Mark on Track" [ref=e493] [cursor=pointer]:
+                - img [ref=e294]
+          - generic [ref=e93]: Properties
+        - generic [ref=e94]:
+          - generic "AI Assistant" [ref=e494]:
+            - button "AI Assistant" [ref=e495] [cursor=pointer]:
+              - img [ref=e97]
+          - generic "AI Settings" [ref=e496]:
+            - button "AI Settings" [ref=e497] [cursor=pointer]:
+              - img [ref=e101]
+    - generic [ref=e105]:
+      - grid [ref=e107]:
+        - row "# Task Name Duration Start Finish % Done" [ref=e498]:
+          - columnheader "#" [ref=e499]
+          - columnheader "Task Name" [ref=e500]
+          - columnheader "Duration" [ref=e501]
+          - columnheader "Start" [ref=e502]
+          - columnheader "Finish" [ref=e503]
+          - columnheader "% Done" [ref=e504]
+        - generic [ref=e118]:
+          - row "1 Test Task QA Fixed 1d Mar 12 '26 Mar 12 '26 0%" [selected] [ref=e505] [cursor=pointer]:
+            - gridcell "1" [ref=e506]
+            - gridcell "Test Task QA Fixed" [ref=e507]:
+              - generic [ref=e209]: Test Task QA Fixed
+            - gridcell "1d" [ref=e508]
+            - gridcell "Mar 12 '26" [ref=e509]
+            - gridcell "Mar 12 '26" [ref=e510]
+            - gridcell "0%" [ref=e511]
+          - row "2 New Task 1d Mar 12 '26 Mar 12 '26 0%" [ref=e512] [cursor=pointer]:
+            - gridcell "2" [ref=e513]
+            - gridcell "New Task" [ref=e514]:
+              - generic [ref=e218]: New Task
+            - gridcell "1d" [ref=e515]
+            - gridcell "Mar 12 '26" [ref=e516]
+            - gridcell "Mar 12 '26" [ref=e517]
+            - gridcell "0%" [ref=e518]
+          - row "3 New Task 1d Mar 12 '26 Mar 12 '26 0%" [ref=e519] [cursor=pointer]:
+            - gridcell "3" [ref=e520]
+            - gridcell "New Task" [ref=e521]:
+              - generic [ref=e227]: New Task
+            - gridcell "1d" [ref=e522]
+            - gridcell "Mar 12 '26" [ref=e523]
+            - gridcell "Mar 12 '26" [ref=e524]
+            - gridcell "0%" [ref=e525]
+          - row "4 New Task 1d Mar 12 '26 Mar 12 '26 0%" [ref=e526] [cursor=pointer]:
+            - gridcell "4" [ref=e527]
+            - gridcell "New Task" [ref=e528]:
+              - generic [ref=e236]: New Task
+            - gridcell "1d" [ref=e529]
+            - gridcell "Mar 12 '26" [ref=e530]
+            - gridcell "Mar 12 '26" [ref=e531]
+            - gridcell "0%" [ref=e532]
+          - row "5 New Task 1d Mar 12 '26 Mar 12 '26 0%" [ref=e533] [cursor=pointer]:
+            - gridcell "5" [ref=e534]
+            - gridcell "New Task" [ref=e535]:
+              - generic [ref=e245]: New Task
+            - gridcell "1d" [ref=e536]
+            - gridcell "Mar 12 '26" [ref=e537]
+            - gridcell "Mar 12 '26" [ref=e538]
+            - gridcell "0%" [ref=e539]
+          - row [ref=e119]:
+            - gridcell [ref=e120]
+            - gridcell [ref=e121]:
+              - textbox "Type a new task name..." [ref=e540]
+            - gridcell [ref=e125]
+            - gridcell [ref=e126]
+            - gridcell [ref=e127]
+            - gridcell [ref=e128]
+      - generic [ref=e131]:
+        - generic [ref=e135]:
+          - generic [ref=e137]: Mar 2026
+          - generic [ref=e142]:
+            - generic [ref=e143]: "1"
+            - generic [ref=e144]: "8"
+            - generic [ref=e145]: "15"
+            - generic [ref=e146]: "22"
+        - generic [ref=e164]:
+          - generic [ref=e256]:
+            - generic:
+              - generic: Test Task QA Fixed
+          - generic [ref=e260]:
+            - generic:
+              - generic: New Task
+          - generic [ref=e264]:
+            - generic:
+              - generic: New Task
+          - generic [ref=e268]:
+            - generic:
+              - generic: New Task
+          - generic [ref=e272]:
+            - generic:
+              - generic: New Task
+          - img
+    - generic [ref=e167]:
+      - paragraph [ref=e168]: Gantt Chart
+      - paragraph [ref=e170]: 5 tasks
+      - paragraph [ref=e296]: 1 selected
+      - paragraph [ref=e276]: "Start: Mar 12 '26"
+      - paragraph [ref=e277]: "Finish: Mar 12 '26"
+      - generic [ref=e171]:
+        - paragraph [ref=e172]: "-"
+        - slider [ref=e182]: "3"
+        - paragraph [ref=e183]: +

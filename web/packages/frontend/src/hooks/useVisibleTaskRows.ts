@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useDeferredValue, useMemo } from 'react';
 import { useProjectStore, useUIStore, type DependencyRow, type FilterCriteria, type GroupByOption, type SortCriteria, type TaskRow } from '../stores';
 
 export type VisibleTaskListRow =
@@ -91,23 +91,33 @@ export function buildVisibleTaskRows(args: {
 }): VisibleTaskRowsResult {
   const { tasks, dependencies, selectedTaskIds, collapsedIds, filters, sortCriteria, groupBy } = args;
   const childMap = new Set<string>();
+  const childrenByParentId = new Map<string, string[]>();
   for (const task of tasks) {
     if (task.parentId) {
       childMap.add(task.parentId);
+      const children = childrenByParentId.get(task.parentId) ?? [];
+      children.push(task.id);
+      childrenByParentId.set(task.parentId, children);
     }
   }
 
-  const taskById = new Map(tasks.map((task) => [task.id, task]));
   const hiddenIds = new Set<string>();
-
-  for (const task of tasks) {
-    let currentParentId = task.parentId;
-    while (currentParentId) {
-      if (collapsedIds.has(currentParentId)) {
-        hiddenIds.add(task.id);
-        break;
+  if (collapsedIds.size > 0) {
+    const stack = [...collapsedIds];
+    while (stack.length > 0) {
+      const parentId = stack.pop();
+      if (!parentId) {
+        continue;
       }
-      currentParentId = taskById.get(currentParentId)?.parentId ?? null;
+
+      for (const childId of childrenByParentId.get(parentId) ?? []) {
+        if (hiddenIds.has(childId)) {
+          continue;
+        }
+
+        hiddenIds.add(childId);
+        stack.push(childId);
+      }
     }
   }
 
@@ -194,18 +204,20 @@ export function useVisibleTaskRows(): VisibleTaskRowsResult {
   const filters = useUIStore((state) => state.filters);
   const sortCriteria = useUIStore((state) => state.sortCriteria);
   const groupBy = useUIStore((state) => state.groupBy);
+  const deferredTasks = useDeferredValue(tasks);
+  const deferredDependencies = useDeferredValue(dependencies);
 
   return useMemo(
     () =>
       buildVisibleTaskRows({
-        tasks,
-        dependencies,
+        tasks: deferredTasks,
+        dependencies: deferredDependencies,
         selectedTaskIds,
         collapsedIds,
         filters,
         sortCriteria,
         groupBy,
       }),
-    [collapsedIds, dependencies, filters, groupBy, selectedTaskIds, sortCriteria, tasks],
+    [collapsedIds, deferredDependencies, deferredTasks, filters, groupBy, selectedTaskIds, sortCriteria],
   );
 }

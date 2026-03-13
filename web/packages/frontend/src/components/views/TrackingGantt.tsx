@@ -16,7 +16,7 @@ const TrackingGantt: React.FC = () => {
   const showBaseline = useUIStore((s) => s.showBaseline);
   const setShowBaseline = useUIStore((s) => s.setShowBaseline);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { rows, visibleTasks, visibleDependencies } = useVisibleTaskRows();
+  const { rows, visibleDependencies } = useVisibleTaskRows();
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
@@ -82,7 +82,6 @@ const TrackingGantt: React.FC = () => {
       <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         <GanttChart
           rows={rows}
-          visibleTasks={visibleTasks}
           visibleDependencies={visibleDependencies}
           virtualRows={rowVirtualizer.getVirtualItems()}
           totalBodyHeight={rowVirtualizer.getTotalSize()}

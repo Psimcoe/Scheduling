@@ -32,7 +32,7 @@ const SplitView: React.FC = () => {
   const activeView = useUIStore((state) => state.activeView);
   const gridSplitPercent = useUIStore((state) => state.gridSplitPercent);
   const setGridSplitPercent = useUIStore((state) => state.setGridSplitPercent);
-  const { rows, visibleTasks, visibleDependencies } = useVisibleTaskRows();
+  const { rows, visibleDependencies } = useVisibleTaskRows();
   const containerRef = useRef<HTMLDivElement>(null);
   const verticalScrollRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -140,7 +140,6 @@ const SplitView: React.FC = () => {
           <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
             <GanttChart
               rows={rows}
-              visibleTasks={visibleTasks}
               visibleDependencies={visibleDependencies}
               virtualRows={virtualRows}
               totalBodyHeight={totalBodyHeight}

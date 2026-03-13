@@ -26,6 +26,11 @@ import {
   type TaskRecalculateResponse,
   type TaskResponse,
 } from '../api/client';
+import {
+  getCachedProjectSnapshot,
+  removeCachedProjectSnapshots,
+  setCachedProjectSnapshot,
+} from '../data/projectSnapshotCache';
 import { projectQueryKeys } from '../data/projectQueries';
 import { queryClient } from '../queryClient';
 
@@ -73,6 +78,7 @@ interface ProjectState {
 
   activeProjectId: string | null;
   activeProject: ProjectDetailResponse | null;
+  taskBounds: ProjectSnapshotResponse['taskBounds'] | null;
 
   tasks: TaskRow[];
   dependencies: DependencyRow[];
@@ -135,15 +141,11 @@ const projectQueues = new Map<string, ProjectQueueState>();
 let authPauseState = false;
 
 function getProjectSnapshot(projectId: string): ProjectSnapshotResponse | null {
-  return (
-    queryClient.getQueryData<ProjectSnapshotResponse>(
-      projectQueryKeys.snapshot(projectId),
-    ) ?? null
-  );
+  return getCachedProjectSnapshot(projectId, 'shell');
 }
 
 function setProjectSnapshot(projectId: string, snapshot: ProjectSnapshotResponse): void {
-  queryClient.setQueryData(projectQueryKeys.snapshot(projectId), snapshot);
+  setCachedProjectSnapshot(projectId, snapshot);
 }
 
 function syncActiveProjectFromSnapshot(snapshot: ProjectSnapshotResponse): void {
@@ -153,6 +155,7 @@ function syncActiveProjectFromSnapshot(snapshot: ProjectSnapshotResponse): void 
 
   useProjectStore.setState({
     activeProject: snapshot.project,
+    taskBounds: snapshot.taskBounds,
     tasks: snapshot.tasks,
     dependencies: snapshot.dependencies,
     resources: snapshot.resources,
@@ -203,6 +206,7 @@ function buildOptimisticTask(
 
   return {
     id: tempId,
+    detailLevel: snapshot.detailLevel,
     projectId: snapshot.project.id,
     wbsCode: '',
     outlineLevel: typeof data.outlineLevel === 'number' ? data.outlineLevel : 0,
@@ -382,11 +386,11 @@ async function fetchProjectsQuery(): Promise<ProjectSummary[]> {
 
 async function fetchProjectSnapshot(projectId: string): Promise<ProjectSnapshotResponse> {
   await queryClient.invalidateQueries({
-    queryKey: projectQueryKeys.snapshot(projectId),
+    queryKey: projectQueryKeys.snapshotBase(projectId),
   });
   return queryClient.fetchQuery({
-    queryKey: projectQueryKeys.snapshot(projectId),
-    queryFn: () => projectsApi.snapshot(projectId),
+    queryKey: projectQueryKeys.snapshot(projectId, 'shell'),
+    queryFn: () => projectsApi.snapshot(projectId, 'shell'),
   });
 }
 
@@ -526,6 +530,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loadingProjects: false,
   activeProjectId: null,
   activeProject: null,
+  taskBounds: null,
   tasks: [],
   dependencies: [],
   resources: [],
@@ -554,6 +559,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     set({
       activeProject: snapshot.project,
+      taskBounds: snapshot.taskBounds,
       tasks: snapshot.tasks,
       dependencies: snapshot.dependencies,
       resources: snapshot.resources,
@@ -566,6 +572,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   clearActiveProjectData: () =>
     set({
       activeProject: null,
+      taskBounds: null,
       tasks: [],
       dependencies: [],
       resources: [],
@@ -628,7 +635,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   deleteProject: async (id) => {
     await projectsApi.delete(id);
-    queryClient.removeQueries({ queryKey: projectQueryKeys.snapshot(id) });
+    removeCachedProjectSnapshots(id);
     projectQueues.delete(id);
 
     if (get().activeProjectId === id) {

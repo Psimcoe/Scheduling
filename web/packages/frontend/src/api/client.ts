@@ -182,8 +182,11 @@ export interface StratusStatusSummaryResponse {
   trackingStatusName: string | null;
 }
 
+export type SnapshotDetailLevel = "shell" | "full";
+
 export interface TaskResponse {
   id: string;
+  detailLevel: SnapshotDetailLevel;
   projectId: string;
   wbsCode: string;
   outlineLevel: number;
@@ -206,26 +209,26 @@ export interface TaskResponse {
   lateStart: string | null;
   lateFinish: string | null;
   deadline: string | null;
-  notes: string | null;
+  notes?: string | null;
   externalKey: string | null;
   sortOrder: number;
   stratusSync: StratusSyncSummary | null;
   stratusStatus?: StratusStatusSummaryResponse | null;
-  fixedCost: number | null;
-  fixedCostAccrual: string | null;
-  cost: number | null;
-  actualCost: number | null;
-  remainingCost: number | null;
-  work: number | null;
-  actualWork: number | null;
-  remainingWork: number | null;
-  actualStart: string | null;
-  actualFinish: string | null;
-  actualDurationMinutes: number | null;
-  remainingDuration: number | null;
-  bcws: number | null;
-  bcwp: number | null;
-  acwp: number | null;
+  fixedCost?: number | null;
+  fixedCostAccrual?: string | null;
+  cost?: number | null;
+  actualCost?: number | null;
+  remainingCost?: number | null;
+  work?: number | null;
+  actualWork?: number | null;
+  remainingWork?: number | null;
+  actualStart?: string | null;
+  actualFinish?: string | null;
+  actualDurationMinutes?: number | null;
+  remainingDuration?: number | null;
+  bcws?: number | null;
+  bcwp?: number | null;
+  acwp?: number | null;
 }
 
 export interface DependencyResponse {
@@ -269,8 +272,13 @@ export interface AssignmentResponse {
 }
 
 export interface ProjectSnapshotResponse {
+  detailLevel: SnapshotDetailLevel;
   revision: number;
   project: ProjectDetailResponse;
+  taskBounds: {
+    start: string | null;
+    finish: string | null;
+  };
   tasks: TaskResponse[];
   dependencies: DependencyResponse[];
   resources: ResourceResponse[];
@@ -341,7 +349,10 @@ export interface TaskRecalculateResponse {
 
 export const projectsApi = {
   list: () => request<ProjectSummaryResponse[]>("/projects"),
-  snapshot: (id: string) => request<ProjectSnapshotResponse>(`/projects/${id}/snapshot`),
+  snapshot: (id: string, detailLevel: SnapshotDetailLevel = "full") =>
+    request<ProjectSnapshotResponse>(
+      `/projects/${id}/snapshot?detailLevel=${detailLevel}`,
+    ),
   get: (id: string) => request<ProjectDetailResponse>(`/projects/${id}`),
   create: (data: {
     name: string;
@@ -641,9 +652,9 @@ export interface StratusSyncSummary {
   trackingStatusName: string | null;
   lastPulledAt: string;
   lastPushedAt: string | null;
-  pulledStart: string | null;
-  pulledFinish: string | null;
-  pulledDeadline: string | null;
+  pulledStart?: string | null;
+  pulledFinish?: string | null;
+  pulledDeadline?: string | null;
 }
 
 export interface StratusStatusProgressMapping {

@@ -49,9 +49,9 @@ export interface StratusSyncSummary {
   trackingStatusName: string | null;
   lastPulledAt: string;
   lastPushedAt: string | null;
-  pulledStart: string | null;
-  pulledFinish: string | null;
-  pulledDeadline: string | null;
+  pulledStart?: string | null;
+  pulledFinish?: string | null;
+  pulledDeadline?: string | null;
 }
 
 export interface StratusStatusSummary {
@@ -446,6 +446,44 @@ const STRATUS_SEED_FETCH_CONCURRENCY = 1;
 const STRATUS_PREVIEW_CACHE_TTL_MS = 15 * 60 * 1_000;
 const STRATUS_PREVIEW_CACHE_MAX_ENTRIES = 24;
 const UNDEFINED_PACKAGE_PREFIX = "stratus-undefined-package:";
+
+function resolvePackageFetchConcurrency(
+  options: StratusExecutionOptions,
+): number {
+  if (options.seedUpgrade) {
+    return STRATUS_SEED_FETCH_CONCURRENCY;
+  }
+
+  if (options.forceApiRead) {
+    return 2;
+  }
+
+  return STRATUS_FETCH_CONCURRENCY;
+}
+
+function resolveProjectFetchConcurrency(
+  options: StratusExecutionOptions,
+): number {
+  if (options.seedUpgrade) {
+    return 1;
+  }
+
+  if (options.forceApiRead) {
+    return 1;
+  }
+
+  return Math.max(1, Math.min(4, STRATUS_FETCH_CONCURRENCY));
+}
+
+function resolveAssemblyPageSize(
+  options: StratusExecutionOptions,
+): number | undefined {
+  if (options.seedUpgrade || options.forceApiRead) {
+    return 500;
+  }
+
+  return undefined;
+}
 
 const projectImportSnapshotCache = new Map<
   string,
@@ -904,7 +942,7 @@ export async function applyStratusProjectImport(
     const loadedProjectGroups = (
       await mapWithConcurrency(
         includedStratusProjects,
-        Math.max(1, Math.min(4, STRATUS_FETCH_CONCURRENCY)),
+        resolveProjectFetchConcurrency(options),
         async (stratusProject) => {
           const targetProject = localProjectTargets.get(stratusProject.id);
           if (!targetProject) {
@@ -2380,12 +2418,13 @@ export function buildRefreshFromPrefabPreviewRows(
 
 export function toStratusSyncSummary(
   sync: StratusTaskSync | null,
+  includePulledSignatures = true,
 ): StratusSyncSummary | null {
   if (!sync) {
     return null;
   }
 
-  return {
+  const summary: StratusSyncSummary = {
     packageId: sync.packageId,
     packageNumber: sync.packageNumber,
     packageName: sync.packageName,
@@ -2393,10 +2432,15 @@ export function toStratusSyncSummary(
     trackingStatusName: sync.trackingStatusName,
     lastPulledAt: sync.lastPulledAt.toISOString(),
     lastPushedAt: sync.lastPushedAt?.toISOString() ?? null,
-    pulledStart: sync.syncedStartSignature,
-    pulledFinish: sync.syncedFinishSignature,
-    pulledDeadline: sync.syncedDeadlineSignature,
   };
+
+  if (includePulledSignatures) {
+    summary.pulledStart = sync.syncedStartSignature;
+    summary.pulledFinish = sync.syncedFinishSignature;
+    summary.pulledDeadline = sync.syncedDeadlineSignature;
+  }
+
+  return summary;
 }
 
 export function toStratusStatusSummary(
@@ -3394,9 +3438,7 @@ async function loadApiStratusPackageBundles(
   let processedPackages = 0;
   let processedAssemblies = 0;
   let skippedUnchangedPackages = 0;
-  const fetchConcurrency = options.seedUpgrade
-    ? STRATUS_SEED_FETCH_CONCURRENCY
-    : STRATUS_FETCH_CONCURRENCY;
+  const fetchConcurrency = resolvePackageFetchConcurrency(options);
 
   const bundles = await mapWithConcurrency(
     packages,
@@ -3434,7 +3476,7 @@ async function loadApiStratusPackageBundles(
 
       const rawAssemblies = pkg.id
         ? await fetchAssembliesForPackage(config, pkg.id, {
-            pageSize: options.seedUpgrade ? 500 : undefined,
+            pageSize: resolveAssemblyPageSize(options),
           })
         : [];
       const assemblies = rawAssemblies
@@ -3478,7 +3520,7 @@ async function loadApiActiveStratusProjectGroupsForPrefab(
 
   return mapWithConcurrency(
     stratusProjects,
-    Math.max(1, Math.min(4, STRATUS_FETCH_CONCURRENCY)),
+    resolveProjectFetchConcurrency(options),
     async (stratusProject) => {
       const bundles = await loadApiStratusPackageBundles(
         {

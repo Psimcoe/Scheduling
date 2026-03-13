@@ -7,6 +7,10 @@ import {
   type StratusStatusMappingsSaveResponse,
   type StratusStatusProgressMapping,
 } from "../api/client";
+import {
+  getCachedProjectSnapshot,
+  setCachedProjectSnapshot,
+} from "../data/projectSnapshotCache";
 import { projectQueryKeys } from "../data/projectQueries";
 import { queryClient } from "../queryClient";
 import { useProjectStore } from "../stores/useProjectStore";
@@ -125,13 +129,13 @@ export function useSaveStratusSettingsMutation() {
       }),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({
-        queryKey: projectQueryKeys.snapshot(variables.projectId),
+        queryKey: projectQueryKeys.snapshotBase(variables.projectId),
       });
 
-      const previousSnapshot =
-        queryClient.getQueryData<ProjectSnapshotResponse>(
-          projectQueryKeys.snapshot(variables.projectId),
-        ) ?? null;
+      const previousSnapshot = getCachedProjectSnapshot(
+        variables.projectId,
+        "shell",
+      );
 
       if (!previousSnapshot) {
         return { previousSnapshot: null };
@@ -159,20 +163,14 @@ export function useSaveStratusSettingsMutation() {
         shouldRemapPercentComplete,
       );
 
-      queryClient.setQueryData(
-        projectQueryKeys.snapshot(variables.projectId),
-        optimisticSnapshot,
-      );
+      setCachedProjectSnapshot(variables.projectId, optimisticSnapshot);
       useProjectStore.getState().syncSnapshot(optimisticSnapshot);
 
       return { previousSnapshot };
     },
     onError: (error, variables, context) => {
       if (context?.previousSnapshot) {
-        queryClient.setQueryData(
-          projectQueryKeys.snapshot(variables.projectId),
-          context.previousSnapshot,
-        );
+        setCachedProjectSnapshot(variables.projectId, context.previousSnapshot);
         useProjectStore.getState().syncSnapshot(context.previousSnapshot);
       }
 
@@ -184,10 +182,7 @@ export function useSaveStratusSettingsMutation() {
       );
     },
     onSuccess: async (result, variables) => {
-      queryClient.setQueryData(
-        projectQueryKeys.snapshot(variables.projectId),
-        result.snapshot,
-      );
+      setCachedProjectSnapshot(variables.projectId, result.snapshot);
       useProjectStore.getState().syncSnapshot(result.snapshot);
       await queryClient.invalidateQueries({
         queryKey: projectQueryKeys.list(),

@@ -9,6 +9,7 @@ import {
 
 function createSnapshot(name: string, revision = 1): ProjectSnapshotResponse {
   return {
+    detailLevel: 'full',
     revision,
     project: {
       id: 'project-1',
@@ -31,9 +32,14 @@ function createSnapshot(name: string, revision = 1): ProjectSnapshotResponse {
       statusDate: null,
       stratusLocalMetadataVersion: 1,
     },
+    taskBounds: {
+      start: '2026-03-12T00:00:00.000Z',
+      finish: '2026-03-13T00:00:00.000Z',
+    },
     tasks: [
       {
         id: 'task-1',
+        detailLevel: 'full',
         projectId: 'project-1',
         wbsCode: '1',
         outlineLevel: 0,
@@ -85,12 +91,20 @@ function createSnapshot(name: string, revision = 1): ProjectSnapshotResponse {
 
 function seedProjectState(snapshot: ProjectSnapshotResponse): void {
   queryClient.clear();
-  queryClient.setQueryData(['projects', 'snapshot', snapshot.project.id], snapshot);
+  queryClient.setQueryData(
+    ['projects', 'snapshot', snapshot.project.id, snapshot.detailLevel],
+    snapshot,
+  );
+  queryClient.setQueryData(
+    ['projects', 'snapshot', snapshot.project.id, 'shell'],
+    snapshot,
+  );
   useProjectStore.setState({
     projects: [],
     loadingProjects: false,
     activeProjectId: snapshot.project.id,
     activeProject: snapshot.project,
+    taskBounds: snapshot.taskBounds,
     tasks: snapshot.tasks,
     dependencies: snapshot.dependencies,
     resources: snapshot.resources,

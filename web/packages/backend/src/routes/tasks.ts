@@ -27,7 +27,7 @@ const createSchema = z.object({
   isManuallyScheduled: z.boolean().default(false),
   percentComplete: z.number().min(0).max(100).default(0),
   calendarId: z.string().nullable().optional(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
   externalKey: z.string().optional(),
   sortOrder: z.number().int().optional(),
   outlineLevel: z.number().int().min(0).optional(),
@@ -45,7 +45,7 @@ const updateSchema = z.object({
   isManuallyScheduled: z.boolean().optional(),
   percentComplete: z.number().min(0).max(100).optional(),
   calendarId: z.string().nullable().optional(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
   externalKey: z.string().optional(),
   sortOrder: z.number().int().optional(),
   outlineLevel: z.number().int().min(0).optional(),
@@ -192,7 +192,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         data.isManuallyScheduled = body.isManuallyScheduled;
       if (body.percentComplete !== undefined) data.percentComplete = body.percentComplete;
       if (body.calendarId !== undefined) data.calendarId = body.calendarId;
-      if (body.notes !== undefined) data.notes = body.notes;
+      if (body.notes !== undefined) data.notes = body.notes ?? '';
       if (body.externalKey !== undefined) data.externalKey = body.externalKey;
       if (body.sortOrder !== undefined) data.sortOrder = body.sortOrder;
       if (body.outlineLevel !== undefined) data.outlineLevel = body.outlineLevel;
@@ -415,6 +415,7 @@ function serializeTask(
 ) {
   return {
     ...task,
+    detailLevel: 'full' as const,
     stratusSync: toStratusSyncSummary(task.stratusSync ?? null),
     stratusStatus: toStratusStatusSummary(
       task.stratusSync ?? null,

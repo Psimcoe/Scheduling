@@ -1,0 +1,13 @@
+Total messages: 1 (Errors: 1, Warnings: 0)
+
+Error: Minified React error #185; visit https://react.dev/errors/185 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at Ru (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:27669)
+    at Qa (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:27242)
+    at L0 (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:53417)
+    at $0 (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:53246)
+    at Yl (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:93439)
+    at Qv (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:108743)
+    at Qr (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:108627)
+    at Qv (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:109509)
+    at Qr (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:108627)
+    at Qv (http://127.0.0.1:3001/assets/index-D1hGVgQq.js:49:108723)

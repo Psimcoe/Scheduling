@@ -10,6 +10,7 @@ import {
 
 function createSnapshot(): ProjectSnapshotResponse {
   return {
+    detailLevel: "full",
     revision: 4,
     project: {
       id: "project-1",
@@ -32,9 +33,14 @@ function createSnapshot(): ProjectSnapshotResponse {
       createdAt: "2026-03-12T00:00:00.000Z",
       updatedAt: "2026-03-12T00:00:00.000Z",
     },
+    taskBounds: {
+      start: "2026-03-12T00:00:00.000Z",
+      finish: "2026-03-13T00:00:00.000Z",
+    },
     tasks: [
       {
         id: "package-task",
+        detailLevel: "full",
         projectId: "project-1",
         wbsCode: "1",
         outlineLevel: 0,
@@ -84,6 +90,7 @@ function createSnapshot(): ProjectSnapshotResponse {
       },
       {
         id: "assembly-task",
+        detailLevel: "full",
         projectId: "project-1",
         wbsCode: "1.1",
         outlineLevel: 1,
@@ -133,6 +140,7 @@ function createSnapshot(): ProjectSnapshotResponse {
       },
       {
         id: "plain-task",
+        detailLevel: "full",
         projectId: "project-1",
         wbsCode: "2",
         outlineLevel: 0,

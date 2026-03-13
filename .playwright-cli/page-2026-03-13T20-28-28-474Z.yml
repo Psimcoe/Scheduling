@@ -1,0 +1,233 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e2506]
+        - generic [ref=e7]:
+          - heading [level=6] [ref=e2507]: ScheduleSync
+          - text: Desktop + web planning
+      - separator [ref=e9]
+      - generic [ref=e10]:
+        - heading [level=6] [ref=e2508]: Projects
+        - generic [ref=e12]:
+          - button [ref=e2509] [cursor=pointer]:
+            - img [ref=e14]
+          - button [ref=e2510] [cursor=pointer]:
+            - img [ref=e17]
+          - button [ref=e2511] [cursor=pointer]:
+            - img [ref=e20]
+      - separator [ref=e22]
+      - list [ref=e23]:
+        - button [ref=e2512] [cursor=pointer]:
+          - generic [ref=e153]:
+            - generic [ref=e154]: Prefab
+            - paragraph [ref=e155]: 3/13/2026
+        - button [ref=e2513] [cursor=pointer]:
+          - generic [ref=e157]:
+            - generic [ref=e158]: 320001TUR - MDX RESIDENTIAL TOWER
+            - paragraph [ref=e159]: 3/13/2026
+        - button [ref=e2514] [cursor=pointer]:
+          - generic [ref=e161]:
+            - generic [ref=e162]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+            - paragraph [ref=e163]: 3/13/2026
+        - button [ref=e2515] [cursor=pointer]:
+          - generic [ref=e165]:
+            - generic [ref=e166]: test
+            - paragraph [ref=e167]: 3/12/2026
+        - button [ref=e2516] [cursor=pointer]:
+          - generic [ref=e169]:
+            - generic [ref=e170]: Office Building Renovation
+            - paragraph [ref=e171]: 3/9/2026
+    - generic [ref=e25]:
+      - banner [ref=e26]:
+        - tablist [ref=e30]:
+          - tab [selected] [ref=e2517] [cursor=pointer]: Task
+          - tab [ref=e2518] [cursor=pointer]: Resource
+          - tab [ref=e2519] [cursor=pointer]: Project
+          - tab [ref=e2520] [cursor=pointer]: View
+          - tab [ref=e2521] [cursor=pointer]: Format
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - button [ref=e2523] [cursor=pointer]:
+                - img [ref=e1646]
+              - button [ref=e2525] [cursor=pointer]:
+                - img [ref=e1648]
+              - button [ref=e2527] [cursor=pointer]:
+                - img [ref=e835]
+              - button [ref=e2529] [cursor=pointer]:
+                - img [ref=e179]
+            - generic [ref=e45]: Insert
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - button [ref=e2531] [cursor=pointer]:
+                - img [ref=e838]
+              - button [ref=e2533] [cursor=pointer]:
+                - img [ref=e841]
+              - generic [ref=e2534]:
+                - button [disabled]:
+                  - img
+              - button [ref=e2536] [cursor=pointer]:
+                - img [ref=e844]
+            - generic [ref=e52]: Schedule
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - button [ref=e2538] [cursor=pointer]:
+                - img [ref=e182]
+              - button [ref=e2540] [cursor=pointer]:
+                - img [ref=e185]
+              - button [ref=e2542] [cursor=pointer]:
+                - img [ref=e188]
+              - button [ref=e2544] [cursor=pointer]:
+                - img [ref=e191]
+            - generic [ref=e59]: Editing
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - button [ref=e2546] [cursor=pointer]:
+                - img [ref=e847]
+              - button [ref=e2548] [cursor=pointer]:
+                - img [ref=e850]
+            - generic [ref=e64]: Properties
+          - generic [ref=e65]:
+            - button [ref=e2550] [cursor=pointer]:
+              - img [ref=e68]
+            - button [ref=e2552] [cursor=pointer]:
+              - img [ref=e72]
+      - generic [ref=e76]:
+        - grid [ref=e78]:
+          - row [ref=e2553]:
+            - columnheader [ref=e2554]: "#"
+            - columnheader [ref=e2555]: Task Name
+            - columnheader [ref=e2556]: Duration
+            - columnheader [ref=e2557]: Start
+            - columnheader [ref=e2558]: Finish
+            - columnheader [ref=e2559]: "% Done"
+          - generic [ref=e89]:
+            - row [selected] [ref=e2560] [cursor=pointer]:
+              - gridcell [ref=e2561]: "1"
+              - gridcell [ref=e2562]:
+                - generic [ref=e2442]: New Task
+              - gridcell [ref=e2563]: 1d
+              - gridcell [ref=e2564]: Mar 12 '26
+              - gridcell [ref=e2565]: Mar 12 '26
+              - gridcell [ref=e2566]: 0%
+            - row [ref=e2567] [cursor=pointer]:
+              - gridcell [ref=e2568]: "2"
+              - gridcell [ref=e2569]:
+                - generic [ref=e2451]: New Task
+              - gridcell [ref=e2570]: 1d
+              - gridcell [ref=e2571]: Mar 12 '26
+              - gridcell [ref=e2572]: Mar 12 '26
+              - gridcell [ref=e2573]: 0%
+            - row [ref=e2574] [cursor=pointer]:
+              - gridcell [ref=e2575]: "3"
+              - gridcell [ref=e2576]:
+                - generic [ref=e2460]: New Task
+              - gridcell [ref=e2577]: 1d
+              - gridcell [ref=e2578]: Mar 12 '26
+              - gridcell [ref=e2579]: Mar 12 '26
+              - gridcell [ref=e2580]: 0%
+            - row [ref=e2581] [cursor=pointer]:
+              - gridcell [ref=e2582]: "4"
+              - gridcell [ref=e2583]:
+                - generic [ref=e2469]: New Task
+              - gridcell [ref=e2584]: 1d
+              - gridcell [ref=e2585]: Mar 12 '26
+              - gridcell [ref=e2586]: Mar 12 '26
+              - gridcell [ref=e2587]: 0%
+            - row [ref=e2474]:
+              - gridcell [ref=e2475]
+              - gridcell [ref=e2476]:
+                - textbox [ref=e2588]:
+                  - /placeholder: Type a new task name...
+              - gridcell [ref=e2480]
+              - gridcell [ref=e2481]
+              - gridcell [ref=e2482]
+              - gridcell [ref=e2483]
+        - generic [ref=e102]:
+          - generic [ref=e106]:
+            - generic [ref=e108]: Mar 2026
+            - generic [ref=e112]:
+              - generic [ref=e113]: "1"
+              - generic [ref=e114]: "8"
+              - generic [ref=e115]: "15"
+              - generic [ref=e116]: "22"
+          - generic [ref=e132]:
+            - generic [ref=e2490]:
+              - generic:
+                - generic: New Task
+            - generic [ref=e2494]:
+              - generic:
+                - generic: New Task
+            - generic [ref=e2498]:
+              - generic:
+                - generic: New Task
+            - generic [ref=e2502]:
+              - generic:
+                - generic: New Task
+            - img
+      - generic [ref=e135]:
+        - paragraph [ref=e136]: Gantt Chart
+        - paragraph [ref=e138]: 4 tasks
+        - paragraph [ref=e2505]: 1 selected
+        - paragraph [ref=e832]: "Start: Mar 12 '26"
+        - paragraph [ref=e833]: "Finish: Mar 12 '26"
+        - generic [ref=e139]:
+          - paragraph [ref=e140]: "-"
+          - slider [ref=e150]: "3"
+          - paragraph [ref=e151]: +
+  - dialog "Task Information — New Task" [ref=e2591]:
+    - heading "Task Information — New Task" [level=2] [ref=e2592]
+    - generic [ref=e2593]:
+      - tablist [ref=e2596]:
+        - tab "General" [selected] [ref=e2597] [cursor=pointer]
+        - tab "Predecessors" [ref=e2598] [cursor=pointer]
+        - tab "Resources" [ref=e2599] [cursor=pointer]
+        - tab "Advanced" [ref=e2600] [cursor=pointer]
+        - tab "Notes" [ref=e2601] [cursor=pointer]
+      - tabpanel [ref=e2603]:
+        - generic [ref=e2604]:
+          - generic [ref=e2607]:
+            - generic [ref=e2608]: Task Name
+            - generic [ref=e2609]:
+              - textbox "Task Name" [ref=e2610]: New Task
+              - group:
+                - generic: Task Name
+          - generic [ref=e2613]:
+            - generic [ref=e2614]: Duration
+            - generic [ref=e2615]:
+              - textbox "Duration" [ref=e2616]: 1d
+              - group:
+                - generic: Duration
+            - paragraph [ref=e2617]: e.g. 5d, 2w, 4h
+          - generic [ref=e2619]:
+            - generic [ref=e2620]: Start
+            - generic [ref=e2621]:
+              - textbox "Start" [ref=e2622]: 2026-03-12
+              - group:
+                - generic: Start
+          - generic [ref=e2624]:
+            - generic [ref=e2625]: Finish
+            - generic [ref=e2626]:
+              - textbox "Finish" [ref=e2627]: 2026-03-12
+              - group:
+                - generic: Finish
+          - generic [ref=e2629]:
+            - generic [ref=e2630]: "% Complete"
+            - generic [ref=e2631]:
+              - spinbutton "% Complete" [ref=e2632]: "0"
+              - group:
+                - generic: "% Complete"
+          - generic [ref=e2634] [cursor=pointer]:
+            - generic [ref=e2635]:
+              - checkbox "Manually Scheduled" [ref=e2636]
+              - img [ref=e2637]
+            - generic [ref=e2639]: Manually Scheduled
+          - paragraph [ref=e2641]: "WBS: —"
+          - generic [ref=e2643]:
+            - generic [ref=e2645]: Critical
+            - paragraph [ref=e2646]: "Total Slack: 0d"
+            - paragraph [ref=e2647]: "Free Slack: 0d"
+    - generic [ref=e2648]:
+      - button "Cancel" [ref=e2649] [cursor=pointer]
+      - button "Save" [ref=e2650] [cursor=pointer]

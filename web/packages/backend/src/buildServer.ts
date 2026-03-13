@@ -43,6 +43,10 @@ function resolveRateLimitMax(request: FastifyRequest): number {
     return 10;
   }
 
+  if (routeUrl.startsWith('/api/stratus/jobs/')) {
+    return request.auth?.user.id ? 240 : 600;
+  }
+
   if (routeUrl.startsWith('/api/ai') || routeUrl.includes('/stratus/')) {
     return request.auth?.user.id ? 20 : 60;
   }
