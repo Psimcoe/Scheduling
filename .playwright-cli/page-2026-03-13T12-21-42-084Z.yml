@@ -1,0 +1,1306 @@
+- generic [ref=e1]:
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img [ref=e932]
+        - generic [ref=e13]:
+          - heading [level=6] [ref=e933]: ScheduleSync
+          - text: Desktop + web planning
+      - separator [ref=e15]
+      - generic [ref=e16]:
+        - heading [level=6] [ref=e934]: Projects
+        - generic [ref=e18]:
+          - button [ref=e935] [cursor=pointer]:
+            - img [ref=e20]
+          - button [ref=e936] [cursor=pointer]:
+            - img [ref=e23]
+          - button [ref=e937] [cursor=pointer]:
+            - img [ref=e26]
+      - separator [ref=e28]
+      - list [ref=e29]:
+        - button [ref=e938] [cursor=pointer]:
+          - generic [ref=e31]:
+            - generic [ref=e32]: Prefab
+            - paragraph [ref=e33]: 3/13/2026
+        - button [ref=e939] [cursor=pointer]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: 320001TUR - MDX RESIDENTIAL TOWER
+            - paragraph [ref=e37]: 3/13/2026
+        - button [ref=e940] [cursor=pointer]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+            - paragraph [ref=e41]: 3/13/2026
+        - button [ref=e941] [cursor=pointer]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: test
+            - paragraph [ref=e45]: 3/12/2026
+        - button [ref=e942] [cursor=pointer]:
+          - generic [ref=e47]:
+            - generic [ref=e48]: Office Building Renovation
+            - paragraph [ref=e49]: 3/9/2026
+    - generic [ref=e50]:
+      - banner [ref=e51]:
+        - tablist [ref=e55]:
+          - tab [selected] [ref=e943] [cursor=pointer]: Task
+          - tab [ref=e944] [cursor=pointer]: Resource
+          - tab [ref=e945] [cursor=pointer]: Project
+          - tab [ref=e946] [cursor=pointer]: View
+          - tab [ref=e947] [cursor=pointer]: Format
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - generic [ref=e65]:
+              - button [ref=e949] [cursor=pointer]:
+                - img [ref=e178]
+              - button [ref=e951] [cursor=pointer]:
+                - img [ref=e181]
+              - generic [ref=e952]:
+                - button [disabled]:
+                  - img
+              - button [ref=e954] [cursor=pointer]:
+                - img [ref=e184]
+            - generic [ref=e70]: Insert
+          - generic [ref=e71]:
+            - generic [ref=e72]:
+              - generic [ref=e955]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e956]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e957]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e958]:
+                - button [disabled]:
+                  - img
+            - generic [ref=e77]: Schedule
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - button [ref=e960] [cursor=pointer]:
+                - img [ref=e187]
+              - button [ref=e962] [cursor=pointer]:
+                - img [ref=e190]
+              - button [ref=e964] [cursor=pointer]:
+                - img [ref=e193]
+              - button [ref=e966] [cursor=pointer]:
+                - img [ref=e196]
+            - generic [ref=e84]: Editing
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e967]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e968]:
+                - button [disabled]:
+                  - img
+            - generic [ref=e89]: Properties
+          - generic [ref=e90]:
+            - button [ref=e970] [cursor=pointer]:
+              - img [ref=e93]
+            - button [ref=e972] [cursor=pointer]:
+              - img [ref=e97]
+      - generic [ref=e101]:
+        - grid [ref=e103]:
+          - row [ref=e973]:
+            - columnheader [ref=e974]: "#"
+            - columnheader [ref=e975]: Task Name
+            - columnheader [ref=e976]: Duration
+            - columnheader [ref=e977]: Start
+            - columnheader [ref=e978]: Finish
+            - columnheader [ref=e979]: "% Done"
+          - generic [ref=e114]:
+            - row [ref=e980] [cursor=pointer]:
+              - gridcell [ref=e981]: "1"
+              - gridcell [ref=e982]:
+                - generic [ref=e202]: FAB-0001-LEVEL 3-DE-Level 3-Load Centers 125A
+              - gridcell [ref=e983]: 6.9d
+              - gridcell [ref=e984]: Sep 14 '25
+              - gridcell [ref=e985]: Sep 17 '25
+              - gridcell [ref=e986]: 100%
+            - row [ref=e987] [cursor=pointer]:
+              - gridcell [ref=e988]: "2"
+              - gridcell [ref=e989]:
+                - generic [ref=e210]:
+                  - button [ref=e211]:
+                    - img [ref=e212]
+                  - generic [ref=e214]: FAB-0002-LEVEL 3-DE-Level 3-Load Centers 150A
+              - gridcell [ref=e990]: 5.0d
+              - gridcell [ref=e991]: Sep 17 '25
+              - gridcell [ref=e992]: Sep 19 '25
+              - gridcell [ref=e993]: 100%
+            - row [ref=e994] [cursor=pointer]:
+              - gridcell [ref=e995]: "3"
+              - gridcell [ref=e996]:
+                - generic [ref=e223]: LOAD CENTER-C3(2A)-L3
+              - gridcell [ref=e997]: 1d
+              - gridcell [ref=e998]: Sep 17 '25
+              - gridcell [ref=e999]: Sep 19 '25
+              - gridcell [ref=e1000]: 100%
+            - row [ref=e1001] [cursor=pointer]:
+              - gridcell [ref=e1002]: "4"
+              - gridcell [ref=e1003]:
+                - generic [ref=e232]: LOAD CENTER-S2-L3
+              - gridcell [ref=e1004]: 1d
+              - gridcell [ref=e1005]: Sep 17 '25
+              - gridcell [ref=e1006]: Sep 19 '25
+              - gridcell [ref=e1007]: 100%
+            - row [ref=e1008] [cursor=pointer]:
+              - gridcell [ref=e1009]: "5"
+              - gridcell [ref=e1010]:
+                - generic [ref=e241]: FAB-0003-LEVEL 4-DE-Level 4-Load Centers 125A
+              - gridcell [ref=e1011]: 6.9d
+              - gridcell [ref=e1012]: Sep 20 '25
+              - gridcell [ref=e1013]: Sep 23 '25
+              - gridcell [ref=e1014]: 100%
+            - row [ref=e1015] [cursor=pointer]:
+              - gridcell [ref=e1016]: "6"
+              - gridcell [ref=e1017]:
+                - generic [ref=e249]:
+                  - button [ref=e250]:
+                    - img [ref=e251]
+                  - generic [ref=e253]: FAB-0004-LEVEL 4-DE-Level 4-Load Centers 150A
+              - gridcell [ref=e1018]: 5.0d
+              - gridcell [ref=e1019]: Sep 23 '25
+              - gridcell [ref=e1020]: Sep 25 '25
+              - gridcell [ref=e1021]: 100%
+            - row [ref=e1022] [cursor=pointer]:
+              - gridcell [ref=e1023]: "7"
+              - gridcell [ref=e1024]:
+                - generic [ref=e262]: LOAD CENTER-C3(2A)-L4
+              - gridcell [ref=e1025]: 1d
+              - gridcell [ref=e1026]: Sep 23 '25
+              - gridcell [ref=e1027]: Sep 25 '25
+              - gridcell [ref=e1028]: 100%
+            - row [ref=e1029] [cursor=pointer]:
+              - gridcell [ref=e1030]: "8"
+              - gridcell [ref=e1031]:
+                - generic [ref=e271]: FAB-0005-LEVEL 5-DE-Level 5-Load Centers 125A
+              - gridcell [ref=e1032]: 6.9d
+              - gridcell [ref=e1033]: Sep 27 '25
+              - gridcell [ref=e1034]: Sep 30 '25
+              - gridcell [ref=e1035]: 100%
+            - row [ref=e1036] [cursor=pointer]:
+              - gridcell [ref=e1037]: "9"
+              - gridcell [ref=e1038]:
+                - generic [ref=e279]:
+                  - button [ref=e280]:
+                    - img [ref=e281]
+                  - generic [ref=e283]: FAB-0006-LEVEL 5-DE-Level 5-Load Centers 150A
+              - gridcell [ref=e1039]: 5.0d
+              - gridcell [ref=e1040]: Sep 29 '25
+              - gridcell [ref=e1041]: Oct 1 '25
+              - gridcell [ref=e1042]: 100%
+            - row [ref=e1043] [cursor=pointer]:
+              - gridcell [ref=e1044]: "10"
+              - gridcell [ref=e1045]:
+                - generic [ref=e292]: LOAD CENTER-C3(2A)-L5
+              - gridcell [ref=e1046]: 1d
+              - gridcell [ref=e1047]: Sep 29 '25
+              - gridcell [ref=e1048]: Oct 1 '25
+              - gridcell [ref=e1049]: 100%
+            - row [ref=e1050] [cursor=pointer]:
+              - gridcell [ref=e1051]: "11"
+              - gridcell [ref=e1052]:
+                - generic [ref=e301]: FAB-0007-LEVEL 7-DE-Level 7-Load Centers 125A
+              - gridcell [ref=e1053]: 6.9d
+              - gridcell [ref=e1054]: Oct 3 '25
+              - gridcell [ref=e1055]: Oct 6 '25
+              - gridcell [ref=e1056]: 100%
+            - row [ref=e1057] [cursor=pointer]:
+              - gridcell [ref=e1058]: "12"
+              - gridcell [ref=e1059]:
+                - generic [ref=e310]: FAB-0008-LEVEL 7-DE-Level 7-Load Centers 150A
+              - gridcell [ref=e1060]: 4.0d
+              - gridcell [ref=e1061]: Oct 5 '25
+              - gridcell [ref=e1062]: Oct 7 '25
+              - gridcell [ref=e1063]: 100%
+            - row [ref=e1064] [cursor=pointer]:
+              - gridcell [ref=e1065]: "13"
+              - gridcell [ref=e1066]:
+                - generic [ref=e319]: FAB-0009-LEVEL 8-DE-Level 8-Load Centers 125A
+              - gridcell [ref=e1067]: 6.0d
+              - gridcell [ref=e1068]: Oct 7 '25
+              - gridcell [ref=e1069]: Oct 9 '25
+              - gridcell [ref=e1070]: 100%
+            - row [ref=e1071] [cursor=pointer]:
+              - gridcell [ref=e1072]: "14"
+              - gridcell [ref=e1073]:
+                - generic [ref=e328]: FAB-0010-LEVEL 8-DE-Level 8-Load Centers 150A
+              - gridcell [ref=e1074]: 5.0d
+              - gridcell [ref=e1075]: Oct 12 '25
+              - gridcell [ref=e1076]: Oct 14 '25
+              - gridcell [ref=e1077]: 100%
+            - row [ref=e1078] [cursor=pointer]:
+              - gridcell [ref=e1079]: "15"
+              - gridcell [ref=e1080]:
+                - generic [ref=e337]: FAB-0011-LEVEL 9-DE-Level 9-Load Centers 125A
+              - gridcell [ref=e1081]: 6.0d
+              - gridcell [ref=e1082]: Oct 14 '25
+              - gridcell [ref=e1083]: Oct 16 '25
+              - gridcell [ref=e1084]: 100%
+            - row [ref=e1085] [cursor=pointer]:
+              - gridcell [ref=e1086]: "16"
+              - gridcell [ref=e1087]:
+                - generic [ref=e346]: FAB-0012-LEVEL 9-DE-Level 9-Load Centers 150A
+              - gridcell [ref=e1088]: 5.0d
+              - gridcell [ref=e1089]: Oct 15 '25
+              - gridcell [ref=e1090]: Oct 17 '25
+              - gridcell [ref=e1091]: 100%
+            - row [ref=e1092] [cursor=pointer]:
+              - gridcell [ref=e1093]: "17"
+              - gridcell [ref=e1094]:
+                - generic [ref=e355]: FAB-0013-LEVEL 10-DE-Level 10-Load Centers 125A
+              - gridcell [ref=e1095]: 7.8d
+              - gridcell [ref=e1096]: Oct 19 '25
+              - gridcell [ref=e1097]: Oct 22 '25
+              - gridcell [ref=e1098]: 100%
+            - row [ref=e1099] [cursor=pointer]:
+              - gridcell [ref=e1100]: "18"
+              - gridcell [ref=e1101]:
+                - generic [ref=e364]: FAB-0014-LEVEL 10-DE-Level 10-Load Centers 150A
+              - gridcell [ref=e1102]: 1d
+              - gridcell [ref=e1103]: Oct 23 '25
+              - gridcell [ref=e1104]: Oct 24 '25
+              - gridcell [ref=e1105]: 100%
+            - row [ref=e1106] [cursor=pointer]:
+              - gridcell [ref=e1107]: "19"
+              - gridcell [ref=e1108]:
+                - generic [ref=e373]: FAB-0015-LEVEL 11-DE-Level 11-Load Centers 125A
+              - gridcell [ref=e1109]: 7.8d
+              - gridcell [ref=e1110]: Oct 25 '25
+              - gridcell [ref=e1111]: Oct 28 '25
+              - gridcell [ref=e1112]: 100%
+            - row [ref=e1113] [cursor=pointer]:
+              - gridcell [ref=e1114]: "20"
+              - gridcell [ref=e1115]:
+                - generic [ref=e382]: FAB-0016-LEVEL 11-DE-Level 11-Load Centers 150A
+              - gridcell [ref=e1116]: 5.0d
+              - gridcell [ref=e1117]: Oct 28 '25
+              - gridcell [ref=e1118]: Oct 30 '25
+              - gridcell [ref=e1119]: 100%
+            - row [ref=e1120] [cursor=pointer]:
+              - gridcell [ref=e1121]: "21"
+              - gridcell [ref=e1122]:
+                - generic [ref=e391]: FAB-0017-LEVEL 12-DE-Level 12-Load Centers 125A
+              - gridcell [ref=e1123]: 7.8d
+              - gridcell [ref=e1124]: Nov 17 '25
+              - gridcell [ref=e1125]: Nov 20 '25
+              - gridcell [ref=e1126]: 100%
+            - row [ref=e1127] [cursor=pointer]:
+              - gridcell [ref=e1128]: "22"
+              - gridcell [ref=e1129]:
+                - generic [ref=e400]: FAB-0018-LEVEL 12-DE-Level 12-Load Centers 150A
+              - gridcell [ref=e1130]: 7.8d
+              - gridcell [ref=e1131]: Nov 17 '25
+              - gridcell [ref=e1132]: Nov 20 '25
+              - gridcell [ref=e1133]: 100%
+            - row [ref=e1134] [cursor=pointer]:
+              - gridcell [ref=e1135]: "23"
+              - gridcell [ref=e1136]:
+                - generic [ref=e409]: FAB-0019-LEVEL 13-DE-Level 13-Load Centers 125A
+              - gridcell [ref=e1137]: 7.8d
+              - gridcell [ref=e1138]: Nov 25 '25
+              - gridcell [ref=e1139]: Nov 28 '25
+              - gridcell [ref=e1140]: 100%
+            - row [ref=e1141] [cursor=pointer]:
+              - gridcell [ref=e1142]: "24"
+              - gridcell [ref=e1143]:
+                - generic [ref=e418]: FAB-0020-LEVEL 13-DE-Level 13-Load Centers 150A
+              - gridcell [ref=e1144]: 5.0d
+              - gridcell [ref=e1145]: Nov 26 '25
+              - gridcell [ref=e1146]: Nov 28 '25
+              - gridcell [ref=e1147]: 100%
+            - row [ref=e1148] [cursor=pointer]:
+              - gridcell [ref=e1149]: "25"
+              - gridcell [ref=e1150]:
+                - generic [ref=e426]:
+                  - button [ref=e427]:
+                    - img [ref=e428]
+                  - generic [ref=e430]: FAB-0021-LEVEL 14-DE-Level 14-Load Centers 125A
+              - gridcell [ref=e1151]: 7.8d
+              - gridcell [ref=e1152]: Dec 2 '25
+              - gridcell [ref=e1153]: Dec 5 '25
+              - gridcell [ref=e1154]: 100%
+            - row [ref=e1155] [cursor=pointer]:
+              - gridcell [ref=e1156]: "26"
+              - gridcell [ref=e1157]:
+                - generic [ref=e439]: LOAD CENTER-A1-L14
+              - gridcell [ref=e1158]: 1d
+              - gridcell [ref=e1159]: Dec 2 '25
+              - gridcell [ref=e1160]: Dec 5 '25
+              - gridcell [ref=e1161]: 100%
+            - row [ref=e1162] [cursor=pointer]:
+              - gridcell [ref=e1163]: "27"
+              - gridcell [ref=e1164]:
+                - generic [ref=e448]: LOAD CENTER-A2.1-L14
+              - gridcell [ref=e1165]: 1d
+              - gridcell [ref=e1166]: Dec 2 '25
+              - gridcell [ref=e1167]: Dec 5 '25
+              - gridcell [ref=e1168]: 100%
+            - row [ref=e1169] [cursor=pointer]:
+              - gridcell [ref=e1170]: "28"
+              - gridcell [ref=e1171]:
+                - generic [ref=e457]: LOAD CENTER-A2.1a-L14
+              - gridcell [ref=e1172]: 1d
+              - gridcell [ref=e1173]: Dec 2 '25
+              - gridcell [ref=e1174]: Dec 5 '25
+              - gridcell [ref=e1175]: 100%
+            - row [ref=e1176] [cursor=pointer]:
+              - gridcell [ref=e1177]: "29"
+              - gridcell [ref=e1178]:
+                - generic [ref=e466]: LOAD CENTER-A3-L14
+              - gridcell [ref=e1179]: 1d
+              - gridcell [ref=e1180]: Dec 2 '25
+              - gridcell [ref=e1181]: Dec 5 '25
+              - gridcell [ref=e1182]: 100%
+            - row [ref=e1183] [cursor=pointer]:
+              - gridcell [ref=e1184]: "30"
+              - gridcell [ref=e1185]:
+                - generic [ref=e475]: LOAD CENTER-A4(2A)-L14
+              - gridcell [ref=e1186]: 1d
+              - gridcell [ref=e1187]: Dec 2 '25
+              - gridcell [ref=e1188]: Dec 5 '25
+              - gridcell [ref=e1189]: 100%
+            - row [ref=e1190] [cursor=pointer]:
+              - gridcell [ref=e1191]: "31"
+              - gridcell [ref=e1192]:
+                - generic [ref=e484]: LOAD CENTER-A5.1-L14
+              - gridcell [ref=e1193]: 1d
+              - gridcell [ref=e1194]: Dec 2 '25
+              - gridcell [ref=e1195]: Dec 5 '25
+              - gridcell [ref=e1196]: 100%
+            - row [ref=e1197] [cursor=pointer]:
+              - gridcell [ref=e1198]: "32"
+              - gridcell [ref=e1199]:
+                - generic [ref=e493]: LOAD CENTER-S1-L14
+              - gridcell [ref=e1200]: 1d
+              - gridcell [ref=e1201]: Dec 2 '25
+              - gridcell [ref=e1202]: Dec 5 '25
+              - gridcell [ref=e1203]: 100%
+            - row [ref=e1204] [cursor=pointer]:
+              - gridcell [ref=e1205]: "33"
+              - gridcell [ref=e1206]:
+                - generic [ref=e502]: LOAD CENTER-S1A-L14
+              - gridcell [ref=e1207]: 1d
+              - gridcell [ref=e1208]: Dec 2 '25
+              - gridcell [ref=e1209]: Dec 5 '25
+              - gridcell [ref=e1210]: 100%
+            - row [ref=e1211] [cursor=pointer]:
+              - gridcell [ref=e1212]: "34"
+              - gridcell [ref=e1213]:
+                - generic [ref=e511]: LOAD CENTER-S2-L14
+              - gridcell [ref=e1214]: 1d
+              - gridcell [ref=e1215]: Dec 2 '25
+              - gridcell [ref=e1216]: Dec 5 '25
+              - gridcell [ref=e1217]: 100%
+            - row [ref=e1218] [cursor=pointer]:
+              - gridcell [ref=e1219]: "35"
+              - gridcell [ref=e1220]:
+                - generic [ref=e520]: FAB-0022-LEVEL 14-DE-Level 14-Load Centers 150A
+              - gridcell [ref=e1221]: 5.0d
+              - gridcell [ref=e1222]: Nov 26 '25
+              - gridcell [ref=e1223]: Nov 28 '25
+              - gridcell [ref=e1224]: 100%
+            - row [ref=e1225] [cursor=pointer]:
+              - gridcell [ref=e1226]: "36"
+              - gridcell [ref=e1227]:
+                - generic [ref=e528]:
+                  - button [ref=e529]:
+                    - img [ref=e530]
+                  - generic [ref=e532]: FAB-0023-LEVEL 15-DE-Level 15-Load Centers 125A
+              - gridcell [ref=e1228]: 7.8d
+              - gridcell [ref=e1229]: Dec 9 '25
+              - gridcell [ref=e1230]: Dec 12 '25
+              - gridcell [ref=e1231]: 100%
+            - row [ref=e1232] [cursor=pointer]:
+              - gridcell [ref=e1233]: "37"
+              - gridcell [ref=e1234]:
+                - generic [ref=e541]: LOAD CENTER-A1-L15
+              - gridcell [ref=e1235]: 1d
+              - gridcell [ref=e1236]: Dec 9 '25
+              - gridcell [ref=e1237]: Dec 12 '25
+              - gridcell [ref=e1238]: 100%
+            - row [ref=e1239] [cursor=pointer]:
+              - gridcell [ref=e1240]: "38"
+              - gridcell [ref=e1241]:
+                - generic [ref=e550]: LOAD CENTER-A2.1-L15
+              - gridcell [ref=e1242]: 1d
+              - gridcell [ref=e1243]: Dec 9 '25
+              - gridcell [ref=e1244]: Dec 12 '25
+              - gridcell [ref=e1245]: 100%
+            - row [ref=e1246] [cursor=pointer]:
+              - gridcell [ref=e1247]: "39"
+              - gridcell [ref=e1248]:
+                - generic [ref=e559]: LOAD CENTER-A2.1a-L15
+              - gridcell [ref=e1249]: 1d
+              - gridcell [ref=e1250]: Dec 9 '25
+              - gridcell [ref=e1251]: Dec 12 '25
+              - gridcell [ref=e1252]: 100%
+            - row [ref=e1253] [cursor=pointer]:
+              - gridcell [ref=e1254]: "40"
+              - gridcell [ref=e1255]:
+                - generic [ref=e568]: LOAD CENTER-A3-L15
+              - gridcell [ref=e1256]: 1d
+              - gridcell [ref=e1257]: Dec 9 '25
+              - gridcell [ref=e1258]: Dec 12 '25
+              - gridcell [ref=e1259]: 100%
+            - row [ref=e1260] [cursor=pointer]:
+              - gridcell [ref=e1261]: "41"
+              - gridcell [ref=e1262]:
+                - generic [ref=e577]: LOAD CENTER-A4(2A)-L15
+              - gridcell [ref=e1263]: 1d
+              - gridcell [ref=e1264]: Dec 9 '25
+              - gridcell [ref=e1265]: Dec 12 '25
+              - gridcell [ref=e1266]: 100%
+            - row [ref=e1267] [cursor=pointer]:
+              - gridcell [ref=e1268]: "42"
+              - gridcell [ref=e1269]:
+                - generic [ref=e586]: LOAD CENTER-A5.1-L15
+              - gridcell [ref=e1270]: 1d
+              - gridcell [ref=e1271]: Dec 9 '25
+              - gridcell [ref=e1272]: Dec 12 '25
+              - gridcell [ref=e1273]: 100%
+            - row [ref=e1274] [cursor=pointer]:
+              - gridcell [ref=e1275]: "43"
+              - gridcell [ref=e1276]:
+                - generic [ref=e595]: LOAD CENTER-S1-L15
+              - gridcell [ref=e1277]: 1d
+              - gridcell [ref=e1278]: Dec 9 '25
+              - gridcell [ref=e1279]: Dec 12 '25
+              - gridcell [ref=e1280]: 100%
+        - generic [ref=e127]:
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - generic [ref=e133]: Mar 2025
+              - generic [ref=e134]: Apr 2025
+              - generic [ref=e135]: May 2025
+              - generic [ref=e136]: Jun 2025
+              - generic [ref=e600]: Jul 2025
+              - generic [ref=e601]: Aug 2025
+              - generic [ref=e602]: Sep 2025
+              - generic [ref=e603]: Oct 2025
+              - generic [ref=e604]: Nov 2025
+              - generic [ref=e605]: Dec 2025
+              - generic [ref=e606]: Jan 2026
+              - generic [ref=e607]: Feb 2026
+              - generic [ref=e608]: Mar 2026
+              - generic [ref=e609]: Apr 2026
+              - generic [ref=e610]: May 2026
+              - generic [ref=e611]: Jun 2026
+              - generic [ref=e612]: Jul 2026
+              - generic [ref=e613]: Aug 2026
+              - generic [ref=e614]: Sep 2026
+            - generic [ref=e137]:
+              - generic [ref=e138]: "23"
+              - generic [ref=e139]: "30"
+              - generic [ref=e140]: "6"
+              - generic [ref=e141]: "13"
+              - generic [ref=e142]: "20"
+              - generic [ref=e143]: "27"
+              - generic [ref=e144]: "4"
+              - generic [ref=e145]: "11"
+              - generic [ref=e146]: "18"
+              - generic [ref=e147]: "25"
+              - generic [ref=e148]: "1"
+              - generic [ref=e149]: "8"
+              - generic [ref=e150]: "15"
+              - generic [ref=e151]: "22"
+              - generic [ref=e152]: "29"
+              - generic [ref=e153]: "6"
+              - generic [ref=e154]: "13"
+              - generic [ref=e155]: "20"
+              - generic [ref=e615]: "27"
+              - generic [ref=e616]: "3"
+              - generic [ref=e617]: "10"
+              - generic [ref=e618]: "17"
+              - generic [ref=e619]: "24"
+              - generic [ref=e620]: "31"
+              - generic [ref=e621]: "7"
+              - generic [ref=e622]: "14"
+              - generic [ref=e623]: "21"
+              - generic [ref=e624]: "28"
+              - generic [ref=e625]: "5"
+              - generic [ref=e626]: "12"
+              - generic [ref=e627]: "19"
+              - generic [ref=e628]: "26"
+              - generic [ref=e629]: "2"
+              - generic [ref=e630]: "9"
+              - generic [ref=e631]: "16"
+              - generic [ref=e632]: "23"
+              - generic [ref=e633]: "30"
+              - generic [ref=e634]: "7"
+              - generic [ref=e635]: "14"
+              - generic [ref=e636]: "21"
+              - generic [ref=e637]: "28"
+              - generic [ref=e638]: "4"
+              - generic [ref=e639]: "11"
+              - generic [ref=e640]: "18"
+              - generic [ref=e641]: "25"
+              - generic [ref=e642]: "1"
+              - generic [ref=e643]: "8"
+              - generic [ref=e644]: "15"
+              - generic [ref=e645]: "22"
+              - generic [ref=e646]: "1"
+              - generic [ref=e647]: "8"
+              - generic [ref=e648]: "15"
+              - generic [ref=e649]: "22"
+              - generic [ref=e650]: "29"
+              - generic [ref=e651]: "5"
+              - generic [ref=e652]: "12"
+              - generic [ref=e653]: "19"
+              - generic [ref=e654]: "26"
+              - generic [ref=e655]: "3"
+              - generic [ref=e656]: "10"
+              - generic [ref=e657]: "17"
+              - generic [ref=e658]: "24"
+              - generic [ref=e659]: "31"
+              - generic [ref=e660]: "7"
+              - generic [ref=e661]: "14"
+              - generic [ref=e662]: "21"
+              - generic [ref=e663]: "28"
+              - generic [ref=e664]: "5"
+              - generic [ref=e665]: "12"
+              - generic [ref=e666]: "19"
+              - generic [ref=e667]: "26"
+              - generic [ref=e668]: "2"
+              - generic [ref=e669]: "9"
+              - generic [ref=e670]: "16"
+              - generic [ref=e671]: "23"
+              - generic [ref=e672]: "30"
+              - generic [ref=e673]: "6"
+              - generic [ref=e674]: "13"
+          - generic [ref=e157]:
+            - generic [ref=e727]:
+              - generic:
+                - generic: LOAD CENTER-C3(2A)-L3
+            - generic [ref=e733]:
+              - generic:
+                - generic: LOAD CENTER-S2-L3
+            - generic [ref=e747]:
+              - generic:
+                - generic: LOAD CENTER-C3(2A)-L4
+            - generic [ref=e761]:
+              - generic:
+                - generic: LOAD CENTER-C3(2A)-L5
+            - generic [ref=e827]:
+              - generic:
+                - generic: LOAD CENTER-A1-L14
+            - generic [ref=e833]:
+              - generic:
+                - generic: LOAD CENTER-A2.1-L14
+            - generic [ref=e839]:
+              - generic:
+                - generic: LOAD CENTER-A2.1a-L14
+            - generic [ref=e845]:
+              - generic:
+                - generic: LOAD CENTER-A3-L14
+            - generic [ref=e851]:
+              - generic:
+                - generic: LOAD CENTER-A4(2A)-L14
+            - generic [ref=e857]:
+              - generic:
+                - generic: LOAD CENTER-A5.1-L14
+            - generic [ref=e863]:
+              - generic:
+                - generic: LOAD CENTER-S1-L14
+            - generic [ref=e869]:
+              - generic:
+                - generic: LOAD CENTER-S1A-L14
+            - generic [ref=e875]:
+              - generic:
+                - generic: LOAD CENTER-S2-L14
+            - generic [ref=e889]:
+              - generic:
+                - generic: LOAD CENTER-A1-L15
+            - generic [ref=e895]:
+              - generic:
+                - generic: LOAD CENTER-A2.1-L15
+            - generic [ref=e901]:
+              - generic:
+                - generic: LOAD CENTER-A2.1a-L15
+            - generic [ref=e907]:
+              - generic:
+                - generic: LOAD CENTER-A3-L15
+            - generic [ref=e913]:
+              - generic:
+                - generic: LOAD CENTER-A4(2A)-L15
+            - generic [ref=e919]:
+              - generic:
+                - generic: LOAD CENTER-A5.1-L15
+            - generic [ref=e925]:
+              - generic:
+                - generic: LOAD CENTER-S1-L15
+            - img
+      - generic [ref=e160]:
+        - paragraph [ref=e161]: Gantt Chart
+        - paragraph [ref=e163]: 5964 tasks
+        - paragraph [ref=e931]: "Start: Jul 1 '26"
+        - generic [ref=e164]:
+          - paragraph [ref=e165]: "-"
+          - slider [ref=e175]: "3"
+          - paragraph [ref=e176]: +
+  - dialog "Stratus Settings" [ref=e1284]:
+    - heading "Stratus Settings" [level=2] [ref=e1285]
+    - generic [ref=e1287]:
+      - heading "Connection" [level=6] [ref=e1288]
+      - generic [ref=e1289]:
+        - generic [ref=e1290]: Base URL
+        - generic [ref=e1291]:
+          - textbox "Base URL" [ref=e1292]: https://api.gtpstratus.com/v1
+          - group:
+            - generic: Base URL
+      - alert [ref=e1293]:
+        - img [ref=e1295]
+        - generic [ref=e1297]: "Use the Stratus API root URL or the legacy `/v1` URL. Versioned Stratus endpoints are handled automatically."
+      - generic [ref=e1298]:
+        - generic: App Key
+        - generic [ref=e1299]:
+          - textbox "App Key" [ref=e1300]
+          - group:
+            - generic: App Key
+        - paragraph [ref=e1301]: A key is already stored. Leave blank to keep it unchanged.
+      - generic [ref=e1302]:
+        - generic [ref=e1303]: Company Id
+        - generic [ref=e1304]:
+          - textbox "Company Id" [ref=e1305]: 068aa999-feb6-436b-900b-6c02dbd728e5
+          - group:
+            - generic: Company Id
+      - separator [ref=e1306]
+      - heading "Big Data Import" [level=6] [ref=e1307]
+      - generic [ref=e1308]:
+        - generic [ref=e1309]: Read Source
+        - generic [ref=e1310]:
+          - combobox "Read Source API Only" [ref=e1311] [cursor=pointer]: API Only
+          - textbox: apiOnly
+          - img
+          - group:
+            - generic: Read Source
+        - paragraph [ref=e1312]: SQL preferred uses Stratus Big Data for import and pull when configured, then falls back to the Stratus API.
+      - generic [ref=e1313]:
+        - generic: Big Data Server
+        - generic [ref=e1314]:
+          - textbox "Big Data Server" [ref=e1315]
+          - group:
+            - generic: Big Data Server
+      - generic [ref=e1316]:
+        - generic: Big Data Database
+        - generic [ref=e1317]:
+          - textbox "Big Data Database" [ref=e1318]
+          - group:
+            - generic: Big Data Database
+      - generic [ref=e1319]:
+        - generic: Big Data Username
+        - generic [ref=e1320]:
+          - textbox "Big Data Username" [ref=e1321]
+          - group:
+            - generic: Big Data Username
+      - generic [ref=e1322]:
+        - generic: Big Data Password
+        - generic [ref=e1323]:
+          - textbox "Big Data Password" [ref=e1324]
+          - group:
+            - generic: Big Data Password
+        - paragraph [ref=e1325]: Required for SQL-backed import.
+      - generic [ref=e1326]:
+        - generic [ref=e1327]:
+          - generic [ref=e1328]: Encrypt
+          - generic [ref=e1329]:
+            - combobox "Encrypt False" [ref=e1330] [cursor=pointer]: "False"
+            - textbox: "false"
+            - img
+            - group:
+              - generic: Encrypt
+        - generic [ref=e1331]:
+          - generic [ref=e1332]: Trust Server Certificate
+          - generic [ref=e1333]:
+            - combobox "Trust Server Certificate True" [ref=e1334] [cursor=pointer]: "True"
+            - textbox: "true"
+            - img
+            - group:
+              - generic: Trust Server Certificate
+      - alert [ref=e1335]:
+        - img [ref=e1337]
+        - generic [ref=e1339]: Big Data reads are read-only. Push still goes through the Stratus API. Projects with a custom package filter will automatically fall back to the API.
+      - heading "Advanced SQL Column Overrides" [level=6] [ref=e1340]
+      - generic [ref=e1341]:
+        - generic: Task Name SQL Column
+        - generic [ref=e1342]:
+          - textbox "Task Name SQL Column" [ref=e1343]
+          - group:
+            - generic: Task Name SQL Column
+        - paragraph [ref=e1344]: "Optional. Example: Packages.Name"
+      - generic [ref=e1345]:
+        - generic: Duration Days SQL Column
+        - generic [ref=e1346]:
+          - textbox "Duration Days SQL Column" [ref=e1347]
+          - group:
+            - generic: Duration Days SQL Column
+      - generic [ref=e1348]:
+        - generic: Duration Hours SQL Column
+        - generic [ref=e1349]:
+          - textbox "Duration Hours SQL Column" [ref=e1350]
+          - group:
+            - generic: Duration Hours SQL Column
+      - generic [ref=e1351]:
+        - generic: Start SQL Column
+        - generic [ref=e1352]:
+          - textbox "Start SQL Column" [ref=e1353]
+          - group:
+            - generic: Start SQL Column
+      - generic [ref=e1354]:
+        - generic: Finish SQL Column
+        - generic [ref=e1355]:
+          - textbox "Finish SQL Column" [ref=e1356]
+          - group:
+            - generic: Finish SQL Column
+      - generic [ref=e1357]:
+        - generic: Deadline SQL Column
+        - generic [ref=e1358]:
+          - textbox "Deadline SQL Column" [ref=e1359]
+          - group:
+            - generic: Deadline SQL Column
+      - separator [ref=e1360]
+      - heading "Task Field Mapping Defaults" [level=6] [ref=e1361]
+      - generic [ref=e1362]:
+        - generic [ref=e1363]: Task Name Field
+        - generic [ref=e1364]:
+          - textbox "Task Name Field" [ref=e1365]: STRATUS.Package.Name
+          - group:
+            - generic: Task Name Field
+      - generic [ref=e1366]:
+        - generic [ref=e1367]: Duration Days Field
+        - generic [ref=e1368]:
+          - textbox "Duration Days Field" [ref=e1369]: STRATUS.Field.SMC_Overview Days Estimate_Not Editable
+          - group:
+            - generic: Duration Days Field
+        - paragraph [ref=e1370]: This value wins when both duration fields are present.
+      - generic [ref=e1371]:
+        - generic [ref=e1372]: Duration Hours Field
+        - generic [ref=e1373]:
+          - textbox "Duration Hours Field" [ref=e1374]: STRATUS.Field.PREFAB ESTIMATED BUILD TIME
+          - group:
+            - generic: Duration Hours Field
+      - generic [ref=e1375]:
+        - generic [ref=e1376]: Start Field
+        - generic [ref=e1377]:
+          - textbox "Start Field" [ref=e1378]: STRATUS.Field.SMC_Package Start Date
+          - group:
+            - generic: Start Field
+      - generic [ref=e1379]:
+        - generic [ref=e1380]: Finish Field
+        - generic [ref=e1381]:
+          - textbox "Finish Field" [ref=e1382]: STRATUS.Field.SMC_Package Estimated Finish Date
+          - group:
+            - generic: Finish Field
+      - generic [ref=e1383]:
+        - generic [ref=e1384]: Deadline Field
+        - generic [ref=e1385]:
+          - textbox "Deadline Field" [ref=e1386]: STRATUS.Package.RequiredDT
+          - group:
+            - generic: Deadline Field
+        - paragraph [ref=e1387]: Use STRATUS.Package.RequiredDT to patch the package property, or a company field name to patch a field.
+      - separator [ref=e1388]
+      - heading "Push Field Overrides" [level=6] [ref=e1389]
+      - generic [ref=e1390]:
+        - generic: Start Date Field Id Override
+        - generic [ref=e1391]:
+          - textbox "Start Date Field Id Override" [ref=e1392]
+          - group:
+            - generic: Start Date Field Id Override
+      - generic [ref=e1393]:
+        - generic: Finish Date Field Id Override
+        - generic [ref=e1394]:
+          - textbox "Finish Date Field Id Override" [ref=e1395]
+          - group:
+            - generic: Finish Date Field Id Override
+      - generic [ref=e1396]:
+        - generic: Deadline Field Id Override
+        - generic [ref=e1397]:
+          - textbox "Deadline Field Id Override" [ref=e1398]
+          - group:
+            - generic: Deadline Field Id Override
+      - alert [ref=e1399]:
+        - img [ref=e1401]
+        - generic [ref=e1403]: "Cached field ids: start not resolved yet, finish not resolved yet, deadline property mode"
+      - separator [ref=e1404]
+      - heading "Status Progress Mapping" [level=6] [ref=e1405]
+      - alert [ref=e1406]:
+        - img [ref=e1408]
+        - generic [ref=e1410]: "`% Done` uses the seeded Sullivan McLaughlin `PercentCompleteShop` values. Blank cells save as no value and resolve to 0 during pull."
+      - table [ref=e1412]:
+        - rowgroup [ref=e1413]:
+          - row "Status Id Status Name Percent Complete Shop" [ref=e1414]:
+            - columnheader "Status Id" [ref=e1415]
+            - columnheader "Status Name" [ref=e1416]
+            - columnheader "Percent Complete Shop" [ref=e1417]
+        - rowgroup [ref=e1418]:
+          - row "00000000-0000-0000-0000-000000000000 [Undefined] 0" [ref=e1419]:
+            - cell "00000000-0000-0000-0000-000000000000" [ref=e1420]:
+              - generic [ref=e1422]:
+                - textbox [ref=e1423]: 00000000-0000-0000-0000-000000000000
+                - group
+            - cell "[Undefined]" [ref=e1424]:
+              - generic [ref=e1426]:
+                - textbox [ref=e1427]: "[Undefined]"
+                - group
+            - cell "0" [ref=e1428]:
+              - generic [ref=e1430]:
+                - spinbutton [ref=e1431]: "0"
+                - group
+          - row "2664fb00-cec1-49d9-b3c1-6c4873a190f7 New Item 0" [ref=e1432]:
+            - cell "2664fb00-cec1-49d9-b3c1-6c4873a190f7" [ref=e1433]:
+              - generic [ref=e1435]:
+                - textbox [ref=e1436]: 2664fb00-cec1-49d9-b3c1-6c4873a190f7
+                - group
+            - cell "New Item" [ref=e1437]:
+              - generic [ref=e1439]:
+                - textbox [ref=e1440]: New Item
+                - group
+            - cell "0" [ref=e1441]:
+              - generic [ref=e1443]:
+                - spinbutton [ref=e1444]: "0"
+                - group
+          - row "5a47a2e3-1ac7-4c28-84ce-552fcdc7af64 Design Stage 0" [ref=e1445]:
+            - cell "5a47a2e3-1ac7-4c28-84ce-552fcdc7af64" [ref=e1446]:
+              - generic [ref=e1448]:
+                - textbox [ref=e1449]: 5a47a2e3-1ac7-4c28-84ce-552fcdc7af64
+                - group
+            - cell "Design Stage" [ref=e1450]:
+              - generic [ref=e1452]:
+                - textbox [ref=e1453]: Design Stage
+                - group
+            - cell "0" [ref=e1454]:
+              - generic [ref=e1456]:
+                - spinbutton [ref=e1457]: "0"
+                - group
+          - row "94d5bd75-57ea-401f-98f0-a82a2d285d85 Design Stage-Prefab Early Planning 0" [ref=e1458]:
+            - cell "94d5bd75-57ea-401f-98f0-a82a2d285d85" [ref=e1459]:
+              - generic [ref=e1461]:
+                - textbox [ref=e1462]: 94d5bd75-57ea-401f-98f0-a82a2d285d85
+                - group
+            - cell "Design Stage-Prefab Early Planning" [ref=e1463]:
+              - generic [ref=e1465]:
+                - textbox [ref=e1466]: Design Stage-Prefab Early Planning
+                - group
+            - cell "0" [ref=e1467]:
+              - generic [ref=e1469]:
+                - spinbutton [ref=e1470]: "0"
+                - group
+          - row "9d98ad2d-bb4c-43ff-92b5-1f6e37a3c1a1 CLASH 0" [ref=e1471]:
+            - cell "9d98ad2d-bb4c-43ff-92b5-1f6e37a3c1a1" [ref=e1472]:
+              - generic [ref=e1474]:
+                - textbox [ref=e1475]: 9d98ad2d-bb4c-43ff-92b5-1f6e37a3c1a1
+                - group
+            - cell "CLASH" [ref=e1476]:
+              - generic [ref=e1478]:
+                - textbox [ref=e1479]: CLASH
+                - group
+            - cell "0" [ref=e1480]:
+              - generic [ref=e1482]:
+                - spinbutton [ref=e1483]: "0"
+                - group
+          - row "8f37dd5f-ff5d-4b80-94da-352da827483d BIM/VDC Released to Prefab 0" [ref=e1484]:
+            - cell "8f37dd5f-ff5d-4b80-94da-352da827483d" [ref=e1485]:
+              - generic [ref=e1487]:
+                - textbox [ref=e1488]: 8f37dd5f-ff5d-4b80-94da-352da827483d
+                - group
+            - cell "BIM/VDC Released to Prefab" [ref=e1489]:
+              - generic [ref=e1491]:
+                - textbox [ref=e1492]: BIM/VDC Released to Prefab
+                - group
+            - cell "0" [ref=e1493]:
+              - generic [ref=e1495]:
+                - spinbutton [ref=e1496]: "0"
+                - group
+          - row "c3c1c8cd-7831-4264-acf3-baa00da8ae1d Prefab Confirmed Received From BIM/VDC 0" [ref=e1497]:
+            - cell "c3c1c8cd-7831-4264-acf3-baa00da8ae1d" [ref=e1498]:
+              - generic [ref=e1500]:
+                - textbox [ref=e1501]: c3c1c8cd-7831-4264-acf3-baa00da8ae1d
+                - group
+            - cell "Prefab Confirmed Received From BIM/VDC" [ref=e1502]:
+              - generic [ref=e1504]:
+                - textbox [ref=e1505]: Prefab Confirmed Received From BIM/VDC
+                - group
+            - cell "0" [ref=e1506]:
+              - generic [ref=e1508]:
+                - spinbutton [ref=e1509]: "0"
+                - group
+          - row "65ba2108-106d-41ae-8319-08a3832150d1 Spool QA/QC Complete-Ready for Assembly 0" [ref=e1510]:
+            - cell "65ba2108-106d-41ae-8319-08a3832150d1" [ref=e1511]:
+              - generic [ref=e1513]:
+                - textbox [ref=e1514]: 65ba2108-106d-41ae-8319-08a3832150d1
+                - group
+            - cell "Spool QA/QC Complete-Ready for Assembly" [ref=e1515]:
+              - generic [ref=e1517]:
+                - textbox [ref=e1518]: Spool QA/QC Complete-Ready for Assembly
+                - group
+            - cell "0" [ref=e1519]:
+              - generic [ref=e1521]:
+                - spinbutton [ref=e1522]: "0"
+                - group
+          - row "ceb706b9-6d58-424f-ac02-4d7d1c06906f Assembly (Spool) Confirmed 0" [ref=e1523]:
+            - cell "ceb706b9-6d58-424f-ac02-4d7d1c06906f" [ref=e1524]:
+              - generic [ref=e1526]:
+                - textbox [ref=e1527]: ceb706b9-6d58-424f-ac02-4d7d1c06906f
+                - group
+            - cell "Assembly (Spool) Confirmed" [ref=e1528]:
+              - generic [ref=e1530]:
+                - textbox [ref=e1531]: Assembly (Spool) Confirmed
+                - group
+            - cell "0" [ref=e1532]:
+              - generic [ref=e1534]:
+                - spinbutton [ref=e1535]: "0"
+                - group
+          - row "7b1e2038-51a5-4167-91c5-7c88ac98537f Packages (FAB) Confirmed 0" [ref=e1536]:
+            - cell "7b1e2038-51a5-4167-91c5-7c88ac98537f" [ref=e1537]:
+              - generic [ref=e1539]:
+                - textbox [ref=e1540]: 7b1e2038-51a5-4167-91c5-7c88ac98537f
+                - group
+            - cell "Packages (FAB) Confirmed" [ref=e1541]:
+              - generic [ref=e1543]:
+                - textbox [ref=e1544]: Packages (FAB) Confirmed
+                - group
+            - cell "0" [ref=e1545]:
+              - generic [ref=e1547]:
+                - spinbutton [ref=e1548]: "0"
+                - group
+          - row "f2cec0dd-176d-43cf-8e31-b1cec00bb5bc Package-BOM Generated 0" [ref=e1549]:
+            - cell "f2cec0dd-176d-43cf-8e31-b1cec00bb5bc" [ref=e1550]:
+              - generic [ref=e1552]:
+                - textbox [ref=e1553]: f2cec0dd-176d-43cf-8e31-b1cec00bb5bc
+                - group
+            - cell "Package-BOM Generated" [ref=e1554]:
+              - generic [ref=e1556]:
+                - textbox [ref=e1557]: Package-BOM Generated
+                - group
+            - cell "0" [ref=e1558]:
+              - generic [ref=e1560]:
+                - spinbutton [ref=e1561]: "0"
+                - group
+          - row "1aa68b4f-42e0-4c44-96f3-963602dac1a6 Package-BOM Released for Purchasing 0" [ref=e1562]:
+            - cell "1aa68b4f-42e0-4c44-96f3-963602dac1a6" [ref=e1563]:
+              - generic [ref=e1565]:
+                - textbox [ref=e1566]: 1aa68b4f-42e0-4c44-96f3-963602dac1a6
+                - group
+            - cell "Package-BOM Released for Purchasing" [ref=e1567]:
+              - generic [ref=e1569]:
+                - textbox [ref=e1570]: Package-BOM Released for Purchasing
+                - group
+            - cell "0" [ref=e1571]:
+              - generic [ref=e1573]:
+                - spinbutton [ref=e1574]: "0"
+                - group
+          - row "1b70441e-2767-4c81-9142-1dc0fbf66253 Package-BOM Purchased 0" [ref=e1575]:
+            - cell "1b70441e-2767-4c81-9142-1dc0fbf66253" [ref=e1576]:
+              - generic [ref=e1578]:
+                - textbox [ref=e1579]: 1b70441e-2767-4c81-9142-1dc0fbf66253
+                - group
+            - cell "Package-BOM Purchased" [ref=e1580]:
+              - generic [ref=e1582]:
+                - textbox [ref=e1583]: Package-BOM Purchased
+                - group
+            - cell "0" [ref=e1584]:
+              - generic [ref=e1586]:
+                - spinbutton [ref=e1587]: "0"
+                - group
+          - row "544f11e1-7e8a-429b-a14c-3a45879da3fa Package-BOM Received w/ Back Orders 0" [ref=e1588]:
+            - cell "544f11e1-7e8a-429b-a14c-3a45879da3fa" [ref=e1589]:
+              - generic [ref=e1591]:
+                - textbox [ref=e1592]: 544f11e1-7e8a-429b-a14c-3a45879da3fa
+                - group
+            - cell "Package-BOM Received w/ Back Orders" [ref=e1593]:
+              - generic [ref=e1595]:
+                - textbox [ref=e1596]: Package-BOM Received w/ Back Orders
+                - group
+            - cell "0" [ref=e1597]:
+              - generic [ref=e1599]:
+                - spinbutton [ref=e1600]: "0"
+                - group
+          - row "303103ee-5f7d-424e-ae68-651382db228d Assembly-BOM Received 0" [ref=e1601]:
+            - cell "303103ee-5f7d-424e-ae68-651382db228d" [ref=e1602]:
+              - generic [ref=e1604]:
+                - textbox [ref=e1605]: 303103ee-5f7d-424e-ae68-651382db228d
+                - group
+            - cell "Assembly-BOM Received" [ref=e1606]:
+              - generic [ref=e1608]:
+                - textbox [ref=e1609]: Assembly-BOM Received
+                - group
+            - cell "0" [ref=e1610]:
+              - generic [ref=e1612]:
+                - spinbutton [ref=e1613]: "0"
+                - group
+          - row "52ac33c1-c0cc-4f2f-926d-1c00ef764ce1 Package-BOM Received No Backorders 0" [ref=e1614]:
+            - cell "52ac33c1-c0cc-4f2f-926d-1c00ef764ce1" [ref=e1615]:
+              - generic [ref=e1617]:
+                - textbox [ref=e1618]: 52ac33c1-c0cc-4f2f-926d-1c00ef764ce1
+                - group
+            - cell "Package-BOM Received No Backorders" [ref=e1619]:
+              - generic [ref=e1621]:
+                - textbox [ref=e1622]: Package-BOM Received No Backorders
+                - group
+            - cell "0" [ref=e1623]:
+              - generic [ref=e1625]:
+                - spinbutton [ref=e1626]: "0"
+                - group
+          - row "74c5223e-bdc9-4a66-9041-fe83de65e738 Ready for Fab Release to Shop 0" [ref=e1627]:
+            - cell "74c5223e-bdc9-4a66-9041-fe83de65e738" [ref=e1628]:
+              - generic [ref=e1630]:
+                - textbox [ref=e1631]: 74c5223e-bdc9-4a66-9041-fe83de65e738
+                - group
+            - cell "Ready for Fab Release to Shop" [ref=e1632]:
+              - generic [ref=e1634]:
+                - textbox [ref=e1635]: Ready for Fab Release to Shop
+                - group
+            - cell "0" [ref=e1636]:
+              - generic [ref=e1638]:
+                - spinbutton [ref=e1639]: "0"
+                - group
+          - row "783eb9ea-0985-4b33-afbf-2f9ca65b6403 Issued for Fabrication 10" [ref=e1640]:
+            - cell "783eb9ea-0985-4b33-afbf-2f9ca65b6403" [ref=e1641]:
+              - generic [ref=e1643]:
+                - textbox [ref=e1644]: 783eb9ea-0985-4b33-afbf-2f9ca65b6403
+                - group
+            - cell "Issued for Fabrication" [ref=e1645]:
+              - generic [ref=e1647]:
+                - textbox [ref=e1648]: Issued for Fabrication
+                - group
+            - cell "10" [ref=e1649]:
+              - generic [ref=e1651]:
+                - spinbutton [ref=e1652]: "10"
+                - group
+          - row "da06d2b6-a9fa-45cf-82bc-bcdd83705ac1 Fabrication in Progress 50" [ref=e1653]:
+            - cell "da06d2b6-a9fa-45cf-82bc-bcdd83705ac1" [ref=e1654]:
+              - generic [ref=e1656]:
+                - textbox [ref=e1657]: da06d2b6-a9fa-45cf-82bc-bcdd83705ac1
+                - group
+            - cell "Fabrication in Progress" [ref=e1658]:
+              - generic [ref=e1660]:
+                - textbox [ref=e1661]: Fabrication in Progress
+                - group
+            - cell "50" [ref=e1662]:
+              - generic [ref=e1664]:
+                - spinbutton [ref=e1665]: "50"
+                - group
+          - row "639c9b44-4211-4613-b84d-82ebb4154a1b Fabrication Complete 80" [ref=e1666]:
+            - cell "639c9b44-4211-4613-b84d-82ebb4154a1b" [ref=e1667]:
+              - generic [ref=e1669]:
+                - textbox [ref=e1670]: 639c9b44-4211-4613-b84d-82ebb4154a1b
+                - group
+            - cell "Fabrication Complete" [ref=e1671]:
+              - generic [ref=e1673]:
+                - textbox [ref=e1674]: Fabrication Complete
+                - group
+            - cell "80" [ref=e1675]:
+              - generic [ref=e1677]:
+                - spinbutton [ref=e1678]: "80"
+                - group
+          - row "cf339166-927e-408b-a235-53c57efd816a QA QC Inspection 85" [ref=e1679]:
+            - cell "cf339166-927e-408b-a235-53c57efd816a" [ref=e1680]:
+              - generic [ref=e1682]:
+                - textbox [ref=e1683]: cf339166-927e-408b-a235-53c57efd816a
+                - group
+            - cell "QA QC Inspection" [ref=e1684]:
+              - generic [ref=e1686]:
+                - textbox [ref=e1687]: QA QC Inspection
+                - group
+            - cell "85" [ref=e1688]:
+              - generic [ref=e1690]:
+                - spinbutton [ref=e1691]: "85"
+                - group
+          - row "e2421754-9933-4185-ac4e-3642f5d3c9de Packaged for Shipment 95" [ref=e1692]:
+            - cell "e2421754-9933-4185-ac4e-3642f5d3c9de" [ref=e1693]:
+              - generic [ref=e1695]:
+                - textbox [ref=e1696]: e2421754-9933-4185-ac4e-3642f5d3c9de
+                - group
+            - cell "Packaged for Shipment" [ref=e1697]:
+              - generic [ref=e1699]:
+                - textbox [ref=e1700]: Packaged for Shipment
+                - group
+            - cell "95" [ref=e1701]:
+              - generic [ref=e1703]:
+                - spinbutton [ref=e1704]: "95"
+                - group
+          - row "fcebb720-efdf-4aab-a4c0-aeacbcd7e61f Waiting to Ship 98" [ref=e1705]:
+            - cell "fcebb720-efdf-4aab-a4c0-aeacbcd7e61f" [ref=e1706]:
+              - generic [ref=e1708]:
+                - textbox [ref=e1709]: fcebb720-efdf-4aab-a4c0-aeacbcd7e61f
+                - group
+            - cell "Waiting to Ship" [ref=e1710]:
+              - generic [ref=e1712]:
+                - textbox [ref=e1713]: Waiting to Ship
+                - group
+            - cell "98" [ref=e1714]:
+              - generic [ref=e1716]:
+                - spinbutton [ref=e1717]: "98"
+                - group
+          - row "1ba0d975-3487-40b0-b1e3-50fbfe1b7054 Shipped to Jobsite 100" [ref=e1718]:
+            - cell "1ba0d975-3487-40b0-b1e3-50fbfe1b7054" [ref=e1719]:
+              - generic [ref=e1721]:
+                - textbox [ref=e1722]: 1ba0d975-3487-40b0-b1e3-50fbfe1b7054
+                - group
+            - cell "Shipped to Jobsite" [ref=e1723]:
+              - generic [ref=e1725]:
+                - textbox [ref=e1726]: Shipped to Jobsite
+                - group
+            - cell "100" [ref=e1727]:
+              - generic [ref=e1729]:
+                - spinbutton [ref=e1730]: "100"
+                - group
+          - row "493d0932-ee31-461e-97cf-c55c14dc0fbf Received on Jobsite 0" [ref=e1731]:
+            - cell "493d0932-ee31-461e-97cf-c55c14dc0fbf" [ref=e1732]:
+              - generic [ref=e1734]:
+                - textbox [ref=e1735]: 493d0932-ee31-461e-97cf-c55c14dc0fbf
+                - group
+            - cell "Received on Jobsite" [ref=e1736]:
+              - generic [ref=e1738]:
+                - textbox [ref=e1739]: Received on Jobsite
+                - group
+            - cell "0" [ref=e1740]:
+              - generic [ref=e1742]:
+                - spinbutton [ref=e1743]: "0"
+                - group
+          - row "401b58e1-3b0c-4b97-92dd-8e2acc831553 Issued for Installation 0" [ref=e1744]:
+            - cell "401b58e1-3b0c-4b97-92dd-8e2acc831553" [ref=e1745]:
+              - generic [ref=e1747]:
+                - textbox [ref=e1748]: 401b58e1-3b0c-4b97-92dd-8e2acc831553
+                - group
+            - cell "Issued for Installation" [ref=e1749]:
+              - generic [ref=e1751]:
+                - textbox [ref=e1752]: Issued for Installation
+                - group
+            - cell "0" [ref=e1753]:
+              - generic [ref=e1755]:
+                - spinbutton [ref=e1756]: "0"
+                - group
+          - row "c151d272-4b8d-4b96-b24a-060df8c3dbfa Installed 0" [ref=e1757]:
+            - cell "c151d272-4b8d-4b96-b24a-060df8c3dbfa" [ref=e1758]:
+              - generic [ref=e1760]:
+                - textbox [ref=e1761]: c151d272-4b8d-4b96-b24a-060df8c3dbfa
+                - group
+            - cell "Installed" [ref=e1762]:
+              - generic [ref=e1764]:
+                - textbox [ref=e1765]: Installed
+                - group
+            - cell "0" [ref=e1766]:
+              - generic [ref=e1768]:
+                - spinbutton [ref=e1769]: "0"
+                - group
+          - row "4be76997-8460-45e1-9f26-447856add454 Wire Pulled 0" [ref=e1770]:
+            - cell "4be76997-8460-45e1-9f26-447856add454" [ref=e1771]:
+              - generic [ref=e1773]:
+                - textbox [ref=e1774]: 4be76997-8460-45e1-9f26-447856add454
+                - group
+            - cell "Wire Pulled" [ref=e1775]:
+              - generic [ref=e1777]:
+                - textbox [ref=e1778]: Wire Pulled
+                - group
+            - cell "0" [ref=e1779]:
+              - generic [ref=e1781]:
+                - spinbutton [ref=e1782]: "0"
+                - group
+          - row "b5cd7c47-cbe6-4f47-b088-b6af75013c74 Trim and Terminations Complete 0" [ref=e1783]:
+            - cell "b5cd7c47-cbe6-4f47-b088-b6af75013c74" [ref=e1784]:
+              - generic [ref=e1786]:
+                - textbox [ref=e1787]: b5cd7c47-cbe6-4f47-b088-b6af75013c74
+                - group
+            - cell "Trim and Terminations Complete" [ref=e1788]:
+              - generic [ref=e1790]:
+                - textbox [ref=e1791]: Trim and Terminations Complete
+                - group
+            - cell "0" [ref=e1792]:
+              - generic [ref=e1794]:
+                - spinbutton [ref=e1795]: "0"
+                - group
+          - row "20176b46-34d7-4090-b4a8-f920146b03b1 Hold 0" [ref=e1796]:
+            - cell "20176b46-34d7-4090-b4a8-f920146b03b1" [ref=e1797]:
+              - generic [ref=e1799]:
+                - textbox [ref=e1800]: 20176b46-34d7-4090-b4a8-f920146b03b1
+                - group
+            - cell "Hold" [ref=e1801]:
+              - generic [ref=e1803]:
+                - textbox [ref=e1804]: Hold
+                - group
+            - cell "0" [ref=e1805]:
+              - generic [ref=e1807]:
+                - spinbutton [ref=e1808]: "0"
+                - group
+          - row "56abd7da-9c22-4225-bec6-ad2a5c5f7469 Point List Ready 0" [ref=e1809]:
+            - cell "56abd7da-9c22-4225-bec6-ad2a5c5f7469" [ref=e1810]:
+              - generic [ref=e1812]:
+                - textbox [ref=e1813]: 56abd7da-9c22-4225-bec6-ad2a5c5f7469
+                - group
+            - cell "Point List Ready" [ref=e1814]:
+              - generic [ref=e1816]:
+                - textbox [ref=e1817]: Point List Ready
+                - group
+            - cell "0" [ref=e1818]:
+              - generic [ref=e1820]:
+                - spinbutton [ref=e1821]: "0"
+                - group
+          - row "0aaddec6-a2e3-4638-bdaa-e9fc5d92de6e FAB CANCELLED 0" [ref=e1822]:
+            - cell "0aaddec6-a2e3-4638-bdaa-e9fc5d92de6e" [ref=e1823]:
+              - generic [ref=e1825]:
+                - textbox [ref=e1826]: 0aaddec6-a2e3-4638-bdaa-e9fc5d92de6e
+                - group
+            - cell "FAB CANCELLED" [ref=e1827]:
+              - generic [ref=e1829]:
+                - textbox [ref=e1830]: FAB CANCELLED
+                - group
+            - cell "0" [ref=e1831]:
+              - generic [ref=e1833]:
+                - spinbutton [ref=e1834]: "0"
+                - group
+          - row "61a3d021-4a62-425d-b2a7-4bf758703516 NO PREFAB (FIELD INSTALL) 0" [ref=e1835]:
+            - cell "61a3d021-4a62-425d-b2a7-4bf758703516" [ref=e1836]:
+              - generic [ref=e1838]:
+                - textbox [ref=e1839]: 61a3d021-4a62-425d-b2a7-4bf758703516
+                - group
+            - cell "NO PREFAB (FIELD INSTALL)" [ref=e1840]:
+              - generic [ref=e1842]:
+                - textbox [ref=e1843]: NO PREFAB (FIELD INSTALL)
+                - group
+            - cell "0" [ref=e1844]:
+              - generic [ref=e1846]:
+                - spinbutton [ref=e1847]: "0"
+                - group
+          - row "6edbfc37-c332-47ce-8991-62f51578d6ec TESTING 0" [ref=e1848]:
+            - cell "6edbfc37-c332-47ce-8991-62f51578d6ec" [ref=e1849]:
+              - generic [ref=e1851]:
+                - textbox [ref=e1852]: 6edbfc37-c332-47ce-8991-62f51578d6ec
+                - group
+            - cell "TESTING" [ref=e1853]:
+              - generic [ref=e1855]:
+                - textbox [ref=e1856]: TESTING
+                - group
+            - cell "0" [ref=e1857]:
+              - generic [ref=e1859]:
+                - spinbutton [ref=e1860]: "0"
+                - group
+      - separator [ref=e1861]
+      - heading "Project Target" [level=6] [ref=e1862]
+      - generic [ref=e1863]:
+        - generic [ref=e1864]: Stratus Project Id
+        - generic [ref=e1865]:
+          - textbox "Stratus Project Id" [ref=e1866]: 6f4b3f2d-ef39-4901-8009-edc8e6798602
+          - group:
+            - generic: Stratus Project Id
+        - paragraph [ref=e1867]: Use a project id, a model id, or both.
+      - generic [ref=e1868]:
+        - generic: Stratus Model Id
+        - generic [ref=e1869]:
+          - textbox "Stratus Model Id" [ref=e1870]
+          - group:
+            - generic: Stratus Model Id
+      - generic [ref=e1871]:
+        - generic: Package Where Filter
+        - generic [ref=e1872]:
+          - textbox "Package Where Filter" [ref=e1873]:
+            - /placeholder: Optional Stratus where clause
+          - group:
+            - generic: Package Where Filter
+    - generic [ref=e1874]:
+      - generic [ref=e1875]:
+        - button "Test Connection" [ref=e1876] [cursor=pointer]
+        - button "Test Big Data" [ref=e1877] [cursor=pointer]
+      - button "Cancel" [ref=e1878] [cursor=pointer]
+      - button "Save" [ref=e1879] [cursor=pointer]
