@@ -48,6 +48,7 @@ export type DialogType =
   | 'leveling'
   | 'aiSettings'
   | 'recurringTask'
+  | 'projectBrowser'
   | 'stratusSettings'
   | 'stratusProjectImport'
   | 'stratusPullPreview'
