@@ -84,6 +84,10 @@ async function finalizeTaskMutation(projectId: string) {
 
 const METADATA_ONLY_TASK_FIELDS = new Set(['name', 'notes', 'externalKey']);
 const HIERARCHY_TASK_FIELDS = new Set(['parentId', 'outlineLevel', 'sortOrder', 'type']);
+const TASK_MUTATION_TRANSACTION_OPTIONS = {
+  maxWait: 10_000,
+  timeout: 60_000,
+} as const;
 
 function isMetadataOnlyTaskPatch(data: Record<string, unknown>): boolean {
   const keys = Object.keys(data);
@@ -178,41 +182,44 @@ export default async function taskRoutes(app: FastifyInstance) {
       });
       const sortOrder = body.sortOrder ?? (maxTask?.sortOrder ?? -1) + 1;
 
-      const { task, revision } = await prisma.$transaction(async (tx) => {
-        const createdTask = await tx.task.create({
-          data: {
-            projectId,
-            name: body.name,
-            wbsCode: '',
-            outlineLevel: body.outlineLevel ?? 0,
-            type: body.type,
-            durationMinutes: body.durationMinutes,
-            start,
-            finish,
-            constraintType: body.constraintType,
-            constraintDate: body.constraintDate ? new Date(body.constraintDate) : null,
-            isManuallyScheduled: body.isManuallyScheduled,
-            percentComplete: body.percentComplete,
-            calendarId: body.calendarId ?? null,
-            parentId: body.parentId ?? null,
-            sortOrder,
-            notes: body.notes ?? '',
-            externalKey: body.externalKey,
-          },
-          include: { stratusSync: true, stratusAssemblySync: true },
-        });
-        await normalizeTaskHierarchyInTransaction(tx, projectId);
-        const updatedProject = await tx.project.update({
-          where: { id: projectId },
-          data: { revision: { increment: 1 } },
-          select: { revision: true },
-        });
+      const { task, revision } = await prisma.$transaction(
+        async (tx) => {
+          const createdTask = await tx.task.create({
+            data: {
+              projectId,
+              name: body.name,
+              wbsCode: '',
+              outlineLevel: body.outlineLevel ?? 0,
+              type: body.type,
+              durationMinutes: body.durationMinutes,
+              start,
+              finish,
+              constraintType: body.constraintType,
+              constraintDate: body.constraintDate ? new Date(body.constraintDate) : null,
+              isManuallyScheduled: body.isManuallyScheduled,
+              percentComplete: body.percentComplete,
+              calendarId: body.calendarId ?? null,
+              parentId: body.parentId ?? null,
+              sortOrder,
+              notes: body.notes ?? '',
+              externalKey: body.externalKey,
+            },
+            include: { stratusSync: true, stratusAssemblySync: true },
+          });
+          await normalizeTaskHierarchyInTransaction(tx, projectId);
+          const updatedProject = await tx.project.update({
+            where: { id: projectId },
+            data: { revision: { increment: 1 } },
+            select: { revision: true },
+          });
 
-        return {
-          task: createdTask,
-          revision: updatedProject.revision,
-        };
-      });
+          return {
+            task: createdTask,
+            revision: updatedProject.revision,
+          };
+        },
+        TASK_MUTATION_TRANSACTION_OPTIONS,
+      );
 
       const snapshot = await finalizeTaskMutation(projectId);
       const createdTask = snapshot.tasks.find((candidate) => candidate.id === task.id) ?? serializeTask(task);
@@ -294,26 +301,29 @@ export default async function taskRoutes(app: FastifyInstance) {
 
       const requiresRecalculation = !isMetadataOnlyTaskPatch(data);
       const hierarchyMutation = isHierarchyTaskPatch(data);
-      const { task, revision } = await prisma.$transaction(async (tx) => {
-        const updatedTask = await tx.task.update({
-          where: { id: taskId },
-          data,
-          include: { stratusSync: true, stratusAssemblySync: true },
-        });
-        if (hierarchyMutation) {
-          await normalizeTaskHierarchyInTransaction(tx, projectId);
-        }
-        const updatedProject = await tx.project.update({
-          where: { id: projectId },
-          data: { revision: { increment: 1 } },
-          select: { revision: true },
-        });
+      const { task, revision } = await prisma.$transaction(
+        async (tx) => {
+          const updatedTask = await tx.task.update({
+            where: { id: taskId },
+            data,
+            include: { stratusSync: true, stratusAssemblySync: true },
+          });
+          if (hierarchyMutation) {
+            await normalizeTaskHierarchyInTransaction(tx, projectId);
+          }
+          const updatedProject = await tx.project.update({
+            where: { id: projectId },
+            data: { revision: { increment: 1 } },
+            select: { revision: true },
+          });
 
-        return {
-          task: updatedTask,
-          revision: updatedProject.revision,
-        };
-      });
+          return {
+            task: updatedTask,
+            revision: updatedProject.revision,
+          };
+        },
+        TASK_MUTATION_TRANSACTION_OPTIONS,
+      );
 
       const snapshot = hierarchyMutation
         ? await finalizeTaskMutation(projectId)
@@ -380,54 +390,57 @@ export default async function taskRoutes(app: FastifyInstance) {
         body.recalculate &&
         body.updates.some((update) => !isMetadataOnlyTaskPatch(update.data));
 
-      const { tasks: results, revision } = await prisma.$transaction(async (tx) => {
-        const updatedTasks = [];
-        for (const u of body.updates) {
-          const data: Record<string, unknown> = {};
-          const d = u.data;
-          if (d.name !== undefined) data.name = d.name;
-          if (d.durationMinutes !== undefined) data.durationMinutes = d.durationMinutes;
-          if (d.start !== undefined) data.start = new Date(d.start);
-          if (d.finish !== undefined) data.finish = new Date(d.finish);
-          if (d.parentId !== undefined) data.parentId = d.parentId;
-          if (d.type !== undefined) data.type = d.type;
-          if (d.constraintType !== undefined) data.constraintType = d.constraintType;
-          if (d.constraintDate !== undefined)
-            data.constraintDate = d.constraintDate ? new Date(d.constraintDate) : null;
-          if (d.isManuallyScheduled !== undefined)
-            data.isManuallyScheduled = d.isManuallyScheduled;
-          if (d.percentComplete !== undefined) data.percentComplete = d.percentComplete;
-          if (d.calendarId !== undefined) data.calendarId = d.calendarId;
-          if (d.notes !== undefined) data.notes = d.notes ?? '';
-          if (d.externalKey !== undefined) data.externalKey = d.externalKey;
-          if (d.sortOrder !== undefined) data.sortOrder = d.sortOrder;
-          if (d.outlineLevel !== undefined) data.outlineLevel = d.outlineLevel;
-          if (d.deadline !== undefined)
-            data.deadline = d.deadline ? new Date(d.deadline) : null;
-          if (d.actualStart !== undefined)
-            data.actualStart = d.actualStart ? new Date(d.actualStart) : null;
-          if (d.actualFinish !== undefined)
-            data.actualFinish = d.actualFinish ? new Date(d.actualFinish) : null;
-          if (d.actualWork !== undefined) data.actualWork = d.actualWork;
-          if (d.actualCost !== undefined) data.actualCost = d.actualCost;
-          if (d.remainingWork !== undefined) data.remainingWork = d.remainingWork;
-          if (d.remainingCost !== undefined) data.remainingCost = d.remainingCost;
-          if (d.fixedCost !== undefined) data.fixedCost = d.fixedCost;
+      const { tasks: results, revision } = await prisma.$transaction(
+        async (tx) => {
+          const updatedTasks = [];
+          for (const u of body.updates) {
+            const data: Record<string, unknown> = {};
+            const d = u.data;
+            if (d.name !== undefined) data.name = d.name;
+            if (d.durationMinutes !== undefined) data.durationMinutes = d.durationMinutes;
+            if (d.start !== undefined) data.start = new Date(d.start);
+            if (d.finish !== undefined) data.finish = new Date(d.finish);
+            if (d.parentId !== undefined) data.parentId = d.parentId;
+            if (d.type !== undefined) data.type = d.type;
+            if (d.constraintType !== undefined) data.constraintType = d.constraintType;
+            if (d.constraintDate !== undefined)
+              data.constraintDate = d.constraintDate ? new Date(d.constraintDate) : null;
+            if (d.isManuallyScheduled !== undefined)
+              data.isManuallyScheduled = d.isManuallyScheduled;
+            if (d.percentComplete !== undefined) data.percentComplete = d.percentComplete;
+            if (d.calendarId !== undefined) data.calendarId = d.calendarId;
+            if (d.notes !== undefined) data.notes = d.notes ?? '';
+            if (d.externalKey !== undefined) data.externalKey = d.externalKey;
+            if (d.sortOrder !== undefined) data.sortOrder = d.sortOrder;
+            if (d.outlineLevel !== undefined) data.outlineLevel = d.outlineLevel;
+            if (d.deadline !== undefined)
+              data.deadline = d.deadline ? new Date(d.deadline) : null;
+            if (d.actualStart !== undefined)
+              data.actualStart = d.actualStart ? new Date(d.actualStart) : null;
+            if (d.actualFinish !== undefined)
+              data.actualFinish = d.actualFinish ? new Date(d.actualFinish) : null;
+            if (d.actualWork !== undefined) data.actualWork = d.actualWork;
+            if (d.actualCost !== undefined) data.actualCost = d.actualCost;
+            if (d.remainingWork !== undefined) data.remainingWork = d.remainingWork;
+            if (d.remainingCost !== undefined) data.remainingCost = d.remainingCost;
+            if (d.fixedCost !== undefined) data.fixedCost = d.fixedCost;
 
-          const updatedTask = await tx.task.update({ where: { id: u.id }, data });
-          updatedTasks.push(updatedTask);
-        }
-        await normalizeTaskHierarchyInTransaction(tx, projectId);
-        const updatedProject = await tx.project.update({
-          where: { id: projectId },
-          data: { revision: { increment: 1 } },
-          select: { revision: true },
-        });
-        return {
-          tasks: updatedTasks,
-          revision: updatedProject.revision,
-        };
-      });
+            const updatedTask = await tx.task.update({ where: { id: u.id }, data });
+            updatedTasks.push(updatedTask);
+          }
+          await normalizeTaskHierarchyInTransaction(tx, projectId);
+          const updatedProject = await tx.project.update({
+            where: { id: projectId },
+            data: { revision: { increment: 1 } },
+            select: { revision: true },
+          });
+          return {
+            tasks: updatedTasks,
+            revision: updatedProject.revision,
+          };
+        },
+        TASK_MUTATION_TRANSACTION_OPTIONS,
+      );
 
       for (const task of results) {
         const before = beforeTaskMap.get(task.id) ?? null;
@@ -478,27 +491,30 @@ export default async function taskRoutes(app: FastifyInstance) {
 
       await captureUndo(projectId, `Delete ${beforeTasks.length} task${beforeTasks.length === 1 ? '' : 's'}`);
 
-      const { revision } = await prisma.$transaction(async (tx) => {
-        await tx.dependency.deleteMany({
-          where: {
-            projectId,
-            OR: [
-              { fromTaskId: { in: taskIds } },
-              { toTaskId: { in: taskIds } },
-            ],
-          },
-        });
-        await tx.assignment.deleteMany({ where: { taskId: { in: taskIds } } });
-        await tx.baseline.deleteMany({ where: { taskId: { in: taskIds } } });
-        await tx.task.deleteMany({ where: { projectId, id: { in: taskIds } } });
-        await normalizeTaskHierarchyInTransaction(tx, projectId);
-        const updatedProject = await tx.project.update({
-          where: { id: projectId },
-          data: { revision: { increment: 1 } },
-          select: { revision: true },
-        });
-        return { revision: updatedProject.revision };
-      });
+      const { revision } = await prisma.$transaction(
+        async (tx) => {
+          await tx.dependency.deleteMany({
+            where: {
+              projectId,
+              OR: [
+                { fromTaskId: { in: taskIds } },
+                { toTaskId: { in: taskIds } },
+              ],
+            },
+          });
+          await tx.assignment.deleteMany({ where: { taskId: { in: taskIds } } });
+          await tx.baseline.deleteMany({ where: { taskId: { in: taskIds } } });
+          await tx.task.deleteMany({ where: { projectId, id: { in: taskIds } } });
+          await normalizeTaskHierarchyInTransaction(tx, projectId);
+          const updatedProject = await tx.project.update({
+            where: { id: projectId },
+            data: { revision: { increment: 1 } },
+            select: { revision: true },
+          });
+          return { revision: updatedProject.revision };
+        },
+        TASK_MUTATION_TRANSACTION_OPTIONS,
+      );
 
       for (const before of beforeTasks) {
         await logTaskMutation(projectId, 'task_deleted', toTaskMutationSnapshot(before), null, 'user');
@@ -527,23 +543,26 @@ export default async function taskRoutes(app: FastifyInstance) {
       await captureUndo(projectId, `Delete task`);
 
       // Remove dependencies, assignments, baselines, and the task atomically
-      const { revision } = await prisma.$transaction(async (tx) => {
-        await tx.dependency.deleteMany({
-          where: {
-            OR: [{ fromTaskId: taskId }, { toTaskId: taskId }],
-          },
-        });
-        await tx.assignment.deleteMany({ where: { taskId } });
-        await tx.baseline.deleteMany({ where: { taskId } });
-        await tx.task.delete({ where: { id: taskId } });
-        await normalizeTaskHierarchyInTransaction(tx, projectId);
-        const updatedProject = await tx.project.update({
-          where: { id: projectId },
-          data: { revision: { increment: 1 } },
-          select: { revision: true },
-        });
-        return { revision: updatedProject.revision };
-      });
+      const { revision } = await prisma.$transaction(
+        async (tx) => {
+          await tx.dependency.deleteMany({
+            where: {
+              OR: [{ fromTaskId: taskId }, { toTaskId: taskId }],
+            },
+          });
+          await tx.assignment.deleteMany({ where: { taskId } });
+          await tx.baseline.deleteMany({ where: { taskId } });
+          await tx.task.delete({ where: { id: taskId } });
+          await normalizeTaskHierarchyInTransaction(tx, projectId);
+          const updatedProject = await tx.project.update({
+            where: { id: projectId },
+            data: { revision: { increment: 1 } },
+            select: { revision: true },
+          });
+          return { revision: updatedProject.revision };
+        },
+        TASK_MUTATION_TRANSACTION_OPTIONS,
+      );
 
       await logTaskMutation(projectId, 'task_deleted', toTaskMutationSnapshot(before), null, 'user');
       markProjectKnowledgeDirty(projectId);

@@ -1,0 +1,307 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img "ScheduleSync logo" [ref=e12]
+        - generic [ref=e13]:
+          - heading "ScheduleSync" [level=6] [ref=e14]
+          - text: Desktop + web planning
+      - separator [ref=e15]
+      - generic [ref=e16]:
+        - heading "Projects" [level=6] [ref=e17]
+        - generic [ref=e18]:
+          - button "Stratus Settings" [ref=e19] [cursor=pointer]:
+            - img [ref=e20]
+          - button "Import Active Stratus Projects" [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+          - button "New Project" [ref=e25] [cursor=pointer]:
+            - img [ref=e26]
+      - separator [ref=e28]
+      - list [ref=e29]:
+        - button "140032COB - 140032COB - ALNYLAM MANUF. EXPANSION (R25) 3/14/2026" [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]:
+            - generic [ref=e32]: 140032COB - 140032COB - ALNYLAM MANUF. EXPANSION (R25)
+            - paragraph [ref=e33]: 3/14/2026
+        - button "Prefab 3/14/2026" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: Prefab
+            - paragraph [ref=e37]: 3/14/2026
+        - button "test 3/14/2026" [ref=e38] [cursor=pointer]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: test
+            - paragraph [ref=e41]: 3/14/2026
+        - button "320001TUR - MDX RESIDENTIAL TOWER 3/13/2026" [ref=e42] [cursor=pointer]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: 320001TUR - MDX RESIDENTIAL TOWER
+            - paragraph [ref=e45]: 3/13/2026
+        - button "Field Orderz 3/13/2026" [ref=e46] [cursor=pointer]:
+          - generic [ref=e47]:
+            - generic [ref=e48]: Field Orderz
+            - paragraph [ref=e49]: 3/13/2026
+        - button "Office Building Renovation 3/13/2026" [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]:
+            - generic [ref=e52]: Office Building Renovation
+            - paragraph [ref=e53]: 3/13/2026
+        - button "280011GGC - *PREFAB ONLY - TMC - FLOATING FA 3/13/2026" [ref=e54] [cursor=pointer]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+            - paragraph [ref=e57]: 3/13/2026
+        - button "210468WAL - 210468WAL - MGH WEST SPD ORs (R26) 3/13/2026" [ref=e58] [cursor=pointer]:
+          - generic [ref=e59]:
+            - generic [ref=e60]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+            - paragraph [ref=e61]: 3/13/2026
+        - button "200019SKA - 200019SKA - SIMMONS UNV (R21) 3/13/2026" [ref=e62] [cursor=pointer]:
+          - generic [ref=e63]:
+            - generic [ref=e64]: 200019SKA - 200019SKA - SIMMONS UNV (R21)
+            - paragraph [ref=e65]: 3/13/2026
+        - button "180035PGG - 6232025SMC - PROJECT 1 P&G/Gillette 3/13/2026" [ref=e66] [cursor=pointer]:
+          - generic [ref=e67]:
+            - generic [ref=e68]: 180035PGG - 6232025SMC - PROJECT 1 P&G/Gillette
+            - paragraph [ref=e69]: 3/13/2026
+        - button "150294TUR - MGH BURR 3/13/2026" [ref=e70] [cursor=pointer]:
+          - generic [ref=e71]:
+            - generic [ref=e72]: 150294TUR - MGH BURR
+            - paragraph [ref=e73]: 3/13/2026
+        - button "150294TUR - MGH - BURR PROTON 3/13/2026" [ref=e74] [cursor=pointer]:
+          - generic [ref=e75]:
+            - generic [ref=e76]: 150294TUR - MGH - BURR PROTON
+            - paragraph [ref=e77]: 3/13/2026
+        - button "120048TUR - MGH - 4B CS/P CAMBRIDGE 3/13/2026" [ref=e78] [cursor=pointer]:
+          - generic [ref=e79]:
+            - generic [ref=e80]: 120048TUR - MGH - 4B CS/P CAMBRIDGE
+            - paragraph [ref=e81]: 3/13/2026
+        - button "10 CAMPCN - 10CAMPCN - 10 CAMPANELLI CIRCLE FITUP 3/13/2026" [ref=e82] [cursor=pointer]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: 10 CAMPCN - 10CAMPCN - 10 CAMPANELLI CIRCLE FITUP
+            - paragraph [ref=e85]: 3/13/2026
+        - button "00001SMC - PILOT TEST(R23) 3/13/2026" [ref=e86] [cursor=pointer]:
+          - generic [ref=e87]:
+            - generic [ref=e88]: 00001SMC - PILOT TEST(R23)
+            - paragraph [ref=e89]: 3/13/2026
+        - button "000000XXX - CSD Projects (No Model) 3/13/2026" [ref=e90] [cursor=pointer]:
+          - generic [ref=e91]:
+            - generic [ref=e92]: 000000XXX - CSD Projects (No Model)
+            - paragraph [ref=e93]: 3/13/2026
+    - generic [ref=e94]:
+      - banner [ref=e95]:
+        - tablist [ref=e99]:
+          - tab "Task" [selected] [ref=e100] [cursor=pointer]
+          - tab "Resource" [ref=e101] [cursor=pointer]
+          - tab "Project" [ref=e102] [cursor=pointer]
+          - tab "View" [ref=e103] [cursor=pointer]
+          - tab "Format" [ref=e104] [cursor=pointer]
+        - generic [ref=e107]:
+          - generic [ref=e108]:
+            - generic [ref=e109]:
+              - generic "Add Task" [ref=e110]:
+                - button "Add Task" [ref=e224] [cursor=pointer]:
+                  - img [ref=e411]
+              - generic "Add Milestone" [ref=e111]:
+                - button "Add Milestone" [ref=e227] [cursor=pointer]:
+                  - img [ref=e413]
+              - generic "Delete Task" [ref=e112]:
+                - button "Delete Task" [ref=e433] [cursor=pointer]:
+                  - img [ref=e434]
+              - generic "Recurring Task" [ref=e113]:
+                - button "Recurring Task" [ref=e230] [cursor=pointer]:
+                  - img [ref=e231]
+            - generic [ref=e114]: Insert
+          - generic [ref=e115]:
+            - generic [ref=e116]:
+              - generic "Indent" [ref=e117]:
+                - button "Indent" [ref=e436] [cursor=pointer]:
+                  - img [ref=e449]
+              - generic "Outdent" [ref=e118]:
+                - button "Outdent" [ref=e451] [cursor=pointer]:
+                  - img [ref=e452]
+              - generic "Link Tasks" [ref=e119]:
+                - button "Link Tasks" [disabled]:
+                  - img
+              - generic "Unlink Tasks" [ref=e120]:
+                - button "Unlink Tasks" [ref=e439] [cursor=pointer]:
+                  - img [ref=e440]
+            - generic [ref=e121]: Schedule
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - generic "Undo" [ref=e124]:
+                - button "Undo" [ref=e233] [cursor=pointer]:
+                  - img [ref=e234]
+              - generic "Redo" [ref=e125]:
+                - button "Redo" [ref=e236] [cursor=pointer]:
+                  - img [ref=e237]
+              - generic "Undo History" [ref=e126]:
+                - button "Undo History" [ref=e239] [cursor=pointer]:
+                  - img [ref=e240]
+              - generic "Find & Replace" [ref=e127]:
+                - button "Find & Replace" [ref=e242] [cursor=pointer]:
+                  - img [ref=e243]
+            - generic [ref=e128]: Editing
+          - generic [ref=e129]:
+            - generic [ref=e130]:
+              - generic "Task Information" [ref=e131]:
+                - button "Task Information" [ref=e442] [cursor=pointer]:
+                  - img [ref=e443]
+              - generic "Mark on Track" [ref=e132]:
+                - button "Mark on Track" [ref=e445] [cursor=pointer]:
+                  - img [ref=e454]
+            - generic [ref=e133]: Properties
+          - generic [ref=e134]:
+            - generic "AI Assistant" [ref=e135]:
+              - button "AI Assistant" [ref=e136] [cursor=pointer]:
+                - img [ref=e137]
+            - generic "AI Settings" [ref=e139]:
+              - button "AI Settings" [ref=e140] [cursor=pointer]:
+                - img [ref=e141]
+      - generic [ref=e145]:
+        - grid [ref=e147]:
+          - row "# Task Name Duration Start Finish % Done" [ref=e150]:
+            - columnheader "#" [ref=e151]
+            - columnheader "Task Name" [ref=e152]
+            - columnheader "Duration" [ref=e153]
+            - columnheader "Start" [ref=e154]
+            - columnheader "Finish" [ref=e155]
+            - columnheader "% Done" [ref=e156]
+          - generic [ref=e158]:
+            - row "1 FAB-0001-Ground Level-TMP- 1d Jan 7 '26 Jan 7 '26 100%" [ref=e245] [cursor=pointer]:
+              - gridcell "1" [ref=e246]
+              - gridcell "FAB-0001-Ground Level-TMP-" [ref=e247]:
+                - generic [ref=e249]: FAB-0001-Ground Level-TMP-
+              - gridcell "1d" [ref=e250]
+              - gridcell "Jan 7 '26" [ref=e251]
+              - gridcell "Jan 7 '26" [ref=e252]
+              - gridcell "100%" [ref=e253]
+            - row "2 FAB-0002-LVL-1-TMP- 1d Mar 14 '26 Mar 14 '26 100%" [ref=e254] [cursor=pointer]:
+              - gridcell "2" [ref=e255]
+              - gridcell "FAB-0002-LVL-1-TMP-" [ref=e256]:
+                - generic [ref=e258]: FAB-0002-LVL-1-TMP-
+              - gridcell "1d" [ref=e259]
+              - gridcell "Mar 14 '26" [ref=e260]
+              - gridcell "Mar 14 '26" [ref=e261]
+              - gridcell "100%" [ref=e262]
+            - row "3 FAB-0003-LVL-1-TMP- 0d Mar 14 '26 Mar 14 '26 95%" [ref=e263] [cursor=pointer]:
+              - gridcell "3" [ref=e264]
+              - gridcell "FAB-0003-LVL-1-TMP-" [ref=e265]:
+                - generic [ref=e266]:
+                  - button [ref=e267]:
+                    - img [ref=e385]
+                  - generic [ref=e270]: FAB-0003-LVL-1-TMP-
+              - gridcell "0d" [ref=e271]
+              - gridcell "Mar 14 '26" [ref=e272]
+              - gridcell "Mar 14 '26" [ref=e273]
+              - gridcell "95%" [ref=e274]
+            - row "4 ALNYLAM LVL-1 PDU 1d Mar 14 '26 Mar 14 '26 95%" [ref=e387] [cursor=pointer]:
+              - gridcell "4" [ref=e388]
+              - gridcell "ALNYLAM LVL-1 PDU" [ref=e389]:
+                - generic [ref=e391]: ALNYLAM LVL-1 PDU
+              - gridcell "1d" [ref=e392]
+              - gridcell "Mar 14 '26" [ref=e393]
+              - gridcell "Mar 14 '26" [ref=e394]
+              - gridcell "95%" [ref=e395]
+            - row "5 FAB-0004-LVL-2-TMP- 0.5d Jan 22 '26 Jan 22 '26 100%" [ref=e396] [cursor=pointer]:
+              - gridcell "5" [ref=e397]
+              - gridcell "FAB-0004-LVL-2-TMP-" [ref=e286]:
+                - generic [ref=e287]:
+                  - button [ref=e288]:
+                    - img [ref=e289]
+                  - generic [ref=e291]: FAB-0004-LVL-2-TMP-
+              - gridcell "0.5d" [ref=e292]
+              - gridcell "Jan 22 '26" [ref=e293]
+              - gridcell "Jan 22 '26" [ref=e294]
+              - gridcell "100%" [ref=e295]
+            - row "6 ALNYLAM LVL-2 PDU 1d Jan 22 '26 Jan 22 '26 100%" [ref=e398] [cursor=pointer]:
+              - gridcell "6" [ref=e399]
+              - gridcell "ALNYLAM LVL-2 PDU" [ref=e298]:
+                - generic [ref=e300]: ALNYLAM LVL-2 PDU
+              - gridcell "1d" [ref=e301]
+              - gridcell "Jan 22 '26" [ref=e302]
+              - gridcell "Jan 22 '26" [ref=e303]
+              - gridcell "100%" [ref=e304]
+            - row "7 FAB-0005-LVLS- 1 AND 2-TMP- 1d Mar 14 '26 Mar 16 '26 0%" [ref=e456] [cursor=pointer]:
+              - gridcell "7" [ref=e401]
+              - gridcell "FAB-0005-LVLS- 1 AND 2-TMP-" [ref=e307]:
+                - generic [ref=e308]:
+                  - button [ref=e309]:
+                    - img [ref=e310]
+                  - generic [ref=e312]: FAB-0005-LVLS- 1 AND 2-TMP-
+              - gridcell "1d" [ref=e457]
+              - gridcell "Mar 14 '26" [ref=e458]
+              - gridcell "Mar 16 '26" [ref=e459]
+              - gridcell "0%" [ref=e460]
+            - row "8 ALNYLAM LVL-1 SPIDER BOXES 1d Mar 14 '26 Mar 16 '26 0%" [ref=e461] [cursor=pointer]:
+              - gridcell "8" [ref=e403]
+              - gridcell "ALNYLAM LVL-1 SPIDER BOXES" [ref=e319]:
+                - generic [ref=e320]:
+                  - button [ref=e462]:
+                    - img [ref=e463]
+                  - generic [ref=e321]: ALNYLAM LVL-1 SPIDER BOXES
+              - gridcell "1d" [ref=e322]
+              - gridcell "Mar 14 '26" [ref=e465]
+              - gridcell "Mar 16 '26" [ref=e466]
+              - gridcell "0%" [ref=e467]
+            - row "9 New Task 1d Mar 14 '26 Mar 16 '26 0%" [selected] [ref=e415] [cursor=pointer]:
+              - gridcell "9" [ref=e416]
+              - gridcell "New Task" [ref=e417]:
+                - generic [ref=e419]: New Task
+              - gridcell "1d" [ref=e420]
+              - gridcell "Mar 14 '26" [ref=e421]
+              - gridcell "Mar 16 '26" [ref=e422]
+              - gridcell "0%" [ref=e423]
+            - row [ref=e159]:
+              - gridcell [ref=e160]
+              - gridcell [ref=e161]:
+                - textbox "Type a new task name..." [ref=e164]
+              - gridcell [ref=e165]
+              - gridcell [ref=e166]
+              - gridcell [ref=e167]
+              - gridcell [ref=e168]
+        - generic [ref=e171]:
+          - generic [ref=e175]:
+            - generic [ref=e176]:
+              - generic [ref=e177]: Dec 2025
+              - generic [ref=e178]: Jan 2026
+              - generic [ref=e179]: Feb 2026
+              - generic [ref=e180]: Mar 2026
+              - generic [ref=e424]: Apr 2026
+            - generic [ref=e182]:
+              - generic [ref=e183]: "28"
+              - generic [ref=e184]: "4"
+              - generic [ref=e185]: "11"
+              - generic [ref=e186]: "18"
+              - generic [ref=e187]: "25"
+              - generic [ref=e188]: "1"
+              - generic [ref=e189]: "8"
+              - generic [ref=e190]: "15"
+              - generic [ref=e191]: "22"
+              - generic [ref=e192]: "1"
+              - generic [ref=e193]: "8"
+              - generic [ref=e194]: "15"
+              - generic [ref=e195]: "22"
+              - generic [ref=e425]: "29"
+          - generic [ref=e204]:
+            - generic [ref=e335]:
+              - generic:
+                - generic: FAB-0001-Ground Level-TMP-
+            - generic [ref=e340]:
+              - generic:
+                - generic: FAB-0002-LVL-1-TMP-
+            - generic [ref=e406]:
+              - generic:
+                - generic: ALNYLAM LVL-1 PDU
+            - generic [ref=e359]:
+              - generic:
+                - generic: ALNYLAM LVL-2 PDU
+            - generic [ref=e428]:
+              - generic:
+                - generic: New Task
+            - img
+      - generic [ref=e207]:
+        - paragraph [ref=e208]: Gantt Chart
+        - paragraph [ref=e210]: 9 tasks
+        - paragraph [ref=e448]: 1 selected
+        - paragraph [ref=e374]: "Start: Mar 14 '26"
+        - generic [ref=e211]:
+          - paragraph [ref=e212]: "-"
+          - slider [ref=e222]: "3"
+          - paragraph [ref=e223]: +
+  - tooltip "Indent" [ref=e468]:
+    - generic [ref=e469]: Indent

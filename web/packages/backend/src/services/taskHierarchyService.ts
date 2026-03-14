@@ -49,6 +49,11 @@ interface NormalizeTaskHierarchyOptions {
   incrementRevision?: boolean;
 }
 
+const HIERARCHY_TRANSACTION_OPTIONS = {
+  maxWait: 10_000,
+  timeout: 60_000,
+} as const;
+
 function compareTasksBySortOrder(
   left: Pick<HierarchyTaskRecord, "sortOrder" | "id">,
   right: Pick<HierarchyTaskRecord, "sortOrder" | "id">,
@@ -517,10 +522,12 @@ export async function normalizeTaskHierarchy(
   options: NormalizeTaskHierarchyOptions = {},
 ): Promise<NormalizeTaskHierarchyResult> {
   const incrementRevision = options.incrementRevision ?? true;
-  const result = await prisma.$transaction((tx) =>
-    normalizeTaskHierarchyWithDb(tx, projectId, {
-      incrementRevision,
-    }),
+  const result = await prisma.$transaction(
+    (tx) =>
+      normalizeTaskHierarchyWithDb(tx, projectId, {
+        incrementRevision,
+      }),
+    HIERARCHY_TRANSACTION_OPTIONS,
   );
 
   if (result.changed && result.revision !== null) {
