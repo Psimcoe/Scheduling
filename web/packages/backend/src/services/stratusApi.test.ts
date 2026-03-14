@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  clearDevDiagnosticsEntriesForTests,
+  listDevDiagnosticsEntries,
+} from "./devDiagnosticsService.js";
+import {
   compute429RetryDelayMs,
   getConfiguredPackageFieldValue,
   getRequestedStratusFieldKeys,
@@ -18,6 +22,7 @@ describe("stratusApi", () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
+    clearDevDiagnosticsEntriesForTests();
   });
 
   it("resolves company field ids from exact Stratus field names", () => {
@@ -310,6 +315,11 @@ describe("stratusApi", () => {
     const responsePromise = stratusRequestJson<{ ok: boolean }>(
       config,
       "/v1/packages",
+      {},
+      {
+        projectId: "project-1",
+        operation: "fetchPackages",
+      },
     );
 
     await Promise.resolve();
@@ -319,6 +329,23 @@ describe("stratusApi", () => {
 
     await expect(responsePromise).resolves.toEqual({ ok: true });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const logs = listDevDiagnosticsEntries({
+      projectId: "project-1",
+      limit: 10,
+    }).filter((entry) => entry.type === "rateLimitRetry");
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      level: "warn",
+      message: "Stratus request rate limited. Retrying fetchPackages.",
+      details: {
+        attempt: 0,
+        nextAttempt: 1,
+        retryAfterMs: 1000,
+        delayMs: 2000,
+        status: 429,
+      },
+    });
   });
 
   it("surfaces a final 429 failure after the retry cap", async () => {
@@ -338,7 +365,15 @@ describe("stratusApi", () => {
       baseUrl: "https://api.example.test/v1",
       appKey: "app-key",
     });
-    const responsePromise = stratusRequestJson(config, "/v1/packages");
+    const responsePromise = stratusRequestJson(
+      config,
+      "/v1/packages",
+      {},
+      {
+        projectId: "project-2",
+        operation: "fetchPackages",
+      },
+    );
     const rejectionExpectation = expect(responsePromise).rejects.toThrow(
       "Stratus request failed (429): Rate limit exceeded.",
     );
@@ -347,5 +382,18 @@ describe("stratusApi", () => {
 
     await rejectionExpectation;
     expect(fetchMock).toHaveBeenCalledTimes(6);
+
+    const logs = listDevDiagnosticsEntries({
+      projectId: "project-2",
+      limit: 10,
+    }).filter((entry) => entry.type === "rateLimitRetry");
+    expect(logs.filter((entry) => entry.level === "warn")).toHaveLength(5);
+    expect(logs.find((entry) => entry.level === "error")).toMatchObject({
+      message: "Stratus request failed after retry cap for fetchPackages.",
+      details: expect.objectContaining({
+        attempts: 6,
+        status: 429,
+      }),
+    });
   });
 });

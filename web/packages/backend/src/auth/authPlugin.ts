@@ -12,7 +12,11 @@ function isReadOnlyMethod(method: string): boolean {
 }
 
 function isAdminRoute(routeUrl: string): boolean {
-  return routeUrl.startsWith('/api/ai') || routeUrl.includes('/stratus/');
+  return (
+    routeUrl.startsWith('/api/ai') ||
+    routeUrl.startsWith('/api/dev') ||
+    routeUrl.includes('/stratus/')
+  );
 }
 
 function isReadOnlyPreviewRoute(routeUrl: string): boolean {

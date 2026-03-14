@@ -10,12 +10,18 @@ import {
   normalizeBaseUrl,
   normalizeOptionalString,
 } from "./stratusConfig.js";
+import { recordDevDiagnosticsEntry } from "./devDiagnosticsService.js";
 
 export const STRATUS_PAGE_SIZE = 200;
 export const STRATUS_ASSEMBLY_PAGE_SIZE = 500;
 const STRATUS_MAX_429_RETRIES = 5;
 const DEFAULT_429_WAIT_MS = 2_000;
 const MAX_429_WAIT_MS = 30_000;
+
+export interface StratusRequestDiagnosticsContext {
+  projectId?: string | null;
+  operation?: string;
+}
 
 const BASE_STRATUS_FIELD_KEYS = [
   "STRATUS.Field.Project Number",
@@ -650,6 +656,7 @@ export function normalizeStratusProject(
 export async function fetchPackagesFromStratus(
   config: StratusConfig,
   project: StratusProjectTarget,
+  diagnostics: StratusRequestDiagnosticsContext = {},
 ): Promise<Record<string, unknown>[]> {
   ensureStratusConfigured(config);
   if (!project.stratusProjectId && !project.stratusModelId) {
@@ -680,6 +687,8 @@ export async function fetchPackagesFromStratus(
     const response = await stratusRequestJson<{ data?: unknown[] }>(
       config,
       `${endpointBase}?${searchParams.toString()}`,
+      {},
+      diagnostics,
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
@@ -698,6 +707,7 @@ export async function fetchPackagesFromStratus(
 
 export async function fetchActiveProjectsFromStratus(
   config: StratusConfig,
+  diagnostics: StratusRequestDiagnosticsContext = {},
 ): Promise<Record<string, unknown>[]> {
   ensureStratusConfigured(config);
   const results: Record<string, unknown>[] = [];
@@ -712,6 +722,8 @@ export async function fetchActiveProjectsFromStratus(
     const response = await stratusRequestJson<{ data?: unknown[] }>(
       config,
       `/v2/project?${searchParams.toString()}`,
+      {},
+      diagnostics,
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
@@ -732,6 +744,7 @@ export async function fetchAssembliesForPackage(
   packageId: string,
   options: {
     pageSize?: number;
+    diagnostics?: StratusRequestDiagnosticsContext;
   } = {},
 ): Promise<Record<string, unknown>[]> {
   ensureStratusConfigured(config);
@@ -747,6 +760,8 @@ export async function fetchAssembliesForPackage(
     const response = await stratusRequestJson<{ data?: unknown[] }>(
       config,
       `/v2/package/${encodeURIComponent(packageId)}/assemblies?${searchParams.toString()}`,
+      {},
+      options.diagnostics,
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
@@ -766,6 +781,7 @@ export async function fetchAssembliesForPackage(
 export async function fetchModelsForProject(
   config: StratusConfig,
   projectId: string,
+  diagnostics: StratusRequestDiagnosticsContext = {},
 ): Promise<Record<string, unknown>[]> {
   ensureStratusConfigured(config);
   const results: Record<string, unknown>[] = [];
@@ -781,6 +797,8 @@ export async function fetchModelsForProject(
     const response = await stratusRequestJson<{ data?: unknown[] }>(
       config,
       `/v1/model?${searchParams.toString()}`,
+      {},
+      diagnostics,
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
@@ -801,6 +819,7 @@ export async function fetchAssembliesForModel(
   modelId: string,
   options: {
     pageSize?: number;
+    diagnostics?: StratusRequestDiagnosticsContext;
   } = {},
 ): Promise<Record<string, unknown>[]> {
   ensureStratusConfigured(config);
@@ -818,6 +837,8 @@ export async function fetchAssembliesForModel(
     const response = await stratusRequestJson<{ data?: unknown[] }>(
       config,
       `/v1/assembly?${searchParams.toString()}`,
+      {},
+      options.diagnostics,
     );
     const items = Array.isArray(response.data) ? response.data : [];
     results.push(
@@ -836,23 +857,29 @@ export async function fetchAssembliesForModel(
 
 export async function fetchCompanyFields(
   config: StratusConfig,
+  diagnostics: StratusRequestDiagnosticsContext = {},
 ): Promise<StratusFieldDefinition[]> {
   ensureStratusConfigured(config);
   const fields = await stratusRequestJson<StratusFieldDefinition[]>(
     config,
     "/v1/company/fields",
+    {},
+    diagnostics,
   );
   return Array.isArray(fields) ? fields : [];
 }
 
 export async function testStratusConnection(
   config: StratusConfig,
+  diagnostics: StratusRequestDiagnosticsContext = {},
 ): Promise<{ ok: boolean; message: string }> {
   try {
     ensureStratusConfigured(config);
     await stratusRequestJson(
       config,
       "/v1/company/fields?where=name%20eq%20%27STRATUS.Field.SMC_Package%20Start%20Date%27",
+      {},
+      diagnostics,
     );
     return { ok: true, message: "Connection successful." };
   } catch (error) {
@@ -867,8 +894,9 @@ export async function stratusRequestJson<T>(
   config: StratusConfig,
   path: string,
   init: RequestInit = {},
+  diagnostics: StratusRequestDiagnosticsContext = {},
 ): Promise<T> {
-  const response = await stratusRequest(config, path, init);
+  const response = await stratusRequest(config, path, init, 0, diagnostics);
   const contentType = response.headers.get("content-type") ?? "";
   if (
     contentType.includes("application/json") ||
@@ -886,6 +914,7 @@ async function stratusRequest(
   path: string,
   init: RequestInit = {},
   attempt = 0,
+  diagnostics: StratusRequestDiagnosticsContext = {},
 ): Promise<Response> {
   const url = resolveStratusUrl(config.baseUrl, path);
   const headers = new Headers(init.headers ?? {});
@@ -897,16 +926,43 @@ async function stratusRequest(
 
   const response = await fetch(url, { ...init, headers });
   if (response.status === 429 && attempt < STRATUS_MAX_429_RETRIES) {
-    await delay(
-      compute429RetryDelayMs(
+    const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"));
+    const delayMs = compute429RetryDelayMs(attempt, retryAfterMs);
+    recordDevDiagnosticsEntry({
+      level: "warn",
+      type: "rateLimitRetry",
+      projectId: diagnostics.projectId ?? null,
+      message: `Stratus request rate limited. Retrying ${diagnostics.operation ?? path}.`,
+      details: {
+        operation: diagnostics.operation ?? null,
+        path,
         attempt,
-        parseRetryAfterMs(response.headers.get("retry-after")),
-      ),
-    );
-    return stratusRequest(config, path, init, attempt + 1);
+        nextAttempt: attempt + 1,
+        retryAfterMs,
+        delayMs,
+        status: response.status,
+      },
+    });
+    await delay(delayMs);
+    return stratusRequest(config, path, init, attempt + 1, diagnostics);
   }
 
   if (!response.ok) {
+    if (response.status === 429) {
+      recordDevDiagnosticsEntry({
+        level: "error",
+        type: "rateLimitRetry",
+        projectId: diagnostics.projectId ?? null,
+        message: `Stratus request failed after retry cap for ${diagnostics.operation ?? path}.`,
+        details: {
+          operation: diagnostics.operation ?? null,
+          path,
+          attempts: attempt + 1,
+          max429Retries: STRATUS_MAX_429_RETRIES,
+          status: response.status,
+        },
+      });
+    }
     const bodyText = await response.text().catch(() => "");
     throw new Error(
       `Stratus request failed (${response.status})${bodyText ? `: ${bodyText.slice(0, 300)}` : ""}`,

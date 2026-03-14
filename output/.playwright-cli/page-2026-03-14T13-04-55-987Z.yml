@@ -1,0 +1,782 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - img "ScheduleSync logo" [ref=e6]
+      - generic [ref=e7]:
+        - heading "ScheduleSync" [level=6] [ref=e8]
+        - text: Desktop + web planning
+    - separator [ref=e9]
+    - generic [ref=e10]:
+      - heading "Projects" [level=6] [ref=e11]
+      - generic [ref=e12]:
+        - button "Stratus Settings" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+        - button "Import Active Stratus Projects" [ref=e16] [cursor=pointer]:
+          - img [ref=e17]
+        - button "New Project" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+    - separator [ref=e22]
+    - list [ref=e23]:
+      - button "test 3/14/2026" [ref=e155] [cursor=pointer]:
+        - generic [ref=e156]:
+          - generic [ref=e157]: test
+          - paragraph [ref=e158]: 3/14/2026
+      - button "320001TUR - MDX RESIDENTIAL TOWER 3/13/2026" [ref=e159] [cursor=pointer]:
+        - generic [ref=e160]:
+          - generic [ref=e161]: 320001TUR - MDX RESIDENTIAL TOWER
+          - paragraph [ref=e162]: 3/13/2026
+      - button "Field Orderz 3/13/2026" [ref=e163] [cursor=pointer]:
+        - generic [ref=e164]:
+          - generic [ref=e165]: Field Orderz
+          - paragraph [ref=e166]: 3/13/2026
+      - button "Prefab 3/13/2026" [ref=e167] [cursor=pointer]:
+        - generic [ref=e168]:
+          - generic [ref=e169]: Prefab
+          - paragraph [ref=e170]: 3/13/2026
+      - button "Office Building Renovation 3/13/2026" [ref=e171] [cursor=pointer]:
+        - generic [ref=e172]:
+          - generic [ref=e173]: Office Building Renovation
+          - paragraph [ref=e174]: 3/13/2026
+      - button "280011GGC - *PREFAB ONLY - TMC - FLOATING FA 3/13/2026" [ref=e175] [cursor=pointer]:
+        - generic [ref=e176]:
+          - generic [ref=e177]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+          - paragraph [ref=e178]: 3/13/2026
+      - button "210468WAL - 210468WAL - MGH WEST SPD ORs (R26) 3/13/2026" [ref=e179] [cursor=pointer]:
+        - generic [ref=e180]:
+          - generic [ref=e181]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+          - paragraph [ref=e182]: 3/13/2026
+      - button "200019SKA - 200019SKA - SIMMONS UNV (R21) 3/13/2026" [ref=e183] [cursor=pointer]:
+        - generic [ref=e184]:
+          - generic [ref=e185]: 200019SKA - 200019SKA - SIMMONS UNV (R21)
+          - paragraph [ref=e186]: 3/13/2026
+      - button "180035PGG - 6232025SMC - PROJECT 1 P&G/Gillette 3/13/2026" [ref=e187] [cursor=pointer]:
+        - generic [ref=e188]:
+          - generic [ref=e189]: 180035PGG - 6232025SMC - PROJECT 1 P&G/Gillette
+          - paragraph [ref=e190]: 3/13/2026
+      - button "150294TUR - MGH BURR 3/13/2026" [ref=e191] [cursor=pointer]:
+        - generic [ref=e192]:
+          - generic [ref=e193]: 150294TUR - MGH BURR
+          - paragraph [ref=e194]: 3/13/2026
+      - button "150294TUR - MGH - BURR PROTON 3/13/2026" [ref=e195] [cursor=pointer]:
+        - generic [ref=e196]:
+          - generic [ref=e197]: 150294TUR - MGH - BURR PROTON
+          - paragraph [ref=e198]: 3/13/2026
+      - button "140032COB - 140032COB - ALNYLAM MANUF. EXPANSION (R25) 3/13/2026" [ref=e199] [cursor=pointer]:
+        - generic [ref=e200]:
+          - generic [ref=e201]: 140032COB - 140032COB - ALNYLAM MANUF. EXPANSION (R25)
+          - paragraph [ref=e202]: 3/13/2026
+      - button "120048TUR - MGH - 4B CS/P CAMBRIDGE 3/13/2026" [ref=e203] [cursor=pointer]:
+        - generic [ref=e204]:
+          - generic [ref=e205]: 120048TUR - MGH - 4B CS/P CAMBRIDGE
+          - paragraph [ref=e206]: 3/13/2026
+      - button "10 CAMPCN - 10CAMPCN - 10 CAMPANELLI CIRCLE FITUP 3/13/2026" [ref=e207] [cursor=pointer]:
+        - generic [ref=e208]:
+          - generic [ref=e209]: 10 CAMPCN - 10CAMPCN - 10 CAMPANELLI CIRCLE FITUP
+          - paragraph [ref=e210]: 3/13/2026
+      - button "00001SMC - PILOT TEST(R23) 3/13/2026" [ref=e211] [cursor=pointer]:
+        - generic [ref=e212]:
+          - generic [ref=e213]: 00001SMC - PILOT TEST(R23)
+          - paragraph [ref=e214]: 3/13/2026
+      - button "000000XXX - CSD Projects (No Model) 3/13/2026" [active] [ref=e215] [cursor=pointer]:
+        - generic [ref=e216]:
+          - generic [ref=e217]: 000000XXX - CSD Projects (No Model)
+          - paragraph [ref=e218]: 3/13/2026
+  - generic [ref=e25]:
+    - banner [ref=e26]:
+      - tablist [ref=e30]:
+        - tab "Task" [selected] [ref=e31] [cursor=pointer]
+        - tab "Resource" [ref=e32] [cursor=pointer]
+        - tab "Project" [ref=e33] [cursor=pointer]
+        - tab "View" [ref=e34] [cursor=pointer]
+        - tab "Format" [ref=e35] [cursor=pointer]
+      - generic [ref=e38]:
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - generic "Add Task" [ref=e41]:
+              - button "Add Task" [ref=e219] [cursor=pointer]:
+                - img [ref=e220]
+            - generic "Add Milestone" [ref=e42]:
+              - button "Add Milestone" [ref=e222] [cursor=pointer]:
+                - img [ref=e223]
+            - generic "Delete Task" [ref=e43]:
+              - button "Delete Task" [disabled]:
+                - img
+            - generic "Recurring Task" [ref=e44]:
+              - button "Recurring Task" [ref=e225] [cursor=pointer]:
+                - img [ref=e226]
+          - generic [ref=e45]: Insert
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - generic "Indent" [ref=e48]:
+              - button "Indent" [disabled]:
+                - img
+            - generic "Outdent" [ref=e49]:
+              - button "Outdent" [disabled]:
+                - img
+            - generic "Link Tasks" [ref=e50]:
+              - button "Link Tasks" [disabled]:
+                - img
+            - generic "Unlink Tasks" [ref=e51]:
+              - button "Unlink Tasks" [disabled]:
+                - img
+          - generic [ref=e52]: Schedule
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - generic "Undo" [ref=e55]:
+              - button "Undo" [ref=e228] [cursor=pointer]:
+                - img [ref=e229]
+            - generic "Redo" [ref=e56]:
+              - button "Redo" [ref=e231] [cursor=pointer]:
+                - img [ref=e232]
+            - generic "Undo History" [ref=e57]:
+              - button "Undo History" [ref=e234] [cursor=pointer]:
+                - img [ref=e235]
+            - generic "Find & Replace" [ref=e58]:
+              - button "Find & Replace" [ref=e237] [cursor=pointer]:
+                - img [ref=e238]
+          - generic [ref=e59]: Editing
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - generic "Task Information" [ref=e62]:
+              - button "Task Information" [disabled]:
+                - img
+            - generic "Mark on Track" [ref=e63]:
+              - button "Mark on Track" [disabled]:
+                - img
+          - generic [ref=e64]: Properties
+        - generic [ref=e65]:
+          - generic "AI Assistant" [ref=e66]:
+            - button "AI Assistant" [ref=e67] [cursor=pointer]:
+              - img [ref=e68]
+          - generic "AI Settings" [ref=e70]:
+            - button "AI Settings" [ref=e71] [cursor=pointer]:
+              - img [ref=e72]
+    - generic [ref=e76]:
+      - grid [ref=e78]:
+        - row "# Task Name Duration Start Finish % Done" [ref=e81]:
+          - columnheader "#" [ref=e82]
+          - columnheader "Task Name" [ref=e83]
+          - columnheader "Duration" [ref=e84]
+          - columnheader "Start" [ref=e85]
+          - columnheader "Finish" [ref=e86]
+          - columnheader "% Done" [ref=e87]
+        - generic [ref=e89]:
+          - row "1 FAB-0938-BRS-WIRE HARNESS 1d Jan 1 '26 Jan 1 '26 100%" [ref=e240] [cursor=pointer]:
+            - gridcell "1" [ref=e241]
+            - gridcell "FAB-0938-BRS-WIRE HARNESS" [ref=e242]:
+              - generic [ref=e243]:
+                - button [ref=e244]:
+                  - img [ref=e245]
+                - generic [ref=e247]: FAB-0938-BRS-WIRE HARNESS
+            - gridcell "1d" [ref=e248]
+            - gridcell "Jan 1 '26" [ref=e249]
+            - gridcell "Jan 1 '26" [ref=e250]
+            - gridcell "100%" [ref=e251]
+          - 'row "2 Task name is managed by Stratus Spool #1 - 50 feet 1d Jan 1 ''26 Jan 1 ''26 100%" [ref=e252] [cursor=pointer]':
+            - gridcell "2" [ref=e253]
+            - 'gridcell "Task name is managed by Stratus Spool #1 - 50 feet" [ref=e254]':
+              - generic [ref=e255]:
+                - img "Task name is managed by Stratus" [ref=e256]
+                - generic [ref=e258]: "Spool #1 - 50 feet"
+            - gridcell "1d" [ref=e259]
+            - gridcell "Jan 1 '26" [ref=e260]
+            - gridcell "Jan 1 '26" [ref=e261]
+            - gridcell "100%" [ref=e262]
+          - 'row "3 Task name is managed by Stratus Spool #2 - 150 feet 1d Jan 1 ''26 Jan 1 ''26 100%" [ref=e263] [cursor=pointer]':
+            - gridcell "3" [ref=e264]
+            - 'gridcell "Task name is managed by Stratus Spool #2 - 150 feet" [ref=e265]':
+              - generic [ref=e266]:
+                - img "Task name is managed by Stratus" [ref=e267]
+                - generic [ref=e269]: "Spool #2 - 150 feet"
+            - gridcell "1d" [ref=e270]
+            - gridcell "Jan 1 '26" [ref=e271]
+            - gridcell "Jan 1 '26" [ref=e272]
+            - gridcell "100%" [ref=e273]
+          - 'row "4 Task name is managed by Stratus Spool #3 - 50 feet 1d Jan 1 ''26 Jan 1 ''26 100%" [ref=e274] [cursor=pointer]':
+            - gridcell "4" [ref=e275]
+            - 'gridcell "Task name is managed by Stratus Spool #3 - 50 feet" [ref=e276]':
+              - generic [ref=e277]:
+                - img "Task name is managed by Stratus" [ref=e278]
+                - generic [ref=e280]: "Spool #3 - 50 feet"
+            - gridcell "1d" [ref=e281]
+            - gridcell "Jan 1 '26" [ref=e282]
+            - gridcell "Jan 1 '26" [ref=e283]
+            - gridcell "100%" [ref=e284]
+          - row "5 FAB-0939-LEVEL 2-CND-BENDS 1d Jan 6 '26 Jan 6 '26 100%" [ref=e285] [cursor=pointer]:
+            - gridcell "5" [ref=e286]
+            - gridcell "FAB-0939-LEVEL 2-CND-BENDS" [ref=e287]:
+              - generic [ref=e288]:
+                - button [ref=e289]:
+                  - img [ref=e290]
+                - generic [ref=e292]: FAB-0939-LEVEL 2-CND-BENDS
+            - gridcell "1d" [ref=e293]
+            - gridcell "Jan 6 '26" [ref=e294]
+            - gridcell "Jan 6 '26" [ref=e295]
+            - gridcell "100%" [ref=e296]
+          - row "6 Task name is managed by Stratus 2 1/4\" PIPE BENDS A 1d Jan 6 '26 Jan 6 '26 100%" [ref=e297] [cursor=pointer]:
+            - gridcell "6" [ref=e298]
+            - gridcell "Task name is managed by Stratus 2 1/4\" PIPE BENDS A" [ref=e299]:
+              - generic [ref=e300]:
+                - img "Task name is managed by Stratus" [ref=e301]
+                - generic [ref=e303]: 2 1/4" PIPE BENDS A
+            - gridcell "1d" [ref=e304]
+            - gridcell "Jan 6 '26" [ref=e305]
+            - gridcell "Jan 6 '26" [ref=e306]
+            - gridcell "100%" [ref=e307]
+          - row "7 Task name is managed by Stratus 2 1/4\" PIPE BENDS B 1d Jan 6 '26 Jan 6 '26 100%" [ref=e308] [cursor=pointer]:
+            - gridcell "7" [ref=e309]
+            - gridcell "Task name is managed by Stratus 2 1/4\" PIPE BENDS B" [ref=e310]:
+              - generic [ref=e311]:
+                - img "Task name is managed by Stratus" [ref=e312]
+                - generic [ref=e314]: 2 1/4" PIPE BENDS B
+            - gridcell "1d" [ref=e315]
+            - gridcell "Jan 6 '26" [ref=e316]
+            - gridcell "Jan 6 '26" [ref=e317]
+            - gridcell "100%" [ref=e318]
+          - row "8 Task name is managed by Stratus 2 1/4\" PIPE BENDS C 1d Jan 6 '26 Jan 6 '26 100%" [ref=e319] [cursor=pointer]:
+            - gridcell "8" [ref=e320]
+            - gridcell "Task name is managed by Stratus 2 1/4\" PIPE BENDS C" [ref=e321]:
+              - generic [ref=e322]:
+                - img "Task name is managed by Stratus" [ref=e323]
+                - generic [ref=e325]: 2 1/4" PIPE BENDS C
+            - gridcell "1d" [ref=e326]
+            - gridcell "Jan 6 '26" [ref=e327]
+            - gridcell "Jan 6 '26" [ref=e328]
+            - gridcell "100%" [ref=e329]
+          - row "9 Task name is managed by Stratus 2 1/4\" PIPE BENDS D 1d Jan 6 '26 Jan 6 '26 100%" [ref=e330] [cursor=pointer]:
+            - gridcell "9" [ref=e331]
+            - gridcell "Task name is managed by Stratus 2 1/4\" PIPE BENDS D" [ref=e332]:
+              - generic [ref=e333]:
+                - img "Task name is managed by Stratus" [ref=e334]
+                - generic [ref=e336]: 2 1/4" PIPE BENDS D
+            - gridcell "1d" [ref=e337]
+            - gridcell "Jan 6 '26" [ref=e338]
+            - gridcell "Jan 6 '26" [ref=e339]
+            - gridcell "100%" [ref=e340]
+          - row "10 Task name is managed by Stratus 2 1/4\" PIPE BENDS E 1d Jan 6 '26 Jan 6 '26 100%" [ref=e341] [cursor=pointer]:
+            - gridcell "10" [ref=e342]
+            - gridcell "Task name is managed by Stratus 2 1/4\" PIPE BENDS E" [ref=e343]:
+              - generic [ref=e344]:
+                - img "Task name is managed by Stratus" [ref=e345]
+                - generic [ref=e347]: 2 1/4" PIPE BENDS E
+            - gridcell "1d" [ref=e348]
+            - gridcell "Jan 6 '26" [ref=e349]
+            - gridcell "Jan 6 '26" [ref=e350]
+            - gridcell "100%" [ref=e351]
+          - row "11 Task name is managed by Stratus 3 1/2\" PIPE BENDS F 1d Jan 6 '26 Jan 6 '26 100%" [ref=e352] [cursor=pointer]:
+            - gridcell "11" [ref=e353]
+            - gridcell "Task name is managed by Stratus 3 1/2\" PIPE BENDS F" [ref=e354]:
+              - generic [ref=e355]:
+                - img "Task name is managed by Stratus" [ref=e356]
+                - generic [ref=e358]: 3 1/2" PIPE BENDS F
+            - gridcell "1d" [ref=e359]
+            - gridcell "Jan 6 '26" [ref=e360]
+            - gridcell "Jan 6 '26" [ref=e361]
+            - gridcell "100%" [ref=e362]
+          - row "12 FAB-0940-LEVEL 1-CND- 1d Jan 9 '26 Jan 9 '26 100%" [ref=e363] [cursor=pointer]:
+            - gridcell "12" [ref=e364]
+            - gridcell "FAB-0940-LEVEL 1-CND-" [ref=e365]:
+              - generic [ref=e367]: FAB-0940-LEVEL 1-CND-
+            - gridcell "1d" [ref=e368]
+            - gridcell "Jan 9 '26" [ref=e369]
+            - gridcell "Jan 9 '26" [ref=e370]
+            - gridcell "100%" [ref=e371]
+          - row "13 FAB-0941-LEVEL 1-TMP- 1d Mar 14 '26 Mar 14 '26 100%" [ref=e372] [cursor=pointer]:
+            - gridcell "13" [ref=e373]
+            - gridcell "FAB-0941-LEVEL 1-TMP-" [ref=e374]:
+              - generic [ref=e375]:
+                - button [ref=e376]:
+                  - img [ref=e377]
+                - generic [ref=e379]: FAB-0941-LEVEL 1-TMP-
+            - gridcell "1d" [ref=e380]
+            - gridcell "Mar 14 '26" [ref=e381]
+            - gridcell "Mar 14 '26" [ref=e382]
+            - gridcell "100%" [ref=e383]
+          - row "14 Task name is managed by Stratus TEMP STAND 1 1d Mar 14 '26 Mar 14 '26 100%" [ref=e384] [cursor=pointer]:
+            - gridcell "14" [ref=e385]
+            - gridcell "Task name is managed by Stratus TEMP STAND 1" [ref=e386]:
+              - generic [ref=e387]:
+                - img "Task name is managed by Stratus" [ref=e388]
+                - generic [ref=e390]: TEMP STAND 1
+            - gridcell "1d" [ref=e391]
+            - gridcell "Mar 14 '26" [ref=e392]
+            - gridcell "Mar 14 '26" [ref=e393]
+            - gridcell "100%" [ref=e394]
+          - row "15 Task name is managed by Stratus TEMP STAND 2 1d Mar 14 '26 Mar 14 '26 100%" [ref=e395] [cursor=pointer]:
+            - gridcell "15" [ref=e396]
+            - gridcell "Task name is managed by Stratus TEMP STAND 2" [ref=e397]:
+              - generic [ref=e398]:
+                - img "Task name is managed by Stratus" [ref=e399]
+                - generic [ref=e401]: TEMP STAND 2
+            - gridcell "1d" [ref=e402]
+            - gridcell "Mar 14 '26" [ref=e403]
+            - gridcell "Mar 14 '26" [ref=e404]
+            - gridcell "100%" [ref=e405]
+          - row "16 Task name is managed by Stratus TEMP STAND 3 1d Mar 14 '26 Mar 14 '26 100%" [ref=e406] [cursor=pointer]:
+            - gridcell "16" [ref=e407]
+            - gridcell "Task name is managed by Stratus TEMP STAND 3" [ref=e408]:
+              - generic [ref=e409]:
+                - img "Task name is managed by Stratus" [ref=e410]
+                - generic [ref=e412]: TEMP STAND 3
+            - gridcell "1d" [ref=e413]
+            - gridcell "Mar 14 '26" [ref=e414]
+            - gridcell "Mar 14 '26" [ref=e415]
+            - gridcell "100%" [ref=e416]
+          - row "17 Task name is managed by Stratus TEMP STAND 4 1d Mar 14 '26 Mar 14 '26 100%" [ref=e417] [cursor=pointer]:
+            - gridcell "17" [ref=e418]
+            - gridcell "Task name is managed by Stratus TEMP STAND 4" [ref=e419]:
+              - generic [ref=e420]:
+                - img "Task name is managed by Stratus" [ref=e421]
+                - generic [ref=e423]: TEMP STAND 4
+            - gridcell "1d" [ref=e424]
+            - gridcell "Mar 14 '26" [ref=e425]
+            - gridcell "Mar 14 '26" [ref=e426]
+            - gridcell "100%" [ref=e427]
+          - row "18 Task name is managed by Stratus TEMP STAND 5 1d Mar 14 '26 Mar 14 '26 100%" [ref=e428] [cursor=pointer]:
+            - gridcell "18" [ref=e429]
+            - gridcell "Task name is managed by Stratus TEMP STAND 5" [ref=e430]:
+              - generic [ref=e431]:
+                - img "Task name is managed by Stratus" [ref=e432]
+                - generic [ref=e434]: TEMP STAND 5
+            - gridcell "1d" [ref=e435]
+            - gridcell "Mar 14 '26" [ref=e436]
+            - gridcell "Mar 14 '26" [ref=e437]
+            - gridcell "100%" [ref=e438]
+          - row "19 FAB-0942-LEVEL 3-BRS- 1d Mar 14 '26 Mar 14 '26 0%" [ref=e439] [cursor=pointer]:
+            - gridcell "19" [ref=e440]
+            - gridcell "FAB-0942-LEVEL 3-BRS-" [ref=e441]:
+              - generic [ref=e443]: FAB-0942-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e444]
+            - gridcell "Mar 14 '26" [ref=e445]
+            - gridcell "Mar 14 '26" [ref=e446]
+            - gridcell "0%" [ref=e447]
+          - row "20 FAB-0943-LEVEL 3 -BRS- 1d Jan 30 '26 Jan 30 '26 0%" [ref=e448] [cursor=pointer]:
+            - gridcell "20" [ref=e449]
+            - gridcell "FAB-0943-LEVEL 3 -BRS-" [ref=e450]:
+              - generic [ref=e452]: FAB-0943-LEVEL 3 -BRS-
+            - gridcell "1d" [ref=e453]
+            - gridcell "Jan 30 '26" [ref=e454]
+            - gridcell "Jan 30 '26" [ref=e455]
+            - gridcell "0%" [ref=e456]
+          - row "21 FAB-0944-LEVEL 3-CND- 1d Feb 27 '26 Feb 27 '26 0%" [ref=e457] [cursor=pointer]:
+            - gridcell "21" [ref=e458]
+            - gridcell "FAB-0944-LEVEL 3-CND-" [ref=e459]:
+              - generic [ref=e461]: FAB-0944-LEVEL 3-CND-
+            - gridcell "1d" [ref=e462]
+            - gridcell "Feb 27 '26" [ref=e463]
+            - gridcell "Feb 27 '26" [ref=e464]
+            - gridcell "0%" [ref=e465]
+          - row "22 FAB-0945-LEVEL 3-BRS- 1d Jan 30 '26 Jan 30 '26 0%" [ref=e466] [cursor=pointer]:
+            - gridcell "22" [ref=e467]
+            - gridcell "FAB-0945-LEVEL 3-BRS-" [ref=e468]:
+              - generic [ref=e470]: FAB-0945-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e471]
+            - gridcell "Jan 30 '26" [ref=e472]
+            - gridcell "Jan 30 '26" [ref=e473]
+            - gridcell "0%" [ref=e474]
+          - row "23 FAB-0946-LEVEL 3 -BRS- 1d Jan 30 '26 Jan 30 '26 0%" [ref=e475] [cursor=pointer]:
+            - gridcell "23" [ref=e476]
+            - gridcell "FAB-0946-LEVEL 3 -BRS-" [ref=e477]:
+              - generic [ref=e479]: FAB-0946-LEVEL 3 -BRS-
+            - gridcell "1d" [ref=e480]
+            - gridcell "Jan 30 '26" [ref=e481]
+            - gridcell "Jan 30 '26" [ref=e482]
+            - gridcell "0%" [ref=e483]
+          - row "24 FAB-0947-LEVEL 3-BRS- 1d Mar 14 '26 Mar 14 '26 0%" [ref=e484] [cursor=pointer]:
+            - gridcell "24" [ref=e485]
+            - gridcell "FAB-0947-LEVEL 3-BRS-" [ref=e486]:
+              - generic [ref=e488]: FAB-0947-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e489]
+            - gridcell "Mar 14 '26" [ref=e490]
+            - gridcell "Mar 14 '26" [ref=e491]
+            - gridcell "0%" [ref=e492]
+          - row "25 FAB-0948-LEVEL 3-BRS- 1d Mar 14 '26 Mar 14 '26 0%" [ref=e493] [cursor=pointer]:
+            - gridcell "25" [ref=e494]
+            - gridcell "FAB-0948-LEVEL 3-BRS-" [ref=e495]:
+              - generic [ref=e497]: FAB-0948-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e498]
+            - gridcell "Mar 14 '26" [ref=e499]
+            - gridcell "Mar 14 '26" [ref=e500]
+            - gridcell "0%" [ref=e501]
+          - row "26 FAB-0949-LEVEL 3-BRS- 1d Mar 14 '26 Mar 14 '26 0%" [ref=e502] [cursor=pointer]:
+            - gridcell "26" [ref=e503]
+            - gridcell "FAB-0949-LEVEL 3-BRS-" [ref=e504]:
+              - generic [ref=e506]: FAB-0949-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e507]
+            - gridcell "Mar 14 '26" [ref=e508]
+            - gridcell "Mar 14 '26" [ref=e509]
+            - gridcell "0%" [ref=e510]
+          - row "27 FAB-0950--BRS- 1d Jan 30 '26 Jan 30 '26 100%" [ref=e511] [cursor=pointer]:
+            - gridcell "27" [ref=e512]
+            - gridcell "FAB-0950--BRS-" [ref=e513]:
+              - generic [ref=e514]:
+                - button [ref=e515]:
+                  - img [ref=e516]
+                - generic [ref=e518]: FAB-0950--BRS-
+            - gridcell "1d" [ref=e519]
+            - gridcell "Jan 30 '26" [ref=e520]
+            - gridcell "Jan 30 '26" [ref=e521]
+            - gridcell "100%" [ref=e522]
+          - row "28 Task name is managed by Stratus FAB-0950-drop-1 1d Jan 30 '26 Jan 30 '26 100%" [ref=e523] [cursor=pointer]:
+            - gridcell "28" [ref=e524]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-1" [ref=e525]:
+              - generic [ref=e526]:
+                - img "Task name is managed by Stratus" [ref=e527]
+                - generic [ref=e529]: FAB-0950-drop-1
+            - gridcell "1d" [ref=e530]
+            - gridcell "Jan 30 '26" [ref=e531]
+            - gridcell "Jan 30 '26" [ref=e532]
+            - gridcell "100%" [ref=e533]
+          - row "29 Task name is managed by Stratus FAB-0950-drop-2 1d Jan 30 '26 Jan 30 '26 100%" [ref=e534] [cursor=pointer]:
+            - gridcell "29" [ref=e535]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-2" [ref=e536]:
+              - generic [ref=e537]:
+                - img "Task name is managed by Stratus" [ref=e538]
+                - generic [ref=e540]: FAB-0950-drop-2
+            - gridcell "1d" [ref=e541]
+            - gridcell "Jan 30 '26" [ref=e542]
+            - gridcell "Jan 30 '26" [ref=e543]
+            - gridcell "100%" [ref=e544]
+          - row "30 Task name is managed by Stratus FAB-0950-drop-3 1d Jan 30 '26 Jan 30 '26 100%" [ref=e545] [cursor=pointer]:
+            - gridcell "30" [ref=e546]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-3" [ref=e547]:
+              - generic [ref=e548]:
+                - img "Task name is managed by Stratus" [ref=e549]
+                - generic [ref=e551]: FAB-0950-drop-3
+            - gridcell "1d" [ref=e552]
+            - gridcell "Jan 30 '26" [ref=e553]
+            - gridcell "Jan 30 '26" [ref=e554]
+            - gridcell "100%" [ref=e555]
+          - row "31 Task name is managed by Stratus FAB-0950-drop-4 1d Jan 30 '26 Jan 30 '26 100%" [ref=e556] [cursor=pointer]:
+            - gridcell "31" [ref=e557]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-4" [ref=e558]:
+              - generic [ref=e559]:
+                - img "Task name is managed by Stratus" [ref=e560]
+                - generic [ref=e562]: FAB-0950-drop-4
+            - gridcell "1d" [ref=e563]
+            - gridcell "Jan 30 '26" [ref=e564]
+            - gridcell "Jan 30 '26" [ref=e565]
+            - gridcell "100%" [ref=e566]
+          - row "32 Task name is managed by Stratus FAB-0950-drop-5 1d Jan 30 '26 Jan 30 '26 100%" [ref=e567] [cursor=pointer]:
+            - gridcell "32" [ref=e568]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-5" [ref=e569]:
+              - generic [ref=e570]:
+                - img "Task name is managed by Stratus" [ref=e571]
+                - generic [ref=e573]: FAB-0950-drop-5
+            - gridcell "1d" [ref=e574]
+            - gridcell "Jan 30 '26" [ref=e575]
+            - gridcell "Jan 30 '26" [ref=e576]
+            - gridcell "100%" [ref=e577]
+          - row "33 Task name is managed by Stratus FAB-0950-drop-6 1d Jan 30 '26 Jan 30 '26 100%" [ref=e578] [cursor=pointer]:
+            - gridcell "33" [ref=e579]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-6" [ref=e580]:
+              - generic [ref=e581]:
+                - img "Task name is managed by Stratus" [ref=e582]
+                - generic [ref=e584]: FAB-0950-drop-6
+            - gridcell "1d" [ref=e585]
+            - gridcell "Jan 30 '26" [ref=e586]
+            - gridcell "Jan 30 '26" [ref=e587]
+            - gridcell "100%" [ref=e588]
+          - row "34 Task name is managed by Stratus FAB-0950-drop-7 1d Jan 30 '26 Jan 30 '26 100%" [ref=e589] [cursor=pointer]:
+            - gridcell "34" [ref=e590]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-7" [ref=e591]:
+              - generic [ref=e592]:
+                - img "Task name is managed by Stratus" [ref=e593]
+                - generic [ref=e595]: FAB-0950-drop-7
+            - gridcell "1d" [ref=e596]
+            - gridcell "Jan 30 '26" [ref=e597]
+            - gridcell "Jan 30 '26" [ref=e598]
+            - gridcell "100%" [ref=e599]
+          - row "35 Task name is managed by Stratus FAB-0950-drop-8 1d Jan 30 '26 Jan 30 '26 100%" [ref=e600] [cursor=pointer]:
+            - gridcell "35" [ref=e601]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-8" [ref=e602]:
+              - generic [ref=e603]:
+                - img "Task name is managed by Stratus" [ref=e604]
+                - generic [ref=e606]: FAB-0950-drop-8
+            - gridcell "1d" [ref=e607]
+            - gridcell "Jan 30 '26" [ref=e608]
+            - gridcell "Jan 30 '26" [ref=e609]
+            - gridcell "100%" [ref=e610]
+          - row "36 Task name is managed by Stratus FAB-0950-drop-9 1d Jan 30 '26 Jan 30 '26 100%" [ref=e611] [cursor=pointer]:
+            - gridcell "36" [ref=e612]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-9" [ref=e613]:
+              - generic [ref=e614]:
+                - img "Task name is managed by Stratus" [ref=e615]
+                - generic [ref=e617]: FAB-0950-drop-9
+            - gridcell "1d" [ref=e618]
+            - gridcell "Jan 30 '26" [ref=e619]
+            - gridcell "Jan 30 '26" [ref=e620]
+            - gridcell "100%" [ref=e621]
+          - row "37 Task name is managed by Stratus FAB-0950-drop-10 1d Jan 30 '26 Jan 30 '26 100%" [ref=e622] [cursor=pointer]:
+            - gridcell "37" [ref=e623]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-10" [ref=e624]:
+              - generic [ref=e625]:
+                - img "Task name is managed by Stratus" [ref=e626]
+                - generic [ref=e628]: FAB-0950-drop-10
+            - gridcell "1d" [ref=e629]
+            - gridcell "Jan 30 '26" [ref=e630]
+            - gridcell "Jan 30 '26" [ref=e631]
+            - gridcell "100%" [ref=e632]
+          - row "38 Task name is managed by Stratus FAB-0950-drop-11 1d Jan 30 '26 Jan 30 '26 100%" [ref=e633] [cursor=pointer]:
+            - gridcell "38" [ref=e634]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-11" [ref=e635]:
+              - generic [ref=e636]:
+                - img "Task name is managed by Stratus" [ref=e637]
+                - generic [ref=e639]: FAB-0950-drop-11
+            - gridcell "1d" [ref=e640]
+            - gridcell "Jan 30 '26" [ref=e641]
+            - gridcell "Jan 30 '26" [ref=e642]
+            - gridcell "100%" [ref=e643]
+          - row "39 Task name is managed by Stratus FAB-0950-drop-12 1d Jan 30 '26 Jan 30 '26 100%" [ref=e644] [cursor=pointer]:
+            - gridcell "39" [ref=e645]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-12" [ref=e646]:
+              - generic [ref=e647]:
+                - img "Task name is managed by Stratus" [ref=e648]
+                - generic [ref=e650]: FAB-0950-drop-12
+            - gridcell "1d" [ref=e651]
+            - gridcell "Jan 30 '26" [ref=e652]
+            - gridcell "Jan 30 '26" [ref=e653]
+            - gridcell "100%" [ref=e654]
+          - row "40 Task name is managed by Stratus FAB-0950-drop-13 1d Jan 30 '26 Jan 30 '26 100%" [ref=e655] [cursor=pointer]:
+            - gridcell "40" [ref=e656]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-13" [ref=e657]:
+              - generic [ref=e658]:
+                - img "Task name is managed by Stratus" [ref=e659]
+                - generic [ref=e661]: FAB-0950-drop-13
+            - gridcell "1d" [ref=e662]
+            - gridcell "Jan 30 '26" [ref=e663]
+            - gridcell "Jan 30 '26" [ref=e664]
+            - gridcell "100%" [ref=e665]
+          - row "41 Task name is managed by Stratus FAB-0950-drop-14 1d Jan 30 '26 Jan 30 '26 100%" [ref=e666] [cursor=pointer]:
+            - gridcell "41" [ref=e667]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-14" [ref=e668]:
+              - generic [ref=e669]:
+                - img "Task name is managed by Stratus" [ref=e670]
+                - generic [ref=e672]: FAB-0950-drop-14
+            - gridcell "1d" [ref=e673]
+            - gridcell "Jan 30 '26" [ref=e674]
+            - gridcell "Jan 30 '26" [ref=e675]
+            - gridcell "100%" [ref=e676]
+          - row "42 Task name is managed by Stratus FAB-0950-drop-15 1d Jan 30 '26 Jan 30 '26 100%" [ref=e677] [cursor=pointer]:
+            - gridcell "42" [ref=e678]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-15" [ref=e679]:
+              - generic [ref=e680]:
+                - img "Task name is managed by Stratus" [ref=e681]
+                - generic [ref=e683]: FAB-0950-drop-15
+            - gridcell "1d" [ref=e684]
+            - gridcell "Jan 30 '26" [ref=e685]
+            - gridcell "Jan 30 '26" [ref=e686]
+            - gridcell "100%" [ref=e687]
+          - row "43 Task name is managed by Stratus FAB-0950-drop-16 1d Jan 30 '26 Jan 30 '26 100%" [ref=e688] [cursor=pointer]:
+            - gridcell "43" [ref=e689]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-16" [ref=e690]:
+              - generic [ref=e691]:
+                - img "Task name is managed by Stratus" [ref=e692]
+                - generic [ref=e694]: FAB-0950-drop-16
+            - gridcell "1d" [ref=e695]
+            - gridcell "Jan 30 '26" [ref=e696]
+            - gridcell "Jan 30 '26" [ref=e697]
+            - gridcell "100%" [ref=e698]
+          - row "44 Task name is managed by Stratus FAB-0950-drop-17 1d Jan 30 '26 Jan 30 '26 100%" [ref=e699] [cursor=pointer]:
+            - gridcell "44" [ref=e700]
+            - gridcell "Task name is managed by Stratus FAB-0950-drop-17" [ref=e701]:
+              - generic [ref=e702]:
+                - img "Task name is managed by Stratus" [ref=e703]
+                - generic [ref=e705]: FAB-0950-drop-17
+            - gridcell "1d" [ref=e706]
+            - gridcell "Jan 30 '26" [ref=e707]
+            - gridcell "Jan 30 '26" [ref=e708]
+            - gridcell "100%" [ref=e709]
+      - generic [ref=e102]:
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: Dec 2024
+            - generic [ref=e109]: Jan 2025
+            - generic [ref=e110]: Feb 2025
+            - generic [ref=e111]: Mar 2025
+            - generic [ref=e112]: Apr 2025
+            - generic [ref=e710]: May 2025
+            - generic [ref=e711]: Jun 2025
+            - generic [ref=e712]: Jul 2025
+            - generic [ref=e713]: Aug 2025
+            - generic [ref=e714]: Sep 2025
+            - generic [ref=e715]: Oct 2025
+            - generic [ref=e716]: Nov 2025
+            - generic [ref=e717]: Dec 2025
+            - generic [ref=e718]: Jan 2026
+            - generic [ref=e719]: Feb 2026
+            - generic [ref=e720]: Mar 2026
+            - generic [ref=e721]: Apr 2026
+          - generic [ref=e113]:
+            - generic [ref=e114]: "15"
+            - generic [ref=e115]: "22"
+            - generic [ref=e116]: "29"
+            - generic [ref=e117]: "5"
+            - generic [ref=e118]: "12"
+            - generic [ref=e119]: "19"
+            - generic [ref=e120]: "26"
+            - generic [ref=e121]: "2"
+            - generic [ref=e122]: "9"
+            - generic [ref=e123]: "16"
+            - generic [ref=e124]: "23"
+            - generic [ref=e125]: "2"
+            - generic [ref=e126]: "9"
+            - generic [ref=e127]: "16"
+            - generic [ref=e128]: "23"
+            - generic [ref=e129]: "30"
+            - generic [ref=e130]: "6"
+            - generic [ref=e131]: "13"
+            - generic [ref=e132]: "20"
+            - generic [ref=e133]: "27"
+            - generic [ref=e722]: "4"
+            - generic [ref=e723]: "11"
+            - generic [ref=e724]: "18"
+            - generic [ref=e725]: "25"
+            - generic [ref=e726]: "1"
+            - generic [ref=e727]: "8"
+            - generic [ref=e728]: "15"
+            - generic [ref=e729]: "22"
+            - generic [ref=e730]: "29"
+            - generic [ref=e731]: "6"
+            - generic [ref=e732]: "13"
+            - generic [ref=e733]: "20"
+            - generic [ref=e734]: "27"
+            - generic [ref=e735]: "3"
+            - generic [ref=e736]: "10"
+            - generic [ref=e737]: "17"
+            - generic [ref=e738]: "24"
+            - generic [ref=e739]: "31"
+            - generic [ref=e740]: "7"
+            - generic [ref=e741]: "14"
+            - generic [ref=e742]: "21"
+            - generic [ref=e743]: "28"
+            - generic [ref=e744]: "5"
+            - generic [ref=e745]: "12"
+            - generic [ref=e746]: "19"
+            - generic [ref=e747]: "26"
+            - generic [ref=e748]: "2"
+            - generic [ref=e749]: "9"
+            - generic [ref=e750]: "16"
+            - generic [ref=e751]: "23"
+            - generic [ref=e752]: "30"
+            - generic [ref=e753]: "7"
+            - generic [ref=e754]: "14"
+            - generic [ref=e755]: "21"
+            - generic [ref=e756]: "28"
+            - generic [ref=e757]: "4"
+            - generic [ref=e758]: "11"
+            - generic [ref=e759]: "18"
+            - generic [ref=e760]: "25"
+            - generic [ref=e761]: "1"
+            - generic [ref=e762]: "8"
+            - generic [ref=e763]: "15"
+            - generic [ref=e764]: "22"
+            - generic [ref=e765]: "1"
+            - generic [ref=e766]: "8"
+            - generic [ref=e767]: "15"
+            - generic [ref=e768]: "22"
+            - generic [ref=e769]: "29"
+            - generic [ref=e770]: "5"
+        - generic [ref=e135]:
+          - generic [ref=e820]:
+            - generic:
+              - generic: "Spool #1 - 50 feet"
+          - generic [ref=e826]:
+            - generic:
+              - generic: "Spool #2 - 150 feet"
+          - generic [ref=e832]:
+            - generic:
+              - generic: "Spool #3 - 50 feet"
+          - generic [ref=e842]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS A
+          - generic [ref=e848]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS B
+          - generic [ref=e854]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS C
+          - generic [ref=e860]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS D
+          - generic [ref=e866]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS E
+          - generic [ref=e872]:
+            - generic:
+              - generic: 3 1/2" PIPE BENDS F
+          - generic [ref=e886]:
+            - generic:
+              - generic: TEMP STAND 1
+          - generic [ref=e891]:
+            - generic:
+              - generic: TEMP STAND 2
+          - generic [ref=e896]:
+            - generic:
+              - generic: TEMP STAND 3
+          - generic [ref=e901]:
+            - generic:
+              - generic: TEMP STAND 4
+          - generic [ref=e906]:
+            - generic:
+              - generic: TEMP STAND 5
+          - generic [ref=e947]:
+            - generic:
+              - generic: FAB-0950-drop-1
+          - generic [ref=e953]:
+            - generic:
+              - generic: FAB-0950-drop-2
+          - generic [ref=e959]:
+            - generic:
+              - generic: FAB-0950-drop-3
+          - generic [ref=e965]:
+            - generic:
+              - generic: FAB-0950-drop-4
+          - generic [ref=e971]:
+            - generic:
+              - generic: FAB-0950-drop-5
+          - generic [ref=e977]:
+            - generic:
+              - generic: FAB-0950-drop-6
+          - generic [ref=e983]:
+            - generic:
+              - generic: FAB-0950-drop-7
+          - generic [ref=e989]:
+            - generic:
+              - generic: FAB-0950-drop-8
+          - generic [ref=e995]:
+            - generic:
+              - generic: FAB-0950-drop-9
+          - generic [ref=e1001]:
+            - generic:
+              - generic: FAB-0950-drop-10
+          - generic [ref=e1007]:
+            - generic:
+              - generic: FAB-0950-drop-11
+          - generic [ref=e1013]:
+            - generic:
+              - generic: FAB-0950-drop-12
+          - generic [ref=e1019]:
+            - generic:
+              - generic: FAB-0950-drop-13
+          - generic [ref=e1025]:
+            - generic:
+              - generic: FAB-0950-drop-14
+          - generic [ref=e1031]:
+            - generic:
+              - generic: FAB-0950-drop-15
+          - generic [ref=e1037]:
+            - generic:
+              - generic: FAB-0950-drop-16
+          - generic [ref=e1043]:
+            - generic:
+              - generic: FAB-0950-drop-17
+          - img
+    - generic [ref=e138]:
+      - paragraph [ref=e139]: Gantt Chart
+      - paragraph [ref=e141]: 372 tasks
+      - paragraph [ref=e1049]: "Start: Mar 14 '26"
+      - generic [ref=e142]:
+        - paragraph [ref=e143]: "-"
+        - slider [ref=e153]: "3"
+        - paragraph [ref=e154]: +

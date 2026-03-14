@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { recordDevDiagnosticsEntry } from "./devDiagnosticsService.js";
 import { publishRealtimeEvent } from "./realtimeEvents.js";
 
 export type StratusJobStatus =
@@ -73,6 +74,52 @@ function publishJobUpdate(
       finishedAt: job.finishedAt,
       error: job.error,
       hasResult: job.result !== null,
+    },
+  });
+}
+
+function recordJobLifecycleEntry(
+  projectId: string | null | undefined,
+  job: StratusJobRecord,
+): void {
+  recordDevDiagnosticsEntry({
+    level: job.status === "failed" ? "error" : "info",
+    type: "job",
+    projectId,
+    message: `Stratus job ${job.status}: ${job.kind}.`,
+    details: {
+      jobId: job.id,
+      kind: job.kind,
+      status: job.status,
+      phase: job.progress.phase,
+      startedAt: job.startedAt,
+      finishedAt: job.finishedAt,
+      error: job.error,
+    },
+  });
+}
+
+function recordProgressEntry(
+  projectId: string | null | undefined,
+  job: StratusJobRecord,
+): void {
+  recordDevDiagnosticsEntry({
+    level: "info",
+    type: "progress",
+    projectId,
+    message:
+      job.progress.message ??
+      `Stratus job ${job.kind} entered ${job.progress.phase}.`,
+    details: {
+      jobId: job.id,
+      kind: job.kind,
+      phase: job.progress.phase,
+      processedPackages: job.progress.processedPackages,
+      totalPackages: job.progress.totalPackages,
+      processedAssemblies: job.progress.processedAssemblies,
+      totalAssemblies: job.progress.totalAssemblies,
+      skippedUnchangedPackages: job.progress.skippedUnchangedPackages,
+      source: job.progress.source,
     },
   });
 }
@@ -157,6 +204,7 @@ export function createStratusJob<TResult>(
   };
   jobs.set(id, job as StratusJobRecord);
   publishJobUpdate(options.projectId, job);
+  recordJobLifecycleEntry(options.projectId, job);
   if (options.singleFlightKey) {
     singleFlightJobs.set(options.singleFlightKey, id);
   }
@@ -172,6 +220,7 @@ export function createStratusJob<TResult>(
     runningJob.startedAt = startedAt;
     jobs.set(id, runningJob);
     publishJobUpdate(options.projectId, runningJob);
+    recordJobLifecycleEntry(options.projectId, runningJob);
 
     try {
       const result = await runner((update) => {
@@ -179,12 +228,20 @@ export function createStratusJob<TResult>(
         if (!current) {
           return;
         }
+        const previousPhase = current.progress.phase;
+        const previousMessage = current.progress.message;
         current.progress = {
           ...current.progress,
           ...update,
         };
         jobs.set(id, current);
         publishJobUpdate(options.projectId, current);
+        if (
+          previousPhase !== current.progress.phase ||
+          previousMessage !== current.progress.message
+        ) {
+          recordProgressEntry(options.projectId, current);
+        }
       });
 
       const completedJob = jobs.get(id);
@@ -197,6 +254,7 @@ export function createStratusJob<TResult>(
       completedJob.result = result;
       jobs.set(id, completedJob);
       publishJobUpdate(options.projectId, completedJob);
+      recordJobLifecycleEntry(options.projectId, completedJob);
     } catch (error) {
       const failedJob = jobs.get(id);
       if (!failedJob) {
@@ -209,6 +267,7 @@ export function createStratusJob<TResult>(
       failedJob.result = null;
       jobs.set(id, failedJob);
       publishJobUpdate(options.projectId, failedJob);
+      recordJobLifecycleEntry(options.projectId, failedJob);
     } finally {
       if (options.singleFlightKey && singleFlightJobs.get(options.singleFlightKey) === id) {
         singleFlightJobs.delete(options.singleFlightKey);

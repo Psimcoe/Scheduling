@@ -16,6 +16,7 @@ import baselineRoutes from './routes/baselines.js';
 import calendarRoutes from './routes/calendars.js';
 import customFieldRoutes from './routes/customFields.js';
 import dependencyRoutes from './routes/dependencies.js';
+import devRoutes from './routes/dev.js';
 import eventRoutes from './routes/events.js';
 import importExportRoutes from './routes/importExport.js';
 import levelingRoutes from './routes/leveling.js';
@@ -169,6 +170,7 @@ export async function buildServer(
   await server.register(authRoutes, { prefix: '/auth' });
 
   await server.register(eventRoutes, { prefix: '/api' });
+  await server.register(devRoutes, { prefix: '/api/dev' });
   await server.register(projectRoutes, { prefix: '/api/projects' });
   await server.register(taskRoutes, { prefix: '/api/projects/:projectId/tasks' });
   await server.register(dependencyRoutes, { prefix: '/api/projects/:projectId/dependencies' });

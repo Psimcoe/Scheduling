@@ -7,7 +7,7 @@ const { PrismaClient } = prismaPackage;
 
 export const prisma = new PrismaClient();
 
-function resolveSqliteDatabasePath(): string {
+export function resolveSqliteDatabasePath(): string {
   const databaseUrl = process.env.DATABASE_URL?.trim();
   if (!databaseUrl?.startsWith('file:')) {
     return runtimeConfig.databasePath;

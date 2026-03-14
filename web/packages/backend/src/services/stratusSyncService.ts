@@ -15,6 +15,7 @@ import {
   type NormalizedStratusAssembly,
   type NormalizedStratusPackage,
   type NormalizedStratusProject,
+  type StratusRequestDiagnosticsContext,
   type StratusProjectTarget,
   fetchActiveProjectsFromStratus,
   fetchAssembliesForPackage,
@@ -218,6 +219,7 @@ export interface StratusExecutionOptions {
   refreshMode?: "incremental" | "full";
   progress?: StratusJobProgressReporter;
   seedUpgrade?: boolean;
+  diagnosticsProjectId?: string | null;
 }
 
 export interface PushPreviewResult {
@@ -590,8 +592,12 @@ async function loadPrefabProjectOrThrow(): Promise<SyncProjectTarget> {
 
 export async function getResolvedPushFieldIds(
   config: StratusConfig,
+  diagnosticsProjectId: string | null = null,
 ): Promise<FieldIdResolution> {
-  const fields = await fetchCompanyFields(config);
+  const fields = await fetchCompanyFields(config, {
+    projectId: diagnosticsProjectId,
+    operation: "fetchCompanyFields",
+  });
   const resolution = resolveFieldIdsFromDefinitions(fields, config, config);
   const patch: Partial<StratusConfig> = {};
   if (
@@ -1054,9 +1060,13 @@ export async function previewStratusPull(
   options: StratusExecutionOptions = {},
 ): Promise<PullPreviewResult> {
   const startedAt = Date.now();
-  const effectiveConfig = buildEffectiveStratusConfig(config, options);
+  const effectiveOptions = {
+    ...options,
+    diagnosticsProjectId: projectId,
+  };
+  const effectiveConfig = buildEffectiveStratusConfig(config, effectiveOptions);
   const project = await loadProjectStratusTarget(projectId);
-  options.progress?.({
+  effectiveOptions.progress?.({
     phase: "loadingPackages",
     message: isPrefabProjectName(project.name)
       ? "Loading active Stratus project groups."
@@ -1094,19 +1104,19 @@ export async function previewStratusPull(
   });
 
   const sourceSnapshot = isPrefabProjectName(project.name)
-    ? await loadActiveStratusProjectGroupSnapshot(
+      ? await loadActiveStratusProjectGroupSnapshot(
         project,
         effectiveConfig,
         false,
-        options,
+        effectiveOptions,
       )
     : await loadStratusPackageBundleSnapshot(
         project,
         effectiveConfig,
         false,
-        options,
+        effectiveOptions,
       );
-  options.progress?.({
+  effectiveOptions.progress?.({
     phase: "comparingLocal",
     message: "Comparing remote packages against local task hierarchy.",
     source: sourceSnapshot.sourceInfo.source,
@@ -1154,10 +1164,14 @@ export async function applyStratusPull(
   options: StratusExecutionOptions = {},
 ): Promise<PullApplyResult> {
   const startedAt = Date.now();
-  const effectiveConfig = buildEffectiveStratusConfig(config, options);
+  const effectiveOptions = {
+    ...options,
+    diagnosticsProjectId: projectId,
+  };
+  const effectiveConfig = buildEffectiveStratusConfig(config, effectiveOptions);
   const project = await loadProjectStratusTarget(projectId);
   if (isPrefabProjectName(project.name)) {
-    options.progress?.({
+    effectiveOptions.progress?.({
       phase: "loadingPackages",
       message: "Loading active Stratus project groups.",
     });
@@ -1165,7 +1179,7 @@ export async function applyStratusPull(
       project,
       effectiveConfig,
       true,
-      { ...options, refreshMode: "full" },
+      { ...effectiveOptions, refreshMode: "full" },
     );
     const groups = sourceSnapshot.groups;
     const existingTasks = await prisma.task.findMany({
@@ -1173,7 +1187,7 @@ export async function applyStratusPull(
       orderBy: { sortOrder: "asc" },
       include: { stratusSync: true },
     });
-    options.progress?.({
+    effectiveOptions.progress?.({
       phase: "comparingLocal",
       message: "Comparing remote packages against local Prefab hierarchy.",
       source: sourceSnapshot.sourceInfo.source,
@@ -1194,7 +1208,7 @@ export async function applyStratusPull(
         (previewRowByPackageId.get(bundle.package.id)?.action ?? "create") !==
         "skip",
     );
-    options.progress?.({
+    effectiveOptions.progress?.({
       phase: "applyingPackages",
       message: "Applying Stratus packages to Prefab.",
       totalPackages: previewRows.length,
@@ -1282,7 +1296,7 @@ export async function applyStratusPull(
     };
   }
 
-  options.progress?.({
+  effectiveOptions.progress?.({
     phase: "loadingPackages",
     message: "Loading Stratus packages.",
   });
@@ -1290,7 +1304,7 @@ export async function applyStratusPull(
     project,
     effectiveConfig,
     true,
-    options,
+    effectiveOptions,
   );
   const bundles = sourceSnapshot.bundles;
   const existingTasks = await prisma.task.findMany({
@@ -1298,7 +1312,7 @@ export async function applyStratusPull(
     orderBy: { sortOrder: "asc" },
     include: { stratusSync: true },
   });
-  options.progress?.({
+  effectiveOptions.progress?.({
     phase: "comparingLocal",
     message: "Comparing remote packages against local task hierarchy.",
     source: sourceSnapshot.sourceInfo.source,
@@ -1336,7 +1350,7 @@ export async function applyStratusPull(
     },
     bundles: activeProjectBundles,
   };
-  options.progress?.({
+  effectiveOptions.progress?.({
     phase: "applyingPackages",
     message: "Applying Stratus packages to the active project.",
     totalPackages: previewRows.length,
@@ -1453,7 +1467,7 @@ export async function previewStratusPush(
     orderBy: { sortOrder: "asc" },
     include: { stratusSync: true },
   });
-  const fieldResolution = await getResolvedPushFieldIds(config);
+  const fieldResolution = await getResolvedPushFieldIds(config, projectId);
   const rows = buildPushPreviewRows(tasks);
   return {
     rows,
@@ -1541,7 +1555,7 @@ export async function applyStratusPush(
         if (preview.fieldResolution.deadlineMode === "property") {
           await patchPackageProperties(config, task.stratusSync.packageId, {
             requiredDT: task.deadline ? task.deadline.toISOString() : null,
-          });
+          }, projectId);
         } else if (preview.fieldResolution.deadlineFieldId) {
           fieldUpdates.push({
             key: preview.fieldResolution.deadlineFieldId,
@@ -1554,6 +1568,7 @@ export async function applyStratusPush(
           config,
           task.stratusSync.packageId,
           fieldUpdates,
+          projectId,
         );
       }
 
@@ -3410,7 +3425,11 @@ async function loadApiStratusPackageBundles(
   config: StratusConfig,
   options: StratusExecutionOptions = {},
 ): Promise<PreparedPackageBundle[]> {
-  const packages = (await fetchPackagesFromStratus(config, project))
+  const diagnostics: StratusRequestDiagnosticsContext = {
+    projectId: options.diagnosticsProjectId ?? project.id,
+    operation: "fetchPackages",
+  };
+  const packages = (await fetchPackagesFromStratus(config, project, diagnostics))
     .map((pkg) => normalizeStratusPackage(pkg, config))
     .sort(compareStratusPackages);
   options.progress?.({
@@ -3477,6 +3496,10 @@ async function loadApiStratusPackageBundles(
       const rawAssemblies = pkg.id
         ? await fetchAssembliesForPackage(config, pkg.id, {
             pageSize: resolveAssemblyPageSize(options),
+            diagnostics: {
+              projectId: options.diagnosticsProjectId ?? project.id,
+              operation: "fetchAssembliesForPackage",
+            },
           })
         : [];
       const assemblies = rawAssemblies
@@ -3513,7 +3536,10 @@ async function loadApiActiveStratusProjectGroupsForPrefab(
   config: StratusConfig,
   options: StratusExecutionOptions = {},
 ): Promise<PreparedProjectBundleGroup[]> {
-  const rawProjects = await fetchActiveProjectsFromStratus(config);
+  const rawProjects = await fetchActiveProjectsFromStratus(config, {
+    projectId: options.diagnosticsProjectId ?? prefabProject.id,
+    operation: "fetchActiveProjects",
+  });
   const stratusProjects = rawProjects
     .map((rawProject) => normalizeStratusProject(rawProject))
     .sort(compareStratusProjects);
@@ -3992,10 +4018,14 @@ async function patchPackageProperties(
   config: StratusConfig,
   packageId: string,
   data: { requiredDT: string | null },
+  diagnosticsProjectId: string | null = null,
 ) {
   await stratusRequestJson(config, "/v2/package/properties", {
     method: "PATCH",
     body: JSON.stringify({ id: packageId, requiredDT: data.requiredDT }),
+  }, {
+    projectId: diagnosticsProjectId,
+    operation: "patchPackageProperties",
   });
 }
 
@@ -4003,6 +4033,7 @@ async function patchPackageFields(
   config: StratusConfig,
   packageId: string,
   fieldUpdates: Array<{ key: string; value: string | null }>,
+  diagnosticsProjectId: string | null = null,
 ) {
   await stratusRequestJson(
     config,
@@ -4010,6 +4041,10 @@ async function patchPackageFields(
     {
       method: "PATCH",
       body: JSON.stringify(fieldUpdates),
+    },
+    {
+      projectId: diagnosticsProjectId,
+      operation: "patchPackageFields",
     },
   );
 }

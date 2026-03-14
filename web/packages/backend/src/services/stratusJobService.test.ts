@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  clearDevDiagnosticsEntriesForTests,
+  listDevDiagnosticsEntries,
+} from "./devDiagnosticsService.js";
+import {
   clearStratusJobsForTests,
   createStratusJob,
   getStratusJob,
@@ -8,6 +12,7 @@ import {
 describe("stratusJobService", () => {
   afterEach(() => {
     clearStratusJobsForTests();
+    clearDevDiagnosticsEntriesForTests();
   });
 
   it("creates, updates, and completes a Stratus job", async () => {
@@ -30,6 +35,16 @@ describe("stratusJobService", () => {
     expect(storedJob?.progress.processedPackages).toBe(2);
     expect(storedJob?.progress.source).toBe("stratusApi");
     expect(storedJob?.result).toEqual({ ok: true });
+
+    const logs = listDevDiagnosticsEntries({ limit: 10 });
+    expect(logs.filter((entry) => entry.type === "job")).toHaveLength(3);
+    expect(logs.find((entry) => entry.type === "progress")).toMatchObject({
+      message: "Stratus job pullPreview entered loadingPackages.",
+      details: expect.objectContaining({
+        jobId: job.id,
+        phase: "loadingPackages",
+      }),
+    });
   });
 
   it("captures job failures", async () => {
@@ -42,6 +57,17 @@ describe("stratusJobService", () => {
     });
 
     expect(getStratusJob(job.id)?.error).toBe("boom");
+    expect(
+      listDevDiagnosticsEntries({ limit: 10 }).find(
+        (entry) => entry.type === "job" && entry.level === "error",
+      ),
+    ).toMatchObject({
+      message: "Stratus job failed: pullApply.",
+      details: expect.objectContaining({
+        jobId: job.id,
+        error: "boom",
+      }),
+    });
   });
 
   it("reuses the active single-flight job for the same key", async () => {
@@ -79,5 +105,39 @@ describe("stratusJobService", () => {
     );
 
     expect(thirdJob.id).not.toBe(firstJob.id);
+  });
+
+  it("records progress entries only when phase or message changes", async () => {
+    const job = createStratusJob("pullApply", async (reportProgress) => {
+      reportProgress({
+        phase: "loadingPackages",
+        message: "Loading packages.",
+        processedPackages: 1,
+      });
+      reportProgress({
+        phase: "loadingPackages",
+        message: "Loading packages.",
+        processedPackages: 2,
+      });
+      reportProgress({
+        phase: "loadingAssemblies",
+        message: "Loading assemblies.",
+        processedAssemblies: 1,
+      });
+      return { ok: true };
+    });
+
+    await vi.waitFor(() => {
+      expect(getStratusJob(job.id)?.status).toBe("succeeded");
+    });
+
+    const progressLogs = listDevDiagnosticsEntries({ limit: 10 }).filter(
+      (entry) => entry.type === "progress",
+    );
+    expect(progressLogs).toHaveLength(2);
+    expect(progressLogs.map((entry) => entry.message)).toEqual([
+      "Loading assemblies.",
+      "Loading packages.",
+    ]);
   });
 });

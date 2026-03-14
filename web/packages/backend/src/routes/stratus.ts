@@ -13,7 +13,9 @@ import { testStratusBigDataConnection } from "../services/stratusBigDataService.
 import {
   createStratusJob,
   getStratusJob,
+  type StratusJobProgressReporter,
 } from "../services/stratusJobService.js";
+import { recordDevDiagnosticsEntry } from "../services/devDiagnosticsService.js";
 import { saveStratusSettingsForProject } from "../services/stratusStatusMappingService.js";
 import { notifyCurrentProjectRevision } from "../services/scheduleJobService.js";
 import {
@@ -119,6 +121,87 @@ async function finalizePullApplyLogging(
       failedAssemblies: result.summary.failedAssemblies,
     });
     markProjectKnowledgeDirty(projectId);
+  }
+}
+
+interface SeedUpgradePullDependencies {
+  captureUndo: typeof captureUndo;
+  applyStratusPull: typeof applyStratusPull;
+  finalizePullApplyLogging: typeof finalizePullApplyLogging;
+  notifyCurrentProjectRevision: typeof notifyCurrentProjectRevision;
+  getStratusConfig: typeof getStratusConfig;
+}
+
+const defaultSeedUpgradePullDependencies: SeedUpgradePullDependencies = {
+  captureUndo,
+  applyStratusPull,
+  finalizePullApplyLogging,
+  notifyCurrentProjectRevision,
+  getStratusConfig,
+};
+
+export async function runSeedUpgradePull(
+  projectId: string,
+  jobId: string,
+  reportProgress: StratusJobProgressReporter,
+  dependencies: SeedUpgradePullDependencies = defaultSeedUpgradePullDependencies,
+): Promise<Awaited<ReturnType<typeof applyStratusPull>>> {
+  recordDevDiagnosticsEntry({
+    level: "info",
+    type: "seedUpgrade",
+    projectId,
+    message: "Legacy seed upgrade started.",
+    details: {
+      projectId,
+      jobId,
+    },
+  });
+
+  try {
+    await dependencies.captureUndo(projectId, "Stratus seed upgrade");
+    const pullResult = await dependencies.applyStratusPull(
+      projectId,
+      dependencies.getStratusConfig(),
+      {
+        forceApiRead: true,
+        refreshMode: "full",
+        seedUpgrade: true,
+        progress: (update) =>
+          reportProgress({
+            ...update,
+            message: update.message
+              ? `Legacy seed upgrade. ${update.message}`
+              : "Legacy seed upgrade running.",
+          }),
+      },
+    );
+    await dependencies.finalizePullApplyLogging(projectId, pullResult);
+    await dependencies.notifyCurrentProjectRevision(projectId);
+    recordDevDiagnosticsEntry({
+      level: "info",
+      type: "seedUpgrade",
+      projectId,
+      message: "Legacy seed upgrade completed.",
+      details: {
+        projectId,
+        jobId,
+        summary: pullResult.summary,
+      },
+    });
+    return pullResult;
+  } catch (error) {
+    recordDevDiagnosticsEntry({
+      level: "error",
+      type: "seedUpgrade",
+      projectId,
+      message: "Legacy seed upgrade failed.",
+      details: {
+        projectId,
+        jobId,
+        error: error instanceof Error ? error.message : "Legacy seed upgrade failed.",
+      },
+    });
+    throw error;
   }
 }
 
@@ -277,31 +360,27 @@ export default async function stratusRoutes(app: FastifyInstance) {
         return result;
       }
 
+      let seedUpgradeJobId = "";
       const job = createStratusJob(
         "pullApply",
-        async (reportProgress) => {
-          await captureUndo(projectId, "Stratus seed upgrade");
-          const pullResult = await applyStratusPull(projectId, getStratusConfig(), {
-            forceApiRead: true,
-            refreshMode: "full",
-            seedUpgrade: true,
-            progress: (update) =>
-              reportProgress({
-                ...update,
-                message: update.message
-                  ? `Legacy seed upgrade. ${update.message}`
-                  : "Legacy seed upgrade running.",
-              }),
-          });
-          await finalizePullApplyLogging(projectId, pullResult);
-          await notifyCurrentProjectRevision(projectId);
-          return pullResult;
-        },
+        async (reportProgress) =>
+          runSeedUpgradePull(projectId, seedUpgradeJobId, reportProgress),
         {
           projectId,
           singleFlightKey: buildPullSingleFlightKey(projectId, "full"),
         },
       );
+      seedUpgradeJobId = job.id;
+      recordDevDiagnosticsEntry({
+        level: "info",
+        type: "seedUpgrade",
+        projectId,
+        message: "Legacy seed upgrade requested.",
+        details: {
+          projectId,
+          jobId: job.id,
+        },
+      });
 
       return {
         ...result,
