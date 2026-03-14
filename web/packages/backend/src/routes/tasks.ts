@@ -16,6 +16,7 @@ import {
   toStratusSyncSummary,
 } from '../services/stratusSyncService.js';
 import { isTaskNameManagedByStratus } from '../services/taskEditabilityService.js';
+import { normalizeTaskHierarchyInTransaction } from '../services/taskHierarchyService.js';
 import { captureUndo } from '../services/undoService.js';
 import { loadProjectSnapshot } from '../services/projectSnapshotService.js';
 
@@ -82,10 +83,15 @@ async function finalizeTaskMutation(projectId: string) {
 }
 
 const METADATA_ONLY_TASK_FIELDS = new Set(['name', 'notes', 'externalKey']);
+const HIERARCHY_TASK_FIELDS = new Set(['parentId', 'outlineLevel', 'sortOrder', 'type']);
 
 function isMetadataOnlyTaskPatch(data: Record<string, unknown>): boolean {
   const keys = Object.keys(data);
   return keys.length > 0 && keys.every((key) => METADATA_ONLY_TASK_FIELDS.has(key));
+}
+
+function isHierarchyTaskPatch(data: Record<string, unknown>): boolean {
+  return Object.keys(data).some((key) => HIERARCHY_TASK_FIELDS.has(key));
 }
 
 function buildRecalculationResponse(projectId: string, requiresRecalculation: boolean) {
@@ -195,6 +201,7 @@ export default async function taskRoutes(app: FastifyInstance) {
           },
           include: { stratusSync: true, stratusAssemblySync: true },
         });
+        await normalizeTaskHierarchyInTransaction(tx, projectId);
         const updatedProject = await tx.project.update({
           where: { id: projectId },
           data: { revision: { increment: 1 } },
@@ -207,12 +214,13 @@ export default async function taskRoutes(app: FastifyInstance) {
         };
       });
 
-      await logTaskMutation(projectId, 'task_created', null, toTaskMutationSnapshot(task), 'user');
+      const snapshot = await finalizeTaskMutation(projectId);
+      const createdTask = snapshot.tasks.find((candidate) => candidate.id === task.id) ?? serializeTask(task);
+      const createdTaskForLog = snapshot.tasks.find((candidate) => candidate.id === task.id) ?? task;
+      await logTaskMutation(projectId, 'task_created', null, toTaskMutationSnapshot(createdTaskForLog), 'user');
       markProjectKnowledgeDirty(projectId);
       notifyProjectRevision(projectId, revision);
       const recalculation = buildRecalculationResponse(projectId, true);
-      const snapshot = await finalizeTaskMutation(projectId);
-      const createdTask = snapshot.tasks.find((candidate) => candidate.id === task.id) ?? serializeTask(task);
       return reply.code(201).send({
         task: createdTask,
         revision: snapshot.revision,
@@ -285,12 +293,16 @@ export default async function taskRoutes(app: FastifyInstance) {
       }
 
       const requiresRecalculation = !isMetadataOnlyTaskPatch(data);
+      const hierarchyMutation = isHierarchyTaskPatch(data);
       const { task, revision } = await prisma.$transaction(async (tx) => {
         const updatedTask = await tx.task.update({
           where: { id: taskId },
           data,
           include: { stratusSync: true, stratusAssemblySync: true },
         });
+        if (hierarchyMutation) {
+          await normalizeTaskHierarchyInTransaction(tx, projectId);
+        }
         const updatedProject = await tx.project.update({
           where: { id: projectId },
           data: { revision: { increment: 1 } },
@@ -303,17 +315,33 @@ export default async function taskRoutes(app: FastifyInstance) {
         };
       });
 
+      const snapshot = hierarchyMutation
+        ? await finalizeTaskMutation(projectId)
+        : null;
+      const updatedTask =
+        snapshot?.tasks.find((candidate) => candidate.id === task.id) ?? serializeTask(task);
+      const updatedTaskForLog =
+        snapshot?.tasks.find((candidate) => candidate.id === task.id) ?? task;
+
       await logTaskMutation(
         projectId,
         'task_updated',
         toTaskMutationSnapshot(before),
-        toTaskMutationSnapshot(task),
+        toTaskMutationSnapshot(updatedTaskForLog),
         'user',
       );
       markProjectKnowledgeDirty(projectId);
       notifyProjectRevision(projectId, revision);
       const recalculation = buildRecalculationResponse(projectId, requiresRecalculation);
-      const updatedTask = serializeTask(task);
+      if (snapshot) {
+        return {
+          task: updatedTask,
+          revision: snapshot.revision,
+          snapshot,
+          recalculation,
+        };
+      }
+
       return {
         task: updatedTask,
         revision,
@@ -389,6 +417,7 @@ export default async function taskRoutes(app: FastifyInstance) {
           const updatedTask = await tx.task.update({ where: { id: u.id }, data });
           updatedTasks.push(updatedTask);
         }
+        await normalizeTaskHierarchyInTransaction(tx, projectId);
         const updatedProject = await tx.project.update({
           where: { id: projectId },
           data: { revision: { increment: 1 } },
@@ -462,6 +491,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         await tx.assignment.deleteMany({ where: { taskId: { in: taskIds } } });
         await tx.baseline.deleteMany({ where: { taskId: { in: taskIds } } });
         await tx.task.deleteMany({ where: { projectId, id: { in: taskIds } } });
+        await normalizeTaskHierarchyInTransaction(tx, projectId);
         const updatedProject = await tx.project.update({
           where: { id: projectId },
           data: { revision: { increment: 1 } },
@@ -506,6 +536,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         await tx.assignment.deleteMany({ where: { taskId } });
         await tx.baseline.deleteMany({ where: { taskId } });
         await tx.task.delete({ where: { id: taskId } });
+        await normalizeTaskHierarchyInTransaction(tx, projectId);
         const updatedProject = await tx.project.update({
           where: { id: projectId },
           data: { revision: { increment: 1 } },

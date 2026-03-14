@@ -52,7 +52,18 @@ async function createHarness() {
   const cleanup = async () => {
     await app.close();
     await prisma.$disconnect();
-    rmSync(tempDir, { recursive: true, force: true });
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        rmSync(tempDir, { recursive: true, force: true });
+        return;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException)?.code !== 'EPERM' || attempt === 4) {
+          throw error;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+      }
+    }
   };
 
   return { app, prisma, cleanup };
@@ -224,5 +235,74 @@ describe('task routes integration', () => {
       where: { id: task.id },
     });
     expect(storedTask.name).toBe('Imported task');
+  }, 15_000);
+
+  it('normalizes hierarchy mutations and returns a snapshot for single-task PATCH updates', async () => {
+    const harness = await createHarness();
+    cleanup = harness.cleanup;
+
+    const project = await harness.prisma.project.create({
+      data: {
+        id: 'project-task-hierarchy-test',
+        name: 'Hierarchy Patch Project',
+        startDate: new Date('2026-03-01T08:00:00.000Z'),
+        defaultCalendarId: 'calendar-task-hierarchy-test',
+      },
+    });
+    const calendar = await harness.prisma.calendar.create({
+      data: {
+        id: 'calendar-task-hierarchy-test',
+        projectId: project.id,
+        name: 'Standard',
+      },
+    });
+
+    const task = await harness.prisma.task.create({
+      data: {
+        id: 'task-hierarchy-test',
+        projectId: project.id,
+        name: 'Broken task',
+        start: new Date('2026-03-01T08:00:00.000Z'),
+        finish: new Date('2026-03-02T08:00:00.000Z'),
+        durationMinutes: 480,
+        outlineLevel: 2,
+        calendarId: calendar.id,
+        sortOrder: 0,
+      },
+    });
+
+    const headers = await createAuthHeaders(harness.app);
+    const response = await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/projects/${project.id}/tasks/${task.id}`,
+      headers,
+      payload: {
+        parentId: task.id,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json<{
+      revision: number;
+      task: { id: string; parentId: string | null; outlineLevel: number };
+      snapshot?: { tasks: Array<{ id: string; parentId: string | null; outlineLevel: number }> };
+    }>();
+    expect(body.revision).toBeGreaterThanOrEqual(1);
+    expect(body.task).toMatchObject({
+      id: task.id,
+      parentId: null,
+      outlineLevel: 0,
+    });
+    expect(body.snapshot?.tasks.find((candidate) => candidate.id === task.id)).toMatchObject({
+      id: task.id,
+      parentId: null,
+      outlineLevel: 0,
+    });
+
+    const storedTask = await harness.prisma.task.findUniqueOrThrow({
+      where: { id: task.id },
+    });
+    expect(storedTask.parentId).toBeNull();
+    expect(storedTask.outlineLevel).toBe(0);
   }, 15_000);
 });

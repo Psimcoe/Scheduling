@@ -208,6 +208,59 @@ function getTaskFieldValue(task: RowModelTaskShell, field: string): unknown {
     : undefined;
 }
 
+function resolveSafeParentId(
+  taskId: string,
+  desiredParentId: string | null,
+  taskMap: Map<string, RowModelTaskShell>,
+  proposedParentIds: Map<string, string | null>,
+  resolvedParentIds: Map<string, string | null>,
+): string | null {
+  if (!desiredParentId || desiredParentId === taskId || !taskMap.has(desiredParentId)) {
+    return null;
+  }
+
+  const seen = new Set([taskId]);
+  let currentId: string | null = desiredParentId;
+
+  while (currentId) {
+    if (!taskMap.has(currentId) || seen.has(currentId)) {
+      return null;
+    }
+
+    seen.add(currentId);
+    currentId = resolvedParentIds.has(currentId)
+      ? (resolvedParentIds.get(currentId) ?? null)
+      : (proposedParentIds.get(currentId) ?? null);
+  }
+
+  return desiredParentId;
+}
+
+function resolveNormalizedParentIds(
+  tasks: RowModelTaskShell[],
+): Map<string, string | null> {
+  const taskMap = new Map(tasks.map((task) => [task.id, task]));
+  const proposedParentIds = new Map(
+    tasks.map((task) => [task.id, task.parentId ?? null]),
+  );
+  const resolvedParentIds = new Map<string, string | null>();
+
+  for (const task of tasks) {
+    resolvedParentIds.set(
+      task.id,
+      resolveSafeParentId(
+        task.id,
+        proposedParentIds.get(task.id) ?? null,
+        taskMap,
+        proposedParentIds,
+        resolvedParentIds,
+      ),
+    );
+  }
+
+  return resolvedParentIds;
+}
+
 function matchesCriterion(task: RowModelTaskShell, criterion: FilterCriteria): boolean {
   const rawValue = getTaskFieldValue(task, criterion.field);
   const stringValue = String(rawValue ?? '').toLowerCase();
@@ -302,15 +355,17 @@ export function buildVisibleTaskRowsModel(
   args: VisibleTaskRowsModelArgs,
 ): VisibleTaskRowsModel {
   const { tasks, dependencies, selectedTaskIds, collapsedIds, filters, sortCriteria, groupBy } = args;
+  const normalizedParentIds = resolveNormalizedParentIds(tasks);
   const childMap = new Set<string>();
   const childrenByParentId = new Map<string, string[]>();
 
   for (const task of tasks) {
-    if (task.parentId) {
-      childMap.add(task.parentId);
-      const children = childrenByParentId.get(task.parentId) ?? [];
+    const parentId = normalizedParentIds.get(task.id) ?? null;
+    if (parentId) {
+      childMap.add(parentId);
+      const children = childrenByParentId.get(parentId) ?? [];
       children.push(task.id);
-      childrenByParentId.set(task.parentId, children);
+      childrenByParentId.set(parentId, children);
     }
   }
 

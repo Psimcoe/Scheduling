@@ -2,7 +2,7 @@
  * TaskRibbon - task-surface ribbon actions with loading and accessibility states.
  */
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Box,
   CircularProgress,
@@ -30,6 +30,7 @@ import UndoIcon from '@mui/icons-material/Undo';
 import { importExportApi } from '../../api';
 import { useProjectStore, useUIStore } from '../../stores';
 import { useAiStore } from '../../stores/useAiStore.js';
+import { buildIndentTaskUpdates, buildOutdentTaskUpdates } from '../../utils/taskHierarchy';
 import AiActionButtons from '../ai/AiActionButtons.js';
 
 const RibbonGroup: React.FC<{
@@ -99,6 +100,14 @@ const TaskRibbon: React.FC = () => {
   const mspdiInputRef = useRef<HTMLInputElement>(null);
   const updateInputRef = useRef<HTMLInputElement>(null);
   const disabled = !activeProjectId;
+  const indentUpdates = useMemo(
+    () => buildIndentTaskUpdates(tasks, selectedTaskIds),
+    [selectedTaskIds, tasks],
+  );
+  const outdentUpdates = useMemo(
+    () => buildOutdentTaskUpdates(tasks, selectedTaskIds),
+    [selectedTaskIds, tasks],
+  );
   const isPending = useCallback(
     (actionKey: string) => (pendingActions[actionKey] ?? 0) > 0,
     [pendingActions],
@@ -141,71 +150,28 @@ const TaskRibbon: React.FC = () => {
   }, [openDeleteConfirm, selectedTaskIds, tasks]);
 
   const handleIndent = useCallback(async () => {
-    const ids = Array.from(selectedTaskIds);
-    if (ids.length === 0) {
-      return;
-    }
-
-    const updates = ids.flatMap((id) => {
-        const task = tasks.find((candidate) => candidate.id === id);
-        if (!task) {
-          return [];
-        }
-
-        const index = tasks.indexOf(task);
-        const previousSibling = tasks
-          .slice(0, index)
-          .reverse()
-          .find(
-            (candidate) =>
-              candidate.parentId === task.parentId &&
-              candidate.outlineLevel === task.outlineLevel,
-          );
-
-        if (!previousSibling) {
-          return [];
-        }
-
-        return [{ id, data: { parentId: previousSibling.id } }];
-      });
-
-    if (updates.length === 0) {
+    if (indentUpdates.length === 0) {
       return;
     }
 
     try {
-      await batchUpdateTasks(updates);
+      await batchUpdateTasks(indentUpdates);
     } catch (error: unknown) {
       showSnackbar(error instanceof Error ? error.message : 'Indent failed', 'error');
     }
-  }, [batchUpdateTasks, selectedTaskIds, showSnackbar, tasks]);
+  }, [batchUpdateTasks, indentUpdates, showSnackbar]);
 
   const handleOutdent = useCallback(async () => {
-    const ids = Array.from(selectedTaskIds);
-    if (ids.length === 0) {
-      return;
-    }
-
-    const updates = ids.flatMap((id) => {
-        const task = tasks.find((candidate) => candidate.id === id);
-        if (!task || !task.parentId) {
-          return [];
-        }
-
-        const parent = tasks.find((candidate) => candidate.id === task.parentId);
-        return [{ id, data: { parentId: parent?.parentId ?? null } }];
-      });
-
-    if (updates.length === 0) {
+    if (outdentUpdates.length === 0) {
       return;
     }
 
     try {
-      await batchUpdateTasks(updates);
+      await batchUpdateTasks(outdentUpdates);
     } catch (error: unknown) {
       showSnackbar(error instanceof Error ? error.message : 'Outdent failed', 'error');
     }
-  }, [batchUpdateTasks, selectedTaskIds, showSnackbar, tasks]);
+  }, [batchUpdateTasks, outdentUpdates, showSnackbar]);
 
   const handleLink = useCallback(async () => {
     const ids = Array.from(selectedTaskIds);
@@ -373,7 +339,7 @@ const TaskRibbon: React.FC = () => {
       <RibbonGroup label="Schedule">
         <RibbonIconAction
           label="Indent"
-          disabled={disabled || selectedTaskIds.size === 0}
+          disabled={disabled || indentUpdates.length === 0}
           loading={isPending('task:batch-update')}
           onClick={() => {
             void handleIndent();
@@ -383,7 +349,7 @@ const TaskRibbon: React.FC = () => {
         </RibbonIconAction>
         <RibbonIconAction
           label="Outdent"
-          disabled={disabled || selectedTaskIds.size === 0}
+          disabled={disabled || outdentUpdates.length === 0}
           loading={isPending('task:batch-update')}
           onClick={() => {
             void handleOutdent();

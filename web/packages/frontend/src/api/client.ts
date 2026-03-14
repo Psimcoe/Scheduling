@@ -296,6 +296,7 @@ export interface TaskMutationResponse {
 export interface TaskUpdateResponse {
   revision: number;
   task: TaskResponse;
+  snapshot?: ProjectSnapshotResponse;
   recalculation?: MutationRecalculationResponse;
 }
 

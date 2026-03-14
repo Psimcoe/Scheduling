@@ -5,6 +5,7 @@ import {
   toStratusSyncSummary,
 } from "./stratusSyncService.js";
 import { isTaskNameManagedByStratus } from "./taskEditabilityService.js";
+import { normalizeTaskHierarchy } from "./taskHierarchyService.js";
 
 export type ProjectSnapshotDetailLevel = "shell" | "full";
 
@@ -229,6 +230,7 @@ export async function loadProjectSnapshot(
   projectId: string,
   detailLevel: ProjectSnapshotDetailLevel = "full",
 ): Promise<ProjectSnapshotResponse> {
+  await normalizeTaskHierarchy(projectId);
   const project = await loadProjectDetails(projectId);
   const cached = getCachedSnapshot(projectId, project.revision, detailLevel);
   if (cached) {

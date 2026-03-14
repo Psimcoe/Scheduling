@@ -40,6 +40,7 @@ import {
   pctLabel,
   shortDate,
 } from '../../utils/format';
+import { buildIndentTaskUpdates, buildOutdentTaskUpdates } from '../../utils/taskHierarchy';
 
 interface TaskRowProps {
   task: TaskRowType;
@@ -97,7 +98,9 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
   top,
 }) => {
   const updateTask = useProjectStore((state) => state.updateTask);
+  const batchUpdateTasks = useProjectStore((state) => state.batchUpdateTasks);
   const selectTask = useProjectStore((state) => state.selectTask);
+  const selectedTaskIds = useProjectStore((state) => state.selectedTaskIds);
   const createTask = useProjectStore((state) => state.createTask);
   const dependencies = useProjectStore((state) => state.dependencies);
   const assignments = useProjectStore((state) => state.assignments);
@@ -137,6 +140,14 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
       .filter(Boolean)
       .join(', ');
   }, [assignments, task.id, resources]);
+  const indentUpdates = useMemo(
+    () => buildIndentTaskUpdates(tasks, selectedTaskIds),
+    [selectedTaskIds, tasks],
+  );
+  const outdentUpdates = useMemo(
+    () => buildOutdentTaskUpdates(tasks, selectedTaskIds),
+    [selectedTaskIds, tasks],
+  );
 
   const handleDoubleClick = useCallback(
     (field: EditingField) => {
@@ -310,15 +321,19 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
 
   const handleIndent = useCallback(async () => {
     closeContextMenu();
-    await updateTask(task.id, { outlineLevel: task.outlineLevel + 1 });
-  }, [closeContextMenu, task.id, task.outlineLevel, updateTask]);
+    if (indentUpdates.length === 0) {
+      return;
+    }
+
+    await batchUpdateTasks(indentUpdates);
+  }, [batchUpdateTasks, closeContextMenu, indentUpdates]);
 
   const handleOutdent = useCallback(async () => {
     closeContextMenu();
-    if (task.outlineLevel > 0) {
-      await updateTask(task.id, { outlineLevel: task.outlineLevel - 1 });
+    if (outdentUpdates.length > 0) {
+      await batchUpdateTasks(outdentUpdates);
     }
-  }, [closeContextMenu, task.id, task.outlineLevel, updateTask]);
+  }, [batchUpdateTasks, closeContextMenu, outdentUpdates]);
 
   const renderCellContent = useCallback(
     (column: ColumnDef) => {
@@ -605,13 +620,13 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
           <ListItemText>Delete Task</ListItemText>
         </MenuItem>
         <MenuItem divider />
-        <MenuItem onClick={handleIndent}>
+        <MenuItem onClick={handleIndent} disabled={indentUpdates.length === 0}>
           <ListItemIcon>
             <FormatIndentIncreaseIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Indent</ListItemText>
         </MenuItem>
-        <MenuItem onClick={handleOutdent} disabled={task.outlineLevel === 0}>
+        <MenuItem onClick={handleOutdent} disabled={outdentUpdates.length === 0}>
           <ListItemIcon>
             <FormatIndentDecreaseIcon fontSize="small" />
           </ListItemIcon>

@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { useProjectStore, useUIStore } from '../stores';
+import { buildIndentTaskUpdates, buildOutdentTaskUpdates } from '../utils/taskHierarchy';
 
 export function useKeyboardShortcuts() {
   const createTask = useProjectStore((state) => state.createTask);
@@ -62,10 +63,7 @@ export function useKeyboardShortcuts() {
 
       if (ctrl && !shift && event.key.toLowerCase() === 'i') {
         event.preventDefault();
-        const updates = ids.flatMap((id) => {
-          const task = tasks.find((candidate) => candidate.id === id);
-          return task ? [{ id, data: { outlineLevel: task.outlineLevel + 1 } }] : [];
-        });
+        const updates = buildIndentTaskUpdates(tasks, selectedTaskIds);
         if (updates.length > 0) {
           void batchUpdateTasks(updates);
         }
@@ -74,13 +72,7 @@ export function useKeyboardShortcuts() {
 
       if (ctrl && shift && event.key.toLowerCase() === 'i') {
         event.preventDefault();
-        const updates = ids.flatMap((id) => {
-          const task = tasks.find((candidate) => candidate.id === id);
-          if (task && task.outlineLevel > 0) {
-            return [{ id, data: { outlineLevel: task.outlineLevel - 1 } }];
-          }
-          return [];
-        });
+        const updates = buildOutdentTaskUpdates(tasks, selectedTaskIds);
         if (updates.length > 0) {
           void batchUpdateTasks(updates);
         }

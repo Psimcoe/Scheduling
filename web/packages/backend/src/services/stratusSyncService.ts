@@ -41,6 +41,11 @@ import {
   loadBigDataProjectImportSnapshot,
 } from "./stratusBigDataService.js";
 import type { StratusJobProgressReporter } from "./stratusJobService.js";
+import {
+  buildUndefinedPackageExternalKey,
+  UNDEFINED_PACKAGE_PREFIX,
+} from "./stratusPackagePlaceholder.js";
+import { normalizeTaskHierarchy } from "./taskHierarchyService.js";
 
 export interface StratusSyncSummary {
   packageId: string;
@@ -447,8 +452,6 @@ const STRATUS_FETCH_CONCURRENCY = 6;
 const STRATUS_SEED_FETCH_CONCURRENCY = 1;
 const STRATUS_PREVIEW_CACHE_TTL_MS = 15 * 60 * 1_000;
 const STRATUS_PREVIEW_CACHE_MAX_ENTRIES = 24;
-const UNDEFINED_PACKAGE_PREFIX = "stratus-undefined-package:";
-
 function resolvePackageFetchConcurrency(
   options: StratusExecutionOptions,
 ): number {
@@ -4233,10 +4236,16 @@ async function syncStratusProjectGroupsToProject(
     const byAssembly = params.assemblyId
       ? (syncByAssemblyId.get(params.assemblyId) ?? null)
       : null;
+    const byPlaceholder = params.packageId
+      ? (
+          tasksByExternalKey.get(buildUndefinedPackageExternalKey(params.packageId)) ?? []
+        )[0] ?? null
+      : null;
     const byExternalKey = tasksByExternalKey.get(params.externalKey) ?? [];
     const existingTask =
       bySync ??
       byAssembly ??
+      byPlaceholder ??
       (byExternalKey.length > 0 ? (byExternalKey[0] ?? null) : null);
 
     const data = {
@@ -4572,6 +4581,7 @@ async function syncStratusProjectGroupsToProject(
     where: { id: targetProject.id },
     data: { stratusLocalMetadataVersion: 1 },
   });
+  await normalizeTaskHierarchy(targetProject.id, { incrementRevision: false });
 }
 
 function mapStratusProjectToLocalProjectData(

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { computeCosts, computeEarnedValue } from '../services/costService.js';
 import { recalculateProject } from '../services/schedulingService.js';
+import { normalizeTaskHierarchy } from '../services/taskHierarchyService.js';
 
 export default async function advancedRoutes(app: FastifyInstance) {
   // ─── Cost recalculation ──────────────────────────────────────────
@@ -239,6 +240,7 @@ export default async function advancedRoutes(app: FastifyInstance) {
         children.push(child);
       }
 
+      await normalizeTaskHierarchy(projectId, { incrementRevision: false });
       await recalculateProject(projectId);
       return { summaryTask, children, count: children.length };
     },

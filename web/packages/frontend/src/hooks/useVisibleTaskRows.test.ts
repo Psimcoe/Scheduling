@@ -414,6 +414,28 @@ describe('buildVisibleTaskRows', () => {
     expect(result.rows.filter((row) => row.kind === 'task')).toHaveLength(2);
   });
 
+  it('ignores self-parent edges so collapsing a broken row never hides the row itself', () => {
+    const broken = makeTask({ id: 'broken', name: 'Broken', parentId: 'broken' });
+    const sibling = makeTask({ id: 'sibling', name: 'Sibling', sortOrder: 1 });
+
+    const result = buildVisibleTaskRows({
+      tasks: [broken, sibling],
+      dependencies: [],
+      selectedTaskIds: new Set<string>(),
+      collapsedIds: new Set(['broken']),
+      filters: [],
+      sortCriteria: [],
+      groupBy: null,
+    });
+
+    expect(result.visibleTasks.map((task) => task.id)).toEqual(['broken', 'sibling']);
+    expect(result.rows.find((row) => row.kind === 'task' && row.task.id === 'broken')).toMatchObject({
+      kind: 'task',
+      hasChildren: false,
+      isExpanded: false,
+    });
+  });
+
   it('applies filters and numeric sorting before building rows', () => {
     const alpha = makeTask({ id: 'alpha', name: 'Alpha', percentComplete: 25, sortOrder: 2 });
     const beta = makeTask({ id: 'beta', name: 'Beta', percentComplete: 75, sortOrder: 1 });
