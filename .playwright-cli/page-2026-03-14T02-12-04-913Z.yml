@@ -1,0 +1,961 @@
+- generic [ref=e9]:
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - img "ScheduleSync logo" [ref=e2397]
+      - generic [ref=e13]:
+        - heading "ScheduleSync" [level=6] [ref=e2398]
+        - text: Desktop + web planning
+    - separator [ref=e15]
+    - generic [ref=e16]:
+      - heading "Projects" [level=6] [ref=e2399]
+      - generic [ref=e18]:
+        - button "Stratus Settings" [ref=e2400] [cursor=pointer]:
+          - img [ref=e20]
+        - button "Import Active Stratus Projects" [ref=e2401] [cursor=pointer]:
+          - img [ref=e23]
+        - button "New Project" [ref=e2402] [cursor=pointer]:
+          - img [ref=e26]
+    - separator [ref=e28]
+    - list [ref=e29]:
+      - button "320001TUR - MDX RESIDENTIAL TOWER 3/13/2026" [ref=e2403] [cursor=pointer]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: 320001TUR - MDX RESIDENTIAL TOWER
+          - paragraph [ref=e33]: 3/13/2026
+      - button "280011GGC - *PREFAB ONLY - TMC - FLOATING FA 3/13/2026" [ref=e2404] [cursor=pointer]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+          - paragraph [ref=e37]: 3/13/2026
+      - button "210468WAL - 210468WAL - MGH WEST SPD ORs (R26) 3/13/2026" [ref=e2405] [cursor=pointer]:
+        - generic [ref=e39]:
+          - generic [ref=e40]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+          - paragraph [ref=e41]: 3/13/2026
+      - button "200019SKA - 200019SKA - SIMMONS UNV (R21) 3/13/2026" [ref=e2406] [cursor=pointer]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: 200019SKA - 200019SKA - SIMMONS UNV (R21)
+          - paragraph [ref=e45]: 3/13/2026
+      - button "180035PGG - 6232025SMC - PROJECT 1 P&G/Gillette 3/13/2026" [ref=e2407] [cursor=pointer]:
+        - generic [ref=e47]:
+          - generic [ref=e48]: 180035PGG - 6232025SMC - PROJECT 1 P&G/Gillette
+          - paragraph [ref=e49]: 3/13/2026
+      - button "150294TUR - MGH BURR 3/13/2026" [ref=e2408] [cursor=pointer]:
+        - generic [ref=e51]:
+          - generic [ref=e52]: 150294TUR - MGH BURR
+          - paragraph [ref=e53]: 3/13/2026
+      - button "150294TUR - MGH - BURR PROTON 3/13/2026" [ref=e2409] [cursor=pointer]:
+        - generic [ref=e55]:
+          - generic [ref=e56]: 150294TUR - MGH - BURR PROTON
+          - paragraph [ref=e57]: 3/13/2026
+      - button "140032COB - 140032COB - ALNYLAM MANUF. EXPANSION (R25) 3/13/2026" [ref=e2410] [cursor=pointer]:
+        - generic [ref=e59]:
+          - generic [ref=e60]: 140032COB - 140032COB - ALNYLAM MANUF. EXPANSION (R25)
+          - paragraph [ref=e61]: 3/13/2026
+      - button "120048TUR - MGH - 4B CS/P CAMBRIDGE 3/13/2026" [ref=e2411] [cursor=pointer]:
+        - generic [ref=e63]:
+          - generic [ref=e64]: 120048TUR - MGH - 4B CS/P CAMBRIDGE
+          - paragraph [ref=e65]: 3/13/2026
+      - button "10 CAMPCN - 10CAMPCN - 10 CAMPANELLI CIRCLE FITUP 3/13/2026" [ref=e2412] [cursor=pointer]:
+        - generic [ref=e67]:
+          - generic [ref=e68]: 10 CAMPCN - 10CAMPCN - 10 CAMPANELLI CIRCLE FITUP
+          - paragraph [ref=e69]: 3/13/2026
+      - button "00001SMC - PILOT TEST(R23) 3/13/2026" [ref=e2413] [cursor=pointer]:
+        - generic [ref=e71]:
+          - generic [ref=e72]: 00001SMC - PILOT TEST(R23)
+          - paragraph [ref=e73]: 3/13/2026
+      - button "000000XXX - CSD Projects (No Model) 3/13/2026" [ref=e2414] [cursor=pointer]:
+        - generic [ref=e75]:
+          - generic [ref=e76]: 000000XXX - CSD Projects (No Model)
+          - paragraph [ref=e77]: 3/13/2026
+      - button "Field Orderz 3/13/2026" [ref=e2415] [cursor=pointer]:
+        - generic [ref=e79]:
+          - generic [ref=e80]: Field Orderz
+          - paragraph [ref=e81]: 3/13/2026
+      - button "Prefab 3/13/2026" [active] [ref=e2416] [cursor=pointer]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: Prefab
+          - paragraph [ref=e85]: 3/13/2026
+      - button "test 3/13/2026" [ref=e2417] [cursor=pointer]:
+        - generic [ref=e87]:
+          - generic [ref=e88]: test
+          - paragraph [ref=e89]: 3/13/2026
+      - button "Office Building Renovation 3/13/2026" [ref=e2418] [cursor=pointer]:
+        - generic [ref=e91]:
+          - generic [ref=e92]: Office Building Renovation
+          - paragraph [ref=e93]: 3/13/2026
+  - generic [ref=e94]:
+    - banner [ref=e95]:
+      - tablist [ref=e99]:
+        - tab "Task" [selected] [ref=e2419] [cursor=pointer]
+        - tab "Resource" [ref=e2420] [cursor=pointer]
+        - tab "Project" [ref=e2421] [cursor=pointer]
+        - tab "View" [ref=e2422] [cursor=pointer]
+        - tab "Format" [ref=e2423] [cursor=pointer]
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - generic "Add Task" [ref=e2424]:
+              - button "Add Task" [ref=e2425] [cursor=pointer]:
+                - img [ref=e367]
+            - generic "Add Milestone" [ref=e2426]:
+              - button "Add Milestone" [ref=e2427] [cursor=pointer]:
+                - img [ref=e369]
+            - generic "Delete Task" [ref=e2428]:
+              - button "Delete Task" [disabled]:
+                - img
+            - generic "Recurring Task" [ref=e2430]:
+              - button "Recurring Task" [ref=e2431] [cursor=pointer]:
+                - img [ref=e231]
+          - generic [ref=e114]: Insert
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - generic "Indent" [ref=e2432]:
+              - button "Indent" [disabled]:
+                - img
+            - generic "Outdent" [ref=e2434]:
+              - button "Outdent" [disabled]:
+                - img
+            - generic "Link Tasks" [ref=e2436]:
+              - button "Link Tasks" [disabled]:
+                - img
+            - generic "Unlink Tasks" [ref=e2437]:
+              - button "Unlink Tasks" [disabled]:
+                - img
+          - generic [ref=e121]: Schedule
+        - generic [ref=e122]:
+          - generic [ref=e123]:
+            - generic "Undo" [ref=e2439]:
+              - button "Undo" [ref=e2440] [cursor=pointer]:
+                - img [ref=e234]
+            - generic "Redo" [ref=e2441]:
+              - button "Redo" [ref=e2442] [cursor=pointer]:
+                - img [ref=e237]
+            - generic "Undo History" [ref=e2443]:
+              - button "Undo History" [ref=e2444] [cursor=pointer]:
+                - img [ref=e240]
+            - generic "Find & Replace" [ref=e2445]:
+              - button "Find & Replace" [ref=e2446] [cursor=pointer]:
+                - img [ref=e243]
+          - generic [ref=e128]: Editing
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - generic "Task Information" [ref=e2447]:
+              - button "Task Information" [disabled]:
+                - img
+            - generic "Mark on Track" [ref=e2449]:
+              - button "Mark on Track" [disabled]:
+                - img
+          - generic [ref=e133]: Properties
+        - generic [ref=e134]:
+          - generic "AI Assistant" [ref=e2451]:
+            - button "AI Assistant" [ref=e2452] [cursor=pointer]:
+              - img [ref=e137]
+          - generic "AI Settings" [ref=e2453]:
+            - button "AI Settings" [ref=e2454] [cursor=pointer]:
+              - img [ref=e141]
+    - generic [ref=e145]:
+      - grid [ref=e147]:
+        - row "# Task Name Duration Start Finish % Done" [ref=e2455]:
+          - columnheader "#" [ref=e2456]
+          - columnheader "Task Name" [ref=e2457]
+          - columnheader "Duration" [ref=e2458]
+          - columnheader "Start" [ref=e2459]
+          - columnheader "Finish" [ref=e2460]
+          - columnheader "% Done" [ref=e2461]
+        - generic [ref=e158]:
+          - 'row "1 Spool #1 - 50 feet 1d Jan 1 ''26 Jan 1 ''26 100%" [ref=e2858] [cursor=pointer]':
+            - gridcell "1" [ref=e2859]
+            - 'gridcell "Spool #1 - 50 feet" [ref=e2860]':
+              - generic [ref=e2861]:
+                - button [ref=e2862]:
+                  - img [ref=e2863]
+                - generic [ref=e2865]: "Spool #1 - 50 feet"
+            - gridcell "1d" [ref=e2866]
+            - gridcell "Jan 1 '26" [ref=e2867]
+            - gridcell "Jan 1 '26" [ref=e2868]
+            - gridcell "100%" [ref=e2869]
+          - 'row "2 Spool #2 - 150 feet 1d Jan 1 ''26 Jan 1 ''26 100%" [ref=e2870] [cursor=pointer]':
+            - gridcell "2" [ref=e2871]
+            - 'gridcell "Spool #2 - 150 feet" [ref=e2872]':
+              - generic [ref=e2874]: "Spool #2 - 150 feet"
+            - gridcell "1d" [ref=e2875]
+            - gridcell "Jan 1 '26" [ref=e2876]
+            - gridcell "Jan 1 '26" [ref=e2877]
+            - gridcell "100%" [ref=e2878]
+          - 'row "3 Spool #3 - 50 feet 1d Jan 1 ''26 Jan 1 ''26 100%" [ref=e2879] [cursor=pointer]':
+            - gridcell "3" [ref=e2880]
+            - 'gridcell "Spool #3 - 50 feet" [ref=e2881]':
+              - generic [ref=e2883]: "Spool #3 - 50 feet"
+            - gridcell "1d" [ref=e2884]
+            - gridcell "Jan 1 '26" [ref=e2885]
+            - gridcell "Jan 1 '26" [ref=e2886]
+            - gridcell "100%" [ref=e2887]
+          - row "4 2 1/4\" PIPE BENDS A 1d Jan 6 '26 Jan 6 '26 100%" [ref=e2888] [cursor=pointer]:
+            - gridcell "4" [ref=e2889]
+            - gridcell "2 1/4\" PIPE BENDS A" [ref=e2890]:
+              - generic [ref=e2891]:
+                - button [ref=e2892]:
+                  - img [ref=e2893]
+                - generic [ref=e2895]: 2 1/4" PIPE BENDS A
+            - gridcell "1d" [ref=e2896]
+            - gridcell "Jan 6 '26" [ref=e2897]
+            - gridcell "Jan 6 '26" [ref=e2898]
+            - gridcell "100%" [ref=e2899]
+          - row "5 2 1/4\" PIPE BENDS B 1d Jan 6 '26 Jan 6 '26 100%" [ref=e2900] [cursor=pointer]:
+            - gridcell "5" [ref=e2901]
+            - gridcell "2 1/4\" PIPE BENDS B" [ref=e2902]:
+              - generic [ref=e2904]: 2 1/4" PIPE BENDS B
+            - gridcell "1d" [ref=e2905]
+            - gridcell "Jan 6 '26" [ref=e2906]
+            - gridcell "Jan 6 '26" [ref=e2907]
+            - gridcell "100%" [ref=e2908]
+          - row "6 2 1/4\" PIPE BENDS C 1d Jan 6 '26 Jan 6 '26 100%" [ref=e2909] [cursor=pointer]:
+            - gridcell "6" [ref=e2910]
+            - gridcell "2 1/4\" PIPE BENDS C" [ref=e2911]:
+              - generic [ref=e2913]: 2 1/4" PIPE BENDS C
+            - gridcell "1d" [ref=e2914]
+            - gridcell "Jan 6 '26" [ref=e2915]
+            - gridcell "Jan 6 '26" [ref=e2916]
+            - gridcell "100%" [ref=e2917]
+          - row "7 2 1/4\" PIPE BENDS D 1d Jan 6 '26 Jan 6 '26 100%" [ref=e2918] [cursor=pointer]:
+            - gridcell "7" [ref=e2919]
+            - gridcell "2 1/4\" PIPE BENDS D" [ref=e2920]:
+              - generic [ref=e2922]: 2 1/4" PIPE BENDS D
+            - gridcell "1d" [ref=e2923]
+            - gridcell "Jan 6 '26" [ref=e2924]
+            - gridcell "Jan 6 '26" [ref=e2925]
+            - gridcell "100%" [ref=e2926]
+          - row "8 2 1/4\" PIPE BENDS E 1d Jan 6 '26 Jan 6 '26 100%" [ref=e2927] [cursor=pointer]:
+            - gridcell "8" [ref=e2928]
+            - gridcell "2 1/4\" PIPE BENDS E" [ref=e2929]:
+              - generic [ref=e2931]: 2 1/4" PIPE BENDS E
+            - gridcell "1d" [ref=e2932]
+            - gridcell "Jan 6 '26" [ref=e2933]
+            - gridcell "Jan 6 '26" [ref=e2934]
+            - gridcell "100%" [ref=e2935]
+          - row "9 3 1/2\" PIPE BENDS F 1d Jan 6 '26 Jan 6 '26 100%" [ref=e2936] [cursor=pointer]:
+            - gridcell "9" [ref=e2937]
+            - gridcell "3 1/2\" PIPE BENDS F" [ref=e2938]:
+              - generic [ref=e2940]: 3 1/2" PIPE BENDS F
+            - gridcell "1d" [ref=e2941]
+            - gridcell "Jan 6 '26" [ref=e2942]
+            - gridcell "Jan 6 '26" [ref=e2943]
+            - gridcell "100%" [ref=e2944]
+          - row "10 FAB-0940-LEVEL 1-CND- 1d Jan 9 '26 Jan 9 '26 100%" [ref=e2945] [cursor=pointer]:
+            - gridcell "10" [ref=e2946]
+            - gridcell "FAB-0940-LEVEL 1-CND-" [ref=e2947]:
+              - generic [ref=e2949]: FAB-0940-LEVEL 1-CND-
+            - gridcell "1d" [ref=e2950]
+            - gridcell "Jan 9 '26" [ref=e2951]
+            - gridcell "Jan 9 '26" [ref=e2952]
+            - gridcell "100%" [ref=e2953]
+          - row "11 TEMP STAND 1 1d Aug 1 '23 Aug 1 '23 100%" [ref=e2954] [cursor=pointer]:
+            - gridcell "11" [ref=e2955]
+            - gridcell "TEMP STAND 1" [ref=e2956]:
+              - generic [ref=e2957]:
+                - button [ref=e2958]:
+                  - img [ref=e2959]
+                - generic [ref=e2961]: TEMP STAND 1
+            - gridcell "1d" [ref=e2962]
+            - gridcell "Aug 1 '23" [ref=e2963]
+            - gridcell "Aug 1 '23" [ref=e2964]
+            - gridcell "100%" [ref=e2965]
+          - row "12 TEMP STAND 2 1d Aug 1 '23 Aug 1 '23 100%" [ref=e2966] [cursor=pointer]:
+            - gridcell "12" [ref=e2967]
+            - gridcell "TEMP STAND 2" [ref=e2968]:
+              - generic [ref=e2970]: TEMP STAND 2
+            - gridcell "1d" [ref=e2971]
+            - gridcell "Aug 1 '23" [ref=e2972]
+            - gridcell "Aug 1 '23" [ref=e2973]
+            - gridcell "100%" [ref=e2974]
+          - row "13 TEMP STAND 3 1d Aug 1 '23 Aug 1 '23 100%" [ref=e2975] [cursor=pointer]:
+            - gridcell "13" [ref=e2976]
+            - gridcell "TEMP STAND 3" [ref=e2977]:
+              - generic [ref=e2979]: TEMP STAND 3
+            - gridcell "1d" [ref=e2980]
+            - gridcell "Aug 1 '23" [ref=e2981]
+            - gridcell "Aug 1 '23" [ref=e2982]
+            - gridcell "100%" [ref=e2983]
+          - row "14 TEMP STAND 4 1d Aug 1 '23 Aug 1 '23 100%" [ref=e2984] [cursor=pointer]:
+            - gridcell "14" [ref=e2985]
+            - gridcell "TEMP STAND 4" [ref=e2986]:
+              - generic [ref=e2988]: TEMP STAND 4
+            - gridcell "1d" [ref=e2989]
+            - gridcell "Aug 1 '23" [ref=e2990]
+            - gridcell "Aug 1 '23" [ref=e2991]
+            - gridcell "100%" [ref=e2992]
+          - row "15 TEMP STAND 5 1d Aug 1 '23 Aug 1 '23 100%" [ref=e2993] [cursor=pointer]:
+            - gridcell "15" [ref=e2994]
+            - gridcell "TEMP STAND 5" [ref=e2995]:
+              - generic [ref=e2997]: TEMP STAND 5
+            - gridcell "1d" [ref=e2998]
+            - gridcell "Aug 1 '23" [ref=e2999]
+            - gridcell "Aug 1 '23" [ref=e3000]
+            - gridcell "100%" [ref=e3001]
+          - row "16 FAB-0942-LEVEL 3-BRS- 1d Aug 1 '23 Aug 1 '23 0%" [ref=e3002] [cursor=pointer]:
+            - gridcell "16" [ref=e3003]
+            - gridcell "FAB-0942-LEVEL 3-BRS-" [ref=e3004]:
+              - generic [ref=e3006]: FAB-0942-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e3007]
+            - gridcell "Aug 1 '23" [ref=e3008]
+            - gridcell "Aug 1 '23" [ref=e3009]
+            - gridcell "0%" [ref=e3010]
+          - row "17 FAB-0943-LEVEL 3 -BRS- 1d Jan 30 '26 Jan 30 '26 0%" [ref=e3011] [cursor=pointer]:
+            - gridcell "17" [ref=e3012]
+            - gridcell "FAB-0943-LEVEL 3 -BRS-" [ref=e3013]:
+              - generic [ref=e3015]: FAB-0943-LEVEL 3 -BRS-
+            - gridcell "1d" [ref=e3016]
+            - gridcell "Jan 30 '26" [ref=e3017]
+            - gridcell "Jan 30 '26" [ref=e3018]
+            - gridcell "0%" [ref=e3019]
+          - row "18 FAB-0944-LEVEL 3-CND- 1d Feb 27 '26 Feb 27 '26 0%" [ref=e3020] [cursor=pointer]:
+            - gridcell "18" [ref=e3021]
+            - gridcell "FAB-0944-LEVEL 3-CND-" [ref=e3022]:
+              - generic [ref=e3024]: FAB-0944-LEVEL 3-CND-
+            - gridcell "1d" [ref=e3025]
+            - gridcell "Feb 27 '26" [ref=e3026]
+            - gridcell "Feb 27 '26" [ref=e3027]
+            - gridcell "0%" [ref=e3028]
+          - row "19 FAB-0945-LEVEL 3-BRS- 1d Jan 30 '26 Jan 30 '26 0%" [ref=e3029] [cursor=pointer]:
+            - gridcell "19" [ref=e3030]
+            - gridcell "FAB-0945-LEVEL 3-BRS-" [ref=e3031]:
+              - generic [ref=e3033]: FAB-0945-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e3034]
+            - gridcell "Jan 30 '26" [ref=e3035]
+            - gridcell "Jan 30 '26" [ref=e3036]
+            - gridcell "0%" [ref=e3037]
+          - row "20 FAB-0946-LEVEL 3 -BRS- 1d Jan 30 '26 Jan 30 '26 0%" [ref=e3038] [cursor=pointer]:
+            - gridcell "20" [ref=e3039]
+            - gridcell "FAB-0946-LEVEL 3 -BRS-" [ref=e3040]:
+              - generic [ref=e3042]: FAB-0946-LEVEL 3 -BRS-
+            - gridcell "1d" [ref=e3043]
+            - gridcell "Jan 30 '26" [ref=e3044]
+            - gridcell "Jan 30 '26" [ref=e3045]
+            - gridcell "0%" [ref=e3046]
+          - row "21 FAB-0947-LEVEL 3-BRS- 1d Aug 1 '23 Aug 1 '23 0%" [ref=e3047] [cursor=pointer]:
+            - gridcell "21" [ref=e3048]
+            - gridcell "FAB-0947-LEVEL 3-BRS-" [ref=e3049]:
+              - generic [ref=e3051]: FAB-0947-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e3052]
+            - gridcell "Aug 1 '23" [ref=e3053]
+            - gridcell "Aug 1 '23" [ref=e3054]
+            - gridcell "0%" [ref=e3055]
+          - row "22 FAB-0948-LEVEL 3-BRS- 1d Aug 1 '23 Aug 1 '23 0%" [ref=e3056] [cursor=pointer]:
+            - gridcell "22" [ref=e3057]
+            - gridcell "FAB-0948-LEVEL 3-BRS-" [ref=e3058]:
+              - generic [ref=e3060]: FAB-0948-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e3061]
+            - gridcell "Aug 1 '23" [ref=e3062]
+            - gridcell "Aug 1 '23" [ref=e3063]
+            - gridcell "0%" [ref=e3064]
+          - row "23 FAB-0949-LEVEL 3-BRS- 1d Aug 1 '23 Aug 1 '23 0%" [ref=e3065] [cursor=pointer]:
+            - gridcell "23" [ref=e3066]
+            - gridcell "FAB-0949-LEVEL 3-BRS-" [ref=e3067]:
+              - generic [ref=e3069]: FAB-0949-LEVEL 3-BRS-
+            - gridcell "1d" [ref=e3070]
+            - gridcell "Aug 1 '23" [ref=e3071]
+            - gridcell "Aug 1 '23" [ref=e3072]
+            - gridcell "0%" [ref=e3073]
+          - row "24 FAB-0950-drop-1 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3074] [cursor=pointer]:
+            - gridcell "24" [ref=e3075]
+            - gridcell "FAB-0950-drop-1" [ref=e3076]:
+              - generic [ref=e3077]:
+                - button [ref=e3078]:
+                  - img [ref=e3079]
+                - generic [ref=e3081]: FAB-0950-drop-1
+            - gridcell "1d" [ref=e3082]
+            - gridcell "Jan 30 '26" [ref=e3083]
+            - gridcell "Jan 30 '26" [ref=e3084]
+            - gridcell "100%" [ref=e3085]
+          - row "25 FAB-0950-drop-2 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3086] [cursor=pointer]:
+            - gridcell "25" [ref=e3087]
+            - gridcell "FAB-0950-drop-2" [ref=e3088]:
+              - generic [ref=e3090]: FAB-0950-drop-2
+            - gridcell "1d" [ref=e3091]
+            - gridcell "Jan 30 '26" [ref=e3092]
+            - gridcell "Jan 30 '26" [ref=e3093]
+            - gridcell "100%" [ref=e3094]
+          - row "26 FAB-0950-drop-3 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3095] [cursor=pointer]:
+            - gridcell "26" [ref=e3096]
+            - gridcell "FAB-0950-drop-3" [ref=e3097]:
+              - generic [ref=e3099]: FAB-0950-drop-3
+            - gridcell "1d" [ref=e3100]
+            - gridcell "Jan 30 '26" [ref=e3101]
+            - gridcell "Jan 30 '26" [ref=e3102]
+            - gridcell "100%" [ref=e3103]
+          - row "27 FAB-0950-drop-4 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3104] [cursor=pointer]:
+            - gridcell "27" [ref=e3105]
+            - gridcell "FAB-0950-drop-4" [ref=e3106]:
+              - generic [ref=e3108]: FAB-0950-drop-4
+            - gridcell "1d" [ref=e3109]
+            - gridcell "Jan 30 '26" [ref=e3110]
+            - gridcell "Jan 30 '26" [ref=e3111]
+            - gridcell "100%" [ref=e3112]
+          - row "28 FAB-0950-drop-5 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3113] [cursor=pointer]:
+            - gridcell "28" [ref=e3114]
+            - gridcell "FAB-0950-drop-5" [ref=e3115]:
+              - generic [ref=e3117]: FAB-0950-drop-5
+            - gridcell "1d" [ref=e3118]
+            - gridcell "Jan 30 '26" [ref=e3119]
+            - gridcell "Jan 30 '26" [ref=e3120]
+            - gridcell "100%" [ref=e3121]
+          - row "29 FAB-0950-drop-6 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3122] [cursor=pointer]:
+            - gridcell "29" [ref=e3123]
+            - gridcell "FAB-0950-drop-6" [ref=e3124]:
+              - generic [ref=e3126]: FAB-0950-drop-6
+            - gridcell "1d" [ref=e3127]
+            - gridcell "Jan 30 '26" [ref=e3128]
+            - gridcell "Jan 30 '26" [ref=e3129]
+            - gridcell "100%" [ref=e3130]
+          - row "30 FAB-0950-drop-7 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3131] [cursor=pointer]:
+            - gridcell "30" [ref=e3132]
+            - gridcell "FAB-0950-drop-7" [ref=e3133]:
+              - generic [ref=e3135]: FAB-0950-drop-7
+            - gridcell "1d" [ref=e3136]
+            - gridcell "Jan 30 '26" [ref=e3137]
+            - gridcell "Jan 30 '26" [ref=e3138]
+            - gridcell "100%" [ref=e3139]
+          - row "31 FAB-0950-drop-8 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3140] [cursor=pointer]:
+            - gridcell "31" [ref=e3141]
+            - gridcell "FAB-0950-drop-8" [ref=e3142]:
+              - generic [ref=e3144]: FAB-0950-drop-8
+            - gridcell "1d" [ref=e3145]
+            - gridcell "Jan 30 '26" [ref=e3146]
+            - gridcell "Jan 30 '26" [ref=e3147]
+            - gridcell "100%" [ref=e3148]
+          - row "32 FAB-0950-drop-9 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3149] [cursor=pointer]:
+            - gridcell "32" [ref=e3150]
+            - gridcell "FAB-0950-drop-9" [ref=e3151]:
+              - generic [ref=e3153]: FAB-0950-drop-9
+            - gridcell "1d" [ref=e3154]
+            - gridcell "Jan 30 '26" [ref=e3155]
+            - gridcell "Jan 30 '26" [ref=e3156]
+            - gridcell "100%" [ref=e3157]
+          - row "33 FAB-0950-drop-10 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3158] [cursor=pointer]:
+            - gridcell "33" [ref=e3159]
+            - gridcell "FAB-0950-drop-10" [ref=e3160]:
+              - generic [ref=e3162]: FAB-0950-drop-10
+            - gridcell "1d" [ref=e3163]
+            - gridcell "Jan 30 '26" [ref=e3164]
+            - gridcell "Jan 30 '26" [ref=e3165]
+            - gridcell "100%" [ref=e3166]
+          - row "34 FAB-0950-drop-11 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3167] [cursor=pointer]:
+            - gridcell "34" [ref=e3168]
+            - gridcell "FAB-0950-drop-11" [ref=e3169]:
+              - generic [ref=e3171]: FAB-0950-drop-11
+            - gridcell "1d" [ref=e3172]
+            - gridcell "Jan 30 '26" [ref=e3173]
+            - gridcell "Jan 30 '26" [ref=e3174]
+            - gridcell "100%" [ref=e3175]
+          - row "35 FAB-0950-drop-12 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3176] [cursor=pointer]:
+            - gridcell "35" [ref=e3177]
+            - gridcell "FAB-0950-drop-12" [ref=e3178]:
+              - generic [ref=e3180]: FAB-0950-drop-12
+            - gridcell "1d" [ref=e3181]
+            - gridcell "Jan 30 '26" [ref=e3182]
+            - gridcell "Jan 30 '26" [ref=e3183]
+            - gridcell "100%" [ref=e3184]
+          - row "36 FAB-0950-drop-13 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3185] [cursor=pointer]:
+            - gridcell "36" [ref=e3186]
+            - gridcell "FAB-0950-drop-13" [ref=e3187]:
+              - generic [ref=e3189]: FAB-0950-drop-13
+            - gridcell "1d" [ref=e3190]
+            - gridcell "Jan 30 '26" [ref=e3191]
+            - gridcell "Jan 30 '26" [ref=e3192]
+            - gridcell "100%" [ref=e3193]
+          - row "37 FAB-0950-drop-14 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3194] [cursor=pointer]:
+            - gridcell "37" [ref=e3195]
+            - gridcell "FAB-0950-drop-14" [ref=e3196]:
+              - generic [ref=e3198]: FAB-0950-drop-14
+            - gridcell "1d" [ref=e3199]
+            - gridcell "Jan 30 '26" [ref=e3200]
+            - gridcell "Jan 30 '26" [ref=e3201]
+            - gridcell "100%" [ref=e3202]
+          - row "38 FAB-0950-drop-15 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3203] [cursor=pointer]:
+            - gridcell "38" [ref=e3204]
+            - gridcell "FAB-0950-drop-15" [ref=e3205]:
+              - generic [ref=e3207]: FAB-0950-drop-15
+            - gridcell "1d" [ref=e3208]
+            - gridcell "Jan 30 '26" [ref=e3209]
+            - gridcell "Jan 30 '26" [ref=e3210]
+            - gridcell "100%" [ref=e3211]
+          - row "39 FAB-0950-drop-16 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3212] [cursor=pointer]:
+            - gridcell "39" [ref=e3213]
+            - gridcell "FAB-0950-drop-16" [ref=e3214]:
+              - generic [ref=e3216]: FAB-0950-drop-16
+            - gridcell "1d" [ref=e3217]
+            - gridcell "Jan 30 '26" [ref=e3218]
+            - gridcell "Jan 30 '26" [ref=e3219]
+            - gridcell "100%" [ref=e3220]
+          - row "40 FAB-0950-drop-17 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3221] [cursor=pointer]:
+            - gridcell "40" [ref=e3222]
+            - gridcell "FAB-0950-drop-17" [ref=e3223]:
+              - generic [ref=e3225]: FAB-0950-drop-17
+            - gridcell "1d" [ref=e3226]
+            - gridcell "Jan 30 '26" [ref=e3227]
+            - gridcell "Jan 30 '26" [ref=e3228]
+            - gridcell "100%" [ref=e3229]
+          - row "41 FAB-0950-drop-18 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3230] [cursor=pointer]:
+            - gridcell "41" [ref=e3231]
+            - gridcell "FAB-0950-drop-18" [ref=e3232]:
+              - generic [ref=e3234]: FAB-0950-drop-18
+            - gridcell "1d" [ref=e3235]
+            - gridcell "Jan 30 '26" [ref=e3236]
+            - gridcell "Jan 30 '26" [ref=e3237]
+            - gridcell "100%" [ref=e3238]
+          - row "42 FAB-0950-drop-19 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3239] [cursor=pointer]:
+            - gridcell "42" [ref=e3240]
+            - gridcell "FAB-0950-drop-19" [ref=e3241]:
+              - generic [ref=e3243]: FAB-0950-drop-19
+            - gridcell "1d" [ref=e3244]
+            - gridcell "Jan 30 '26" [ref=e3245]
+            - gridcell "Jan 30 '26" [ref=e3246]
+            - gridcell "100%" [ref=e3247]
+          - row "43 FAB-0950-drop-20 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3248] [cursor=pointer]:
+            - gridcell "43" [ref=e3249]
+            - gridcell "FAB-0950-drop-20" [ref=e3250]:
+              - generic [ref=e3252]: FAB-0950-drop-20
+            - gridcell "1d" [ref=e3253]
+            - gridcell "Jan 30 '26" [ref=e3254]
+            - gridcell "Jan 30 '26" [ref=e3255]
+            - gridcell "100%" [ref=e3256]
+          - row "44 FAB-0950-drop-21 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3257] [cursor=pointer]:
+            - gridcell "44" [ref=e3258]
+            - gridcell "FAB-0950-drop-21" [ref=e3259]:
+              - generic [ref=e3261]: FAB-0950-drop-21
+            - gridcell "1d" [ref=e3262]
+            - gridcell "Jan 30 '26" [ref=e3263]
+            - gridcell "Jan 30 '26" [ref=e3264]
+            - gridcell "100%" [ref=e3265]
+          - row "45 FAB-0950-drop-22 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3266] [cursor=pointer]:
+            - gridcell "45" [ref=e3267]
+            - gridcell "FAB-0950-drop-22" [ref=e3268]:
+              - generic [ref=e3270]: FAB-0950-drop-22
+            - gridcell "1d" [ref=e3271]
+            - gridcell "Jan 30 '26" [ref=e3272]
+            - gridcell "Jan 30 '26" [ref=e3273]
+            - gridcell "100%" [ref=e3274]
+          - row "46 FAB-0950-drop-23 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3275] [cursor=pointer]:
+            - gridcell "46" [ref=e3276]
+            - gridcell "FAB-0950-drop-23" [ref=e3277]:
+              - generic [ref=e3279]: FAB-0950-drop-23
+            - gridcell "1d" [ref=e3280]
+            - gridcell "Jan 30 '26" [ref=e3281]
+            - gridcell "Jan 30 '26" [ref=e3282]
+            - gridcell "100%" [ref=e3283]
+          - row "47 FAB-0950-drop-24 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3284] [cursor=pointer]:
+            - gridcell "47" [ref=e3285]
+            - gridcell "FAB-0950-drop-24" [ref=e3286]:
+              - generic [ref=e3288]: FAB-0950-drop-24
+            - gridcell "1d" [ref=e3289]
+            - gridcell "Jan 30 '26" [ref=e3290]
+            - gridcell "Jan 30 '26" [ref=e3291]
+            - gridcell "100%" [ref=e3292]
+          - row "48 FAB-0950-drop-25 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3293] [cursor=pointer]:
+            - gridcell "48" [ref=e3294]
+            - gridcell "FAB-0950-drop-25" [ref=e3295]:
+              - generic [ref=e3297]: FAB-0950-drop-25
+            - gridcell "1d" [ref=e3298]
+            - gridcell "Jan 30 '26" [ref=e3299]
+            - gridcell "Jan 30 '26" [ref=e3300]
+            - gridcell "100%" [ref=e3301]
+          - row "49 FAB-0950-drop-26 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3302] [cursor=pointer]:
+            - gridcell "49" [ref=e3303]
+            - gridcell "FAB-0950-drop-26" [ref=e3304]:
+              - generic [ref=e3306]: FAB-0950-drop-26
+            - gridcell "1d" [ref=e3307]
+            - gridcell "Jan 30 '26" [ref=e3308]
+            - gridcell "Jan 30 '26" [ref=e3309]
+            - gridcell "100%" [ref=e3310]
+          - row "50 FAB-0950-drop-27 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3311] [cursor=pointer]:
+            - gridcell "50" [ref=e3312]
+            - gridcell "FAB-0950-drop-27" [ref=e3313]:
+              - generic [ref=e3315]: FAB-0950-drop-27
+            - gridcell "1d" [ref=e3316]
+            - gridcell "Jan 30 '26" [ref=e3317]
+            - gridcell "Jan 30 '26" [ref=e3318]
+            - gridcell "100%" [ref=e3319]
+          - row "51 FAB-0950-drop-28 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3320] [cursor=pointer]:
+            - gridcell "51" [ref=e3321]
+            - gridcell "FAB-0950-drop-28" [ref=e3322]:
+              - generic [ref=e3324]: FAB-0950-drop-28
+            - gridcell "1d" [ref=e3325]
+            - gridcell "Jan 30 '26" [ref=e3326]
+            - gridcell "Jan 30 '26" [ref=e3327]
+            - gridcell "100%" [ref=e3328]
+          - row "52 FAB-0950-drop-29 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3329] [cursor=pointer]:
+            - gridcell "52" [ref=e3330]
+            - gridcell "FAB-0950-drop-29" [ref=e3331]:
+              - generic [ref=e3333]: FAB-0950-drop-29
+            - gridcell "1d" [ref=e3334]
+            - gridcell "Jan 30 '26" [ref=e3335]
+            - gridcell "Jan 30 '26" [ref=e3336]
+            - gridcell "100%" [ref=e3337]
+          - row "53 FAB-0950-drop-30 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3338] [cursor=pointer]:
+            - gridcell "53" [ref=e3339]
+            - gridcell "FAB-0950-drop-30" [ref=e3340]:
+              - generic [ref=e3342]: FAB-0950-drop-30
+            - gridcell "1d" [ref=e3343]
+            - gridcell "Jan 30 '26" [ref=e3344]
+            - gridcell "Jan 30 '26" [ref=e3345]
+            - gridcell "100%" [ref=e3346]
+          - row "54 FAB-0950-drop-31 1d Jan 30 '26 Jan 30 '26 100%" [ref=e3347] [cursor=pointer]:
+            - gridcell "54" [ref=e3348]
+            - gridcell "FAB-0950-drop-31" [ref=e3349]:
+              - generic [ref=e3351]: FAB-0950-drop-31
+            - gridcell "1d" [ref=e3352]
+            - gridcell "Jan 30 '26" [ref=e3353]
+            - gridcell "Jan 30 '26" [ref=e3354]
+            - gridcell "100%" [ref=e3355]
+      - generic [ref=e171]:
+        - generic [ref=e175]:
+          - generic [ref=e176]:
+            - generic [ref=e177]: Jul 2023
+            - generic [ref=e1581]: Aug 2023
+            - generic [ref=e1582]: Sep 2023
+            - generic [ref=e1583]: Oct 2023
+            - generic [ref=e2850]: Nov 2023
+            - generic [ref=e3356]: Dec 2023
+            - generic [ref=e3357]: Jan 2024
+            - generic [ref=e3358]: Feb 2024
+            - generic [ref=e3359]: Mar 2024
+            - generic [ref=e3360]: Apr 2024
+            - generic [ref=e3361]: May 2024
+            - generic [ref=e3362]: Jun 2024
+            - generic [ref=e3363]: Jul 2024
+            - generic [ref=e3364]: Aug 2024
+            - generic [ref=e3365]: Sep 2024
+            - generic [ref=e3366]: Oct 2024
+            - generic [ref=e3367]: Nov 2024
+            - generic [ref=e3368]: Dec 2024
+            - generic [ref=e3369]: Jan 2025
+            - generic [ref=e3370]: Feb 2025
+            - generic [ref=e3371]: Mar 2025
+            - generic [ref=e3372]: Apr 2025
+            - generic [ref=e3373]: May 2025
+            - generic [ref=e3374]: Jun 2025
+            - generic [ref=e3375]: Jul 2025
+            - generic [ref=e3376]: Aug 2025
+            - generic [ref=e3377]: Sep 2025
+            - generic [ref=e3378]: Oct 2025
+            - generic [ref=e3379]: Nov 2025
+            - generic [ref=e3380]: Dec 2025
+            - generic [ref=e3381]: Jan 2026
+            - generic [ref=e3382]: Feb 2026
+            - generic [ref=e3383]: Mar 2026
+            - generic [ref=e3384]: Apr 2026
+            - generic [ref=e3385]: May 2026
+            - generic [ref=e3386]: Jun 2026
+            - generic [ref=e3387]: Jul 2026
+            - generic [ref=e3388]: Aug 2026
+            - generic [ref=e3389]: Sep 2026
+          - generic [ref=e182]:
+            - generic [ref=e183]: "23"
+            - generic [ref=e184]: "30"
+            - generic [ref=e185]: "6"
+            - generic [ref=e186]: "13"
+            - generic [ref=e1584]: "20"
+            - generic [ref=e1585]: "27"
+            - generic [ref=e1586]: "3"
+            - generic [ref=e1587]: "10"
+            - generic [ref=e1588]: "17"
+            - generic [ref=e1589]: "24"
+            - generic [ref=e1590]: "1"
+            - generic [ref=e1591]: "8"
+            - generic [ref=e1592]: "15"
+            - generic [ref=e1593]: "22"
+            - generic [ref=e2851]: "29"
+            - generic [ref=e2852]: "5"
+            - generic [ref=e2853]: "12"
+            - generic [ref=e2854]: "19"
+            - generic [ref=e2855]: "26"
+            - generic [ref=e2856]: "3"
+            - generic [ref=e3390]: "10"
+            - generic [ref=e3391]: "17"
+            - generic [ref=e3392]: "24"
+            - generic [ref=e3393]: "31"
+            - generic [ref=e3394]: "7"
+            - generic [ref=e3395]: "14"
+            - generic [ref=e3396]: "21"
+            - generic [ref=e3397]: "28"
+            - generic [ref=e3398]: "4"
+            - generic [ref=e3399]: "11"
+            - generic [ref=e3400]: "18"
+            - generic [ref=e3401]: "25"
+            - generic [ref=e3402]: "3"
+            - generic [ref=e3403]: "10"
+            - generic [ref=e3404]: "17"
+            - generic [ref=e3405]: "24"
+            - generic [ref=e3406]: "31"
+            - generic [ref=e3407]: "7"
+            - generic [ref=e3408]: "14"
+            - generic [ref=e3409]: "21"
+            - generic [ref=e3410]: "28"
+            - generic [ref=e3411]: "5"
+            - generic [ref=e3412]: "12"
+            - generic [ref=e3413]: "19"
+            - generic [ref=e3414]: "26"
+            - generic [ref=e3415]: "2"
+            - generic [ref=e3416]: "9"
+            - generic [ref=e3417]: "16"
+            - generic [ref=e3418]: "23"
+            - generic [ref=e3419]: "30"
+            - generic [ref=e3420]: "7"
+            - generic [ref=e3421]: "14"
+            - generic [ref=e3422]: "21"
+            - generic [ref=e3423]: "28"
+            - generic [ref=e3424]: "4"
+            - generic [ref=e3425]: "11"
+            - generic [ref=e3426]: "18"
+            - generic [ref=e3427]: "25"
+            - generic [ref=e3428]: "1"
+            - generic [ref=e3429]: "8"
+            - generic [ref=e3430]: "15"
+            - generic [ref=e3431]: "22"
+            - generic [ref=e3432]: "29"
+            - generic [ref=e3433]: "6"
+            - generic [ref=e3434]: "13"
+            - generic [ref=e3435]: "20"
+            - generic [ref=e3436]: "27"
+            - generic [ref=e3437]: "3"
+            - generic [ref=e3438]: "10"
+            - generic [ref=e3439]: "17"
+            - generic [ref=e3440]: "24"
+            - generic [ref=e3441]: "1"
+            - generic [ref=e3442]: "8"
+            - generic [ref=e3443]: "15"
+            - generic [ref=e3444]: "22"
+            - generic [ref=e3445]: "29"
+            - generic [ref=e3446]: "5"
+            - generic [ref=e3447]: "12"
+            - generic [ref=e3448]: "19"
+            - generic [ref=e3449]: "26"
+            - generic [ref=e3450]: "2"
+            - generic [ref=e3451]: "9"
+            - generic [ref=e3452]: "16"
+            - generic [ref=e3453]: "23"
+            - generic [ref=e3454]: "2"
+            - generic [ref=e3455]: "9"
+            - generic [ref=e3456]: "16"
+            - generic [ref=e3457]: "23"
+            - generic [ref=e3458]: "30"
+            - generic [ref=e3459]: "6"
+            - generic [ref=e3460]: "13"
+            - generic [ref=e3461]: "20"
+            - generic [ref=e3462]: "27"
+            - generic [ref=e3463]: "4"
+            - generic [ref=e3464]: "11"
+            - generic [ref=e3465]: "18"
+            - generic [ref=e3466]: "25"
+            - generic [ref=e3467]: "1"
+            - generic [ref=e3468]: "8"
+            - generic [ref=e3469]: "15"
+            - generic [ref=e3470]: "22"
+            - generic [ref=e3471]: "29"
+            - generic [ref=e3472]: "6"
+            - generic [ref=e3473]: "13"
+            - generic [ref=e3474]: "20"
+            - generic [ref=e3475]: "27"
+            - generic [ref=e3476]: "3"
+            - generic [ref=e3477]: "10"
+            - generic [ref=e3478]: "17"
+            - generic [ref=e3479]: "24"
+            - generic [ref=e3480]: "31"
+            - generic [ref=e3481]: "7"
+            - generic [ref=e3482]: "14"
+            - generic [ref=e3483]: "21"
+            - generic [ref=e3484]: "28"
+            - generic [ref=e3485]: "5"
+            - generic [ref=e3486]: "12"
+            - generic [ref=e3487]: "19"
+            - generic [ref=e3488]: "26"
+            - generic [ref=e3489]: "2"
+            - generic [ref=e3490]: "9"
+            - generic [ref=e3491]: "16"
+            - generic [ref=e3492]: "23"
+            - generic [ref=e3493]: "30"
+            - generic [ref=e3494]: "7"
+            - generic [ref=e3495]: "14"
+            - generic [ref=e3496]: "21"
+            - generic [ref=e3497]: "28"
+            - generic [ref=e3498]: "4"
+            - generic [ref=e3499]: "11"
+            - generic [ref=e3500]: "18"
+            - generic [ref=e3501]: "25"
+            - generic [ref=e3502]: "1"
+            - generic [ref=e3503]: "8"
+            - generic [ref=e3504]: "15"
+            - generic [ref=e3505]: "22"
+            - generic [ref=e3506]: "1"
+            - generic [ref=e3507]: "8"
+            - generic [ref=e3508]: "15"
+            - generic [ref=e3509]: "22"
+            - generic [ref=e3510]: "29"
+            - generic [ref=e3511]: "5"
+            - generic [ref=e3512]: "12"
+            - generic [ref=e3513]: "19"
+            - generic [ref=e3514]: "26"
+            - generic [ref=e3515]: "3"
+            - generic [ref=e3516]: "10"
+            - generic [ref=e3517]: "17"
+            - generic [ref=e3518]: "24"
+            - generic [ref=e3519]: "31"
+            - generic [ref=e3520]: "7"
+            - generic [ref=e3521]: "14"
+            - generic [ref=e3522]: "21"
+            - generic [ref=e3523]: "28"
+            - generic [ref=e3524]: "5"
+            - generic [ref=e3525]: "12"
+            - generic [ref=e3526]: "19"
+            - generic [ref=e3527]: "26"
+            - generic [ref=e3528]: "2"
+            - generic [ref=e3529]: "9"
+            - generic [ref=e3530]: "16"
+            - generic [ref=e3531]: "23"
+            - generic [ref=e3532]: "30"
+            - generic [ref=e3533]: "6"
+            - generic [ref=e3534]: "13"
+        - generic [ref=e204]:
+          - generic [ref=e3590]:
+            - generic:
+              - generic: "Spool #1 - 50 feet"
+          - generic [ref=e3596]:
+            - generic:
+              - generic: "Spool #2 - 150 feet"
+          - generic [ref=e3602]:
+            - generic:
+              - generic: "Spool #3 - 50 feet"
+          - generic [ref=e3608]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS A
+          - generic [ref=e3614]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS B
+          - generic [ref=e3620]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS C
+          - generic [ref=e3626]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS D
+          - generic [ref=e3632]:
+            - generic:
+              - generic: 2 1/4" PIPE BENDS E
+          - generic [ref=e3638]:
+            - generic:
+              - generic: 3 1/2" PIPE BENDS F
+          - generic [ref=e3648]:
+            - generic:
+              - generic: TEMP STAND 1
+          - generic [ref=e3653]:
+            - generic:
+              - generic: TEMP STAND 2
+          - generic [ref=e3658]:
+            - generic:
+              - generic: TEMP STAND 3
+          - generic [ref=e3663]:
+            - generic:
+              - generic: TEMP STAND 4
+          - generic [ref=e3668]:
+            - generic:
+              - generic: TEMP STAND 5
+          - generic [ref=e3705]:
+            - generic:
+              - generic: FAB-0950-drop-1
+          - generic [ref=e3711]:
+            - generic:
+              - generic: FAB-0950-drop-2
+          - generic [ref=e3717]:
+            - generic:
+              - generic: FAB-0950-drop-3
+          - generic [ref=e3723]:
+            - generic:
+              - generic: FAB-0950-drop-4
+          - generic [ref=e3729]:
+            - generic:
+              - generic: FAB-0950-drop-5
+          - generic [ref=e3735]:
+            - generic:
+              - generic: FAB-0950-drop-6
+          - generic [ref=e3741]:
+            - generic:
+              - generic: FAB-0950-drop-7
+          - generic [ref=e3747]:
+            - generic:
+              - generic: FAB-0950-drop-8
+          - generic [ref=e3753]:
+            - generic:
+              - generic: FAB-0950-drop-9
+          - generic [ref=e3759]:
+            - generic:
+              - generic: FAB-0950-drop-10
+          - generic [ref=e3765]:
+            - generic:
+              - generic: FAB-0950-drop-11
+          - generic [ref=e3771]:
+            - generic:
+              - generic: FAB-0950-drop-12
+          - generic [ref=e3777]:
+            - generic:
+              - generic: FAB-0950-drop-13
+          - generic [ref=e3783]:
+            - generic:
+              - generic: FAB-0950-drop-14
+          - generic [ref=e3789]:
+            - generic:
+              - generic: FAB-0950-drop-15
+          - generic [ref=e3795]:
+            - generic:
+              - generic: FAB-0950-drop-16
+          - generic [ref=e3801]:
+            - generic:
+              - generic: FAB-0950-drop-17
+          - generic [ref=e3807]:
+            - generic:
+              - generic: FAB-0950-drop-18
+          - generic [ref=e3813]:
+            - generic:
+              - generic: FAB-0950-drop-19
+          - generic [ref=e3819]:
+            - generic:
+              - generic: FAB-0950-drop-20
+          - generic [ref=e3825]:
+            - generic:
+              - generic: FAB-0950-drop-21
+          - generic [ref=e3831]:
+            - generic:
+              - generic: FAB-0950-drop-22
+          - generic [ref=e3837]:
+            - generic:
+              - generic: FAB-0950-drop-23
+          - generic [ref=e3843]:
+            - generic:
+              - generic: FAB-0950-drop-24
+          - generic [ref=e3849]:
+            - generic:
+              - generic: FAB-0950-drop-25
+          - generic [ref=e3855]:
+            - generic:
+              - generic: FAB-0950-drop-26
+          - generic [ref=e3861]:
+            - generic:
+              - generic: FAB-0950-drop-27
+          - generic [ref=e3867]:
+            - generic:
+              - generic: FAB-0950-drop-28
+          - generic [ref=e3873]:
+            - generic:
+              - generic: FAB-0950-drop-29
+          - generic [ref=e3879]:
+            - generic:
+              - generic: FAB-0950-drop-30
+          - generic [ref=e3885]:
+            - generic:
+              - generic: FAB-0950-drop-31
+          - img
+    - generic [ref=e207]:
+      - paragraph [ref=e208]: Gantt Chart
+      - paragraph [ref=e210]: 10382 tasks
+      - paragraph [ref=e3891]: "Start: Aug 1 '23"
+      - paragraph [ref=e3892]: "Finish: Jul 3 '26"
+      - generic [ref=e211]:
+        - paragraph [ref=e212]: "-"
+        - slider [ref=e222]: "3"
+        - paragraph [ref=e223]: +

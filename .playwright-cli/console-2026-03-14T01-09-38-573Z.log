@@ -1,0 +1,19 @@
+Total messages: 5 (Errors: 1, Warnings: 1)
+Returning 2 messages for level "warning"
+
+[WARNING] %s
+
+%s
+ An error occurred in the <ProjectDataBridge> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:6965
+Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at getRootForUpdatedFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:3526:128)
+    at enqueueConcurrentRenderForLane (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:3514:16)
+    at forceStoreRerender (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:6104:21)
+    at http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:6090:107
+    at http://localhost:5173/node_modules/.vite/deps/zustand.js?v=74c3fbb6:17:39
+    at Set.forEach (<anonymous>)
+    at setState (http://localhost:5173/node_modules/.vite/deps/zustand.js?v=74c3fbb6:17:17)
+    at setProjectLoading (http://localhost:5173/src/stores/useProjectStore.ts?t=1773449481124:453:35)
+    at http://localhost:5173/src/data/ProjectDataBridge.tsx?t=1773449481124:79:7
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:18567:20)

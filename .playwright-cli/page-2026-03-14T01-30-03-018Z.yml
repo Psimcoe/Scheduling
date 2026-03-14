@@ -1,0 +1,171 @@
+- generic [ref=e9]:
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - img "ScheduleSync logo" [ref=e12]
+      - generic [ref=e13]:
+        - heading "ScheduleSync" [level=6] [ref=e14]
+        - text: Desktop + web planning
+    - separator [ref=e15]
+    - generic [ref=e16]:
+      - heading "Projects" [level=6] [ref=e17]
+      - generic [ref=e18]:
+        - button "Stratus Settings" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+        - button "Import Active Stratus Projects" [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+        - button "New Project" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+    - separator [ref=e28]
+    - list [ref=e29]:
+      - button "Prefab 3/13/2026" [ref=e30] [cursor=pointer]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: Prefab
+          - paragraph [ref=e33]: 3/13/2026
+      - button "test 3/13/2026" [ref=e34] [cursor=pointer]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: test
+          - paragraph [ref=e37]: 3/13/2026
+      - button "320001TUR - MDX RESIDENTIAL TOWER 3/13/2026" [ref=e38] [cursor=pointer]:
+        - generic [ref=e39]:
+          - generic [ref=e40]: 320001TUR - MDX RESIDENTIAL TOWER
+          - paragraph [ref=e41]: 3/13/2026
+      - button "Office Building Renovation 3/13/2026" [ref=e42] [cursor=pointer]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: Office Building Renovation
+          - paragraph [ref=e45]: 3/13/2026
+      - button "280011GGC - *PREFAB ONLY - TMC - FLOATING FA 3/13/2026" [ref=e46] [cursor=pointer]:
+        - generic [ref=e47]:
+          - generic [ref=e48]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+          - paragraph [ref=e49]: 3/13/2026
+      - button "210468WAL - 210468WAL - MGH WEST SPD ORs (R26) 3/13/2026" [ref=e50] [cursor=pointer]:
+        - generic [ref=e51]:
+          - generic [ref=e52]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+          - paragraph [ref=e53]: 3/13/2026
+  - generic [ref=e54]:
+    - banner [ref=e55]:
+      - tablist [ref=e59]:
+        - tab "Task" [selected] [ref=e60] [cursor=pointer]
+        - tab "Resource" [ref=e61] [cursor=pointer]
+        - tab "Project" [ref=e62] [cursor=pointer]
+        - tab "View" [ref=e63] [cursor=pointer]
+        - tab "Format" [ref=e64] [cursor=pointer]
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic "Add Task" [ref=e70]:
+              - button "Add Task" [disabled]:
+                - img
+            - generic "Add Milestone" [ref=e71]:
+              - button "Add Milestone" [disabled]:
+                - img
+            - generic "Delete Task" [ref=e72]:
+              - button "Delete Task" [disabled]:
+                - img
+            - generic "Recurring Task" [ref=e73]:
+              - button "Recurring Task" [disabled]:
+                - img
+          - generic [ref=e74]: Insert
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - generic "Indent" [ref=e77]:
+              - button "Indent" [disabled]:
+                - img
+            - generic "Outdent" [ref=e78]:
+              - button "Outdent" [disabled]:
+                - img
+            - generic "Link Tasks" [ref=e79]:
+              - button "Link Tasks" [disabled]:
+                - img
+            - generic "Unlink Tasks" [ref=e80]:
+              - button "Unlink Tasks" [disabled]:
+                - img
+          - generic [ref=e81]: Schedule
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic "Undo" [ref=e84]:
+              - button "Undo" [disabled]:
+                - img
+            - generic "Redo" [ref=e85]:
+              - button "Redo" [disabled]:
+                - img
+            - generic "Undo History" [ref=e86]:
+              - button "Undo History" [disabled]:
+                - img
+            - generic "Find & Replace" [ref=e87]:
+              - button "Find & Replace" [disabled]:
+                - img
+          - generic [ref=e88]: Editing
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - generic "Task Information" [ref=e91]:
+              - button "Task Information" [disabled]:
+                - img
+            - generic "Mark on Track" [ref=e92]:
+              - button "Mark on Track" [disabled]:
+                - img
+          - generic [ref=e93]: Properties
+        - generic [ref=e94]:
+          - generic "AI Assistant" [ref=e95]:
+            - button "AI Assistant" [ref=e96] [cursor=pointer]:
+              - img [ref=e97]
+          - generic "AI Settings" [ref=e99]:
+            - button "AI Settings" [ref=e100] [cursor=pointer]:
+              - img [ref=e101]
+    - generic [ref=e105]:
+      - grid [ref=e107]:
+        - row "# Task Name Duration Start Finish % Done" [ref=e110]:
+          - columnheader "#" [ref=e111]
+          - columnheader "Task Name" [ref=e112]
+          - columnheader "Duration" [ref=e113]
+          - columnheader "Start" [ref=e114]
+          - columnheader "Finish" [ref=e115]
+          - columnheader "% Done" [ref=e116]
+        - generic [ref=e118]:
+          - row [ref=e119]:
+            - gridcell [ref=e120]
+            - gridcell [ref=e121]:
+              - textbox "Type a new task name..." [ref=e124]
+            - gridcell [ref=e125]
+            - gridcell [ref=e126]
+            - gridcell [ref=e127]
+            - gridcell [ref=e128]
+          - generic:
+            - paragraph: No tasks yet. Add a task to begin.
+      - generic [ref=e131]:
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - generic [ref=e137]: Mar 2026
+            - generic [ref=e138]: Apr 2026
+            - generic [ref=e139]: May 2026
+            - generic [ref=e140]: Jun 2026
+            - generic [ref=e141]: Jul 2026
+          - generic [ref=e142]:
+            - generic [ref=e143]: "1"
+            - generic [ref=e144]: "8"
+            - generic [ref=e145]: "15"
+            - generic [ref=e146]: "22"
+            - generic [ref=e147]: "29"
+            - generic [ref=e148]: "5"
+            - generic [ref=e149]: "12"
+            - generic [ref=e150]: "19"
+            - generic [ref=e151]: "26"
+            - generic [ref=e152]: "3"
+            - generic [ref=e153]: "10"
+            - generic [ref=e154]: "17"
+            - generic [ref=e155]: "24"
+            - generic [ref=e156]: "31"
+            - generic [ref=e157]: "7"
+            - generic [ref=e158]: "14"
+            - generic [ref=e159]: "21"
+            - generic [ref=e160]: "28"
+            - generic [ref=e161]: "5"
+            - generic [ref=e162]: "12"
+        - generic [ref=e164]:
+          - img
+    - generic [ref=e167]:
+      - paragraph [ref=e168]: Gantt Chart
+      - paragraph [ref=e170]: 0 tasks
+      - generic [ref=e171]:
+        - paragraph [ref=e172]: "-"
+        - slider [ref=e182]: "3"
+        - paragraph [ref=e183]: +

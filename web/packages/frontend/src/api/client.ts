@@ -211,6 +211,7 @@ export interface TaskResponse {
   deadline: string | null;
   notes?: string | null;
   externalKey: string | null;
+  isNameManagedByStratus: boolean;
   sortOrder: number;
   stratusSync: StratusSyncSummary | null;
   stratusStatus?: StratusStatusSummaryResponse | null;
@@ -289,24 +290,34 @@ export interface TaskMutationResponse {
   revision: number;
   snapshot: ProjectSnapshotResponse;
   task: TaskResponse;
+  recalculation?: MutationRecalculationResponse;
+}
+
+export interface TaskUpdateResponse {
+  revision: number;
+  task: TaskResponse;
+  recalculation?: MutationRecalculationResponse;
 }
 
 export interface TaskBatchUpdateResponse {
   updated: number;
   revision: number;
   snapshot: ProjectSnapshotResponse;
+  recalculation?: MutationRecalculationResponse;
 }
 
 export interface TaskDeleteResponse {
   deletedTaskIds: string[];
   revision: number;
   snapshot: ProjectSnapshotResponse;
+  recalculation?: MutationRecalculationResponse;
 }
 
 export interface DependencyMutationResponse {
   revision: number;
   snapshot: ProjectSnapshotResponse;
   dependency: DependencyResponse;
+  recalculation?: MutationRecalculationResponse;
 }
 
 export interface DependencyBatchResponse {
@@ -314,6 +325,7 @@ export interface DependencyBatchResponse {
   deletedDependencyIds: string[];
   revision: number;
   snapshot: ProjectSnapshotResponse;
+  recalculation?: MutationRecalculationResponse;
 }
 
 export interface ImportMspdiResponse {
@@ -345,6 +357,12 @@ export interface TaskRecalculateResponse {
   ok: boolean;
   revision: number;
   snapshot: ProjectSnapshotResponse;
+  recalculation?: MutationRecalculationResponse;
+}
+
+export interface MutationRecalculationResponse {
+  status: "notNeeded" | "queued" | "running" | "completed";
+  jobId?: string;
 }
 
 export const projectsApi = {
@@ -386,7 +404,7 @@ export const tasksApi = {
       body: JSON.stringify(data),
     }),
   update: (projectId: string, taskId: string, data: Record<string, unknown>) =>
-    request<TaskMutationResponse>(`/projects/${projectId}/tasks/${taskId}`, {
+    request<TaskUpdateResponse>(`/projects/${projectId}/tasks/${taskId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
@@ -441,7 +459,7 @@ export const dependenciesApi = {
       body: JSON.stringify(data),
     }),
   delete: (projectId: string, depId: string) =>
-    request<{ deletedDependencyIds: string[]; revision: number; snapshot: ProjectSnapshotResponse }>(`/projects/${projectId}/dependencies/${depId}`, {
+    request<{ deletedDependencyIds: string[]; revision: number; snapshot: ProjectSnapshotResponse; recalculation?: MutationRecalculationResponse }>(`/projects/${projectId}/dependencies/${depId}`, {
       method: "DELETE",
     }),
 };

@@ -11,9 +11,11 @@ import {
   removeProjectKnowledge,
 } from '../services/scheduleKnowledgeService.js';
 import {
+  invalidateProjectSnapshotCache,
   loadProjectSnapshot,
   type ProjectSnapshotDetailLevel,
 } from '../services/projectSnapshotService.js';
+import { notifyProjectRevision } from '../services/scheduleJobService.js';
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -141,6 +143,8 @@ export default async function projectRoutes(app: FastifyInstance) {
     const project = await prisma.project.update({ where: { id }, data });
     await logProjectMutation(id, 'project_updated', { before, after: project }, 'user');
     markProjectKnowledgeDirty(id);
+    invalidateProjectSnapshotCache(id);
+    notifyProjectRevision(id, project.revision);
     return project;
   });
 
@@ -150,6 +154,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     const before = await prisma.project.findUniqueOrThrow({ where: { id } });
     await logProjectMutation(id, 'project_deleted', { before }, 'user');
     await removeProjectKnowledge(id);
+    invalidateProjectSnapshotCache(id);
     await prisma.project.delete({ where: { id } });
     return reply.code(204).send();
   });

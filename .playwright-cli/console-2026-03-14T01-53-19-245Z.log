@@ -1,0 +1,142 @@
+[  326176ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/api/stratus/projects/import/jobs:0
+[  326205ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773449441163:54:19)
+    at async startJob (http://localhost:5173/src/hooks/useStratusJob.ts:67:24)
+    at async handleQuickImport (http://localhost:5173/src/components/dialogs/StratusProjectImportDialog.tsx?t=1773451578321:123:5)
+[  642563ms] DataCloneError: Failed to execute 'postMessage' on 'Worker': Data cannot be cloned, out of memory.
+    at http://localhost:5173/src/hooks/useVisibleTaskRows.ts?t=1773451673660:117:23
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:18567:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:997:72)
+    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:9411:163)
+    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:9465:60)
+    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11040:29)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11010:13)
+    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11201:13)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11010:13)
+    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11033:13)
+[  642563ms] [WARNING] %s
+
+%s
+ An error occurred in the <SplitView> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:6965
+[ 1537126ms] DataCloneError: Failed to execute 'postMessage' on 'Worker': Data cannot be cloned, out of memory.
+    at http://localhost:5173/src/hooks/useVisibleTaskRows.ts?t=1773451673660:117:23
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:18567:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:997:72)
+    at commitHookEffectListMount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:9411:163)
+    at commitHookPassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:9465:60)
+    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11040:29)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11010:13)
+    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11201:13)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11010:13)
+    at commitPassiveMountOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:11033:13)
+[ 1537126ms] [WARNING] %s
+
+%s
+ An error occurred in the <SplitView> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:6965
+[ 2895139ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/session:0
+[ 2895176ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 2895193ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773456064229:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773456093657:47:18)
+[ 2918268ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/session:0
+[ 2918302ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 2918319ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773456064229:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773456116808:47:18)
+[ 3038675ms] [WARNING] You are loading @emotion/react when it is already loaded. Running multiple instances may cause problems. This can happen if multiple versions are used, or if multiple builds of the same version are used. @ http://localhost:5173/node_modules/.vite/deps/chunk-SEUFYG3K.js?v=4c20c23c:3837
+[ 3083388ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5173/src/hooks/visibleTaskRowsModel.ts?t=1773456282097:0
+[ 3146295ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 3146296ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 3146318ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773456064229:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773456136172:47:18)
+[ 3146318ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773456064229:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773456136172:47:18)
+[ 3165995ms] [ERROR] React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ SplitView 1. useCallback                useCallback
+2. useCallback                useCallback
+3. useSyncExternalStore       useSyncExternalStore
+4. useDebugValue              useDebugValue
+5. useCallback                useCallback
+6. useCallback                useCallback
+7. useSyncExternalStore       useSyncExternalStore
+8. useDebugValue              useDebugValue
+9. useCallback                useCallback
+10. useCallback               useCallback
+11. useSyncExternalStore      useSyncExternalStore
+12. useDebugValue             useDebugValue
+13. useCallback               useCallback
+14. useCallback               useCallback
+15. useSyncExternalStore      useSyncExternalStore
+16. useDebugValue             useDebugValue
+17. useCallback               useCallback
+18. useCallback               useCallback
+19. useSyncExternalStore      useSyncExternalStore
+20. useDebugValue             useDebugValue
+21. useCallback               useCallback
+22. useCallback               useCallback
+23. useSyncExternalStore      useSyncExternalStore
+24. useDebugValue             useDebugValue
+25. useCallback               useCallback
+26. useCallback               useCallback
+27. useSyncExternalStore      useSyncExternalStore
+28. useDebugValue             useDebugValue
+29. useCallback               useCallback
+30. useCallback               useCallback
+31. useSyncExternalStore      useSyncExternalStore
+32. useDebugValue             useDebugValue
+33. useCallback               useCallback
+34. useCallback               useCallback
+35. useSyncExternalStore      useSyncExternalStore
+36. useDebugValue             useDebugValue
+37. useCallback               useCallback
+38. useCallback               useCallback
+39. useSyncExternalStore      useSyncExternalStore
+40. useDebugValue             useDebugValue
+41. useCallback               useCallback
+42. useCallback               useCallback
+43. useSyncExternalStore      useSyncExternalStore
+44. useDebugValue             useDebugValue
+45. useDeferredValue          useCallback
+ @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:5593
+[ 3166001ms] TypeError: Cannot read properties of null (reading 'getSnapshot')
+    at updateSyncExternalStore (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:6055:18)
+    at Object.useSyncExternalStore (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:19018:18)
+    at exports.useSyncExternalStore (http://localhost:5173/node_modules/.vite/deps/chunk-LMOPMDLE.js?v=4c20c23c:962:36)
+    at useStore (http://localhost:5173/node_modules/.vite/deps/zustand.js?v=4c20c23c:36:38)
+    at useBoundStore (http://localhost:5173/node_modules/.vite/deps/zustand.js?v=4c20c23c:46:39)
+    at useVisibleTaskRows (http://localhost:5173/src/hooks/useVisibleTaskRows.ts?t=1773456365162:45:19)
+    at SplitView (http://localhost:5173/src/components/layout/SplitView.tsx?t=1773456365162:46:41)
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:18509:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:5654:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:7475:21)
+[ 3166001ms] [WARNING] %s
+
+%s
+ An error occurred in the <SplitView> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:6965
+[ 3176865ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/session:0
+[ 3176865ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 3176866ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 3176892ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773456064229:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773456136172:47:18)
+[ 3176892ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773456064229:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773456136172:47:18)
+[ 3176903ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 3176920ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773456064229:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773456136172:47:18)
+[ 3345269ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/session:0
+[ 3345304ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 3345320ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773456402203:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773456543817:47:18)

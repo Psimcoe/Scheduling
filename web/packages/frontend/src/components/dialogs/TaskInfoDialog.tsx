@@ -230,26 +230,60 @@ const TaskInfoDialog: React.FC = () => {
     () => parseStratusProjectExternalKey(displayTask?.externalKey),
     [displayTask?.externalKey],
   );
+  const isNameLocked = Boolean(displayTask?.isNameManagedByStratus);
 
   const handleSave = async () => {
     if (!displayTask || !activeProjectId) return;
     setSaving(true);
     try {
       const mins = parseDuration(durationStr);
-      await updateTask(displayTask.id, {
-        name,
-        durationMinutes: mins !== null ? mins : displayTask.durationMinutes,
-        start: new Date(start).toISOString(),
-        finish: new Date(finish).toISOString(),
-        percentComplete,
-        constraintType,
-        constraintDate: constraintDate
-          ? new Date(constraintDate).toISOString()
-          : null,
-        isManuallyScheduled,
-        notes,
-        deadline: deadline ? new Date(deadline).toISOString() : null,
-      });
+      const nextDurationMinutes =
+        mins !== null ? mins : displayTask.durationMinutes;
+      const nextStart = new Date(start).toISOString();
+      const nextFinish = new Date(finish).toISOString();
+      const nextConstraintDate = constraintDate
+        ? new Date(constraintDate).toISOString()
+        : null;
+      const nextDeadline = deadline ? new Date(deadline).toISOString() : null;
+      const updates: Record<string, unknown> = {};
+
+      if (!isNameLocked && name.trim() && name.trim() !== displayTask.name) {
+        updates.name = name.trim();
+      }
+      if (nextDurationMinutes !== displayTask.durationMinutes) {
+        updates.durationMinutes = nextDurationMinutes;
+      }
+      if (nextStart !== displayTask.start) {
+        updates.start = nextStart;
+      }
+      if (nextFinish !== displayTask.finish) {
+        updates.finish = nextFinish;
+      }
+      if (percentComplete !== displayTask.percentComplete) {
+        updates.percentComplete = percentComplete;
+      }
+      if (constraintType !== displayTask.constraintType) {
+        updates.constraintType = constraintType;
+      }
+      if (nextConstraintDate !== (displayTask.constraintDate ?? null)) {
+        updates.constraintDate = nextConstraintDate;
+      }
+      if (isManuallyScheduled !== displayTask.isManuallyScheduled) {
+        updates.isManuallyScheduled = isManuallyScheduled;
+      }
+      if (notes !== (displayTask.notes ?? '')) {
+        updates.notes = notes;
+      }
+      if (nextDeadline !== (displayTask.deadline ?? null)) {
+        updates.deadline = nextDeadline;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        closeDialog();
+        return;
+      }
+
+      await updateTask(displayTask.id, updates);
       closeDialog();
     } catch (error: unknown) {
       showSnackbar(error instanceof Error ? error.message : 'Save failed', 'error');
@@ -353,13 +387,21 @@ const TaskInfoDialog: React.FC = () => {
                   onChange={(e) => setName(e.target.value)}
                   fullWidth
                   size="small"
+                  disabled={isNameLocked}
+                  helperText={
+                    isNameLocked
+                      ? 'Task name is managed by Stratus and is read-only here.'
+                      : undefined
+                  }
                 />
-                <AiSuggestButton
-                  taskId={displayTask?.id}
-                  taskName={name}
-                  field="name"
-                  onAccept={(s) => setName(s)}
-                />
+                {!isNameLocked && (
+                  <AiSuggestButton
+                    taskId={displayTask?.id}
+                    taskName={name}
+                    field="name"
+                    onAccept={(s) => setName(s)}
+                  />
+                )}
               </Box>
             </Grid>
             <Grid size={4}>

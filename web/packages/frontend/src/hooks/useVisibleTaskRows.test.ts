@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { buildVisibleTaskRows } from './useVisibleTaskRows';
+import {
+  buildDependencyShells,
+  buildTaskShells,
+  buildVisibleTaskRowsModel,
+  materializeVisibleTaskRows,
+} from './visibleTaskRowsModel';
 import type { DependencyRow, TaskRow } from '../stores';
 
 function makeTask(overrides: Partial<TaskRow>): TaskRow {
@@ -30,6 +36,7 @@ function makeTask(overrides: Partial<TaskRow>): TaskRow {
     deadline: null,
     notes: null,
     externalKey: null,
+    isNameManagedByStratus: false,
     sortOrder: 0,
     stratusSync: null,
     fixedCost: null,
@@ -132,5 +139,33 @@ describe('buildVisibleTaskRows', () => {
       task: { id: 'design' },
     });
     expect(result.rows.at(-1)).toEqual({ kind: 'newTask', key: 'new-task' });
+  });
+
+  it('materializes the worker model back to the same visible row result', () => {
+    const parent = makeTask({ id: 'parent', name: 'Parent', type: 'summary' });
+    const child = makeTask({ id: 'child', name: 'Child', parentId: 'parent', outlineLevel: 1 });
+    const dependency = makeDependency({ id: 'dep-1', fromTaskId: 'parent', toTaskId: 'child' });
+    const args = {
+      tasks: [parent, child],
+      dependencies: [dependency],
+      selectedTaskIds: new Set(['child']),
+      collapsedIds: new Set<string>(),
+      filters: [],
+      sortCriteria: [],
+      groupBy: null,
+    };
+
+    const direct = buildVisibleTaskRows(args);
+    const materialized = materializeVisibleTaskRows(
+      buildVisibleTaskRowsModel({
+        ...args,
+        tasks: buildTaskShells(args.tasks),
+        dependencies: buildDependencyShells(args.dependencies),
+      }),
+      args.tasks,
+      args.dependencies,
+    );
+
+    expect(materialized).toEqual(direct);
   });
 });

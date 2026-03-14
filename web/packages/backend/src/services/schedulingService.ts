@@ -55,32 +55,87 @@ export async function recalculateProjectData(projectData: ProjectData): Promise<
   return runScheduleWorker(projectData);
 }
 
+interface TaskScheduleUpdate {
+  id: string;
+  data: {
+    start: Date;
+    finish: Date;
+    durationMinutes: number;
+    percentComplete: number;
+    isCritical: boolean;
+    totalSlackMinutes: number;
+    freeSlackMinutes: number;
+    earlyStart: Date | null;
+    earlyFinish: Date | null;
+    lateStart: Date | null;
+    lateFinish: Date | null;
+  };
+}
+
+function toDateOrNull(value: string | null | undefined): Date | null {
+  return value ? new Date(value) : null;
+}
+
+function buildTaskScheduleUpdates(
+  projectData: ProjectData,
+  result: ScheduleResult,
+): TaskScheduleUpdate[] {
+  const existingTasks = new Map(projectData.tasks.map((task) => [task.id, task]));
+
+  return result.tasks.flatMap((task) => {
+    const existingTask = existingTasks.get(task.id);
+
+    if (
+      existingTask &&
+      existingTask.start === task.start &&
+      existingTask.finish === task.finish &&
+      existingTask.durationMinutes === task.durationMinutes &&
+      existingTask.percentComplete === task.percentComplete &&
+      existingTask.isCritical === task.isCritical &&
+      existingTask.totalSlackMinutes === task.totalSlackMinutes &&
+      existingTask.freeSlackMinutes === task.freeSlackMinutes &&
+      existingTask.earlyStart === task.earlyStart &&
+      existingTask.earlyFinish === task.earlyFinish &&
+      existingTask.lateStart === task.lateStart &&
+      existingTask.lateFinish === task.lateFinish
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: task.id,
+        data: {
+          start: new Date(task.start),
+          finish: new Date(task.finish),
+          durationMinutes: task.durationMinutes,
+          percentComplete: task.percentComplete,
+          isCritical: task.isCritical,
+          totalSlackMinutes: task.totalSlackMinutes,
+          freeSlackMinutes: task.freeSlackMinutes,
+          earlyStart: toDateOrNull(task.earlyStart),
+          earlyFinish: toDateOrNull(task.earlyFinish),
+          lateStart: toDateOrNull(task.lateStart),
+          lateFinish: toDateOrNull(task.lateFinish),
+        },
+      },
+    ];
+  });
+}
+
 export async function persistScheduleResult(
   projectId: string,
   projectData: ProjectData,
   result: ScheduleResult,
 ): Promise<number> {
+  const taskScheduleUpdates = buildTaskScheduleUpdates(projectData, result);
   const updatedProject = await prisma.$transaction(async (tx) => {
-    await Promise.all(
-      result.tasks.map((task) =>
-        tx.task.update({
-          where: { id: task.id },
-          data: {
-            start: new Date(task.start),
-            finish: new Date(task.finish),
-            durationMinutes: task.durationMinutes,
-            percentComplete: task.percentComplete,
-            isCritical: task.isCritical,
-            totalSlackMinutes: task.totalSlackMinutes,
-            freeSlackMinutes: task.freeSlackMinutes,
-            earlyStart: task.earlyStart ? new Date(task.earlyStart) : null,
-            earlyFinish: task.earlyFinish ? new Date(task.earlyFinish) : null,
-            lateStart: task.lateStart ? new Date(task.lateStart) : null,
-            lateFinish: task.lateFinish ? new Date(task.lateFinish) : null,
-          },
-        }),
-      ),
-    );
+    for (const taskScheduleUpdate of taskScheduleUpdates) {
+      await tx.task.update({
+        where: { id: taskScheduleUpdate.id },
+        data: taskScheduleUpdate.data,
+      });
+    }
 
     return tx.project.update({
       where: { id: projectId },
@@ -92,6 +147,9 @@ export async function persistScheduleResult(
       },
       select: { revision: true },
     });
+  }, {
+    maxWait: 10_000,
+    timeout: 60_000,
   });
 
   return updatedProject.revision;

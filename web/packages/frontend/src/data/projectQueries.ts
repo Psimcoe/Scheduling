@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   projectsApi,
   type ProjectSnapshotResponse,
@@ -42,6 +42,5 @@ export function useProjectSnapshotQuery(
       : ['projects', 'snapshot', 'idle', detailLevel],
     queryFn: () => projectsApi.snapshot(projectId!, detailLevel),
     enabled: !!projectId && enabled,
-    placeholderData: keepPreviousData,
   });
 }

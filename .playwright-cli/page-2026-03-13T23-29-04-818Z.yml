@@ -1,0 +1,198 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e179]
+        - generic [ref=e7]:
+          - heading [level=6] [ref=e180]: ScheduleSync
+          - text: Desktop + web planning
+      - separator [ref=e9]
+      - generic [ref=e10]:
+        - heading [level=6] [ref=e181]: Projects
+        - generic [ref=e12]:
+          - button [ref=e182] [cursor=pointer]:
+            - img [ref=e14]
+          - button [ref=e183] [cursor=pointer]:
+            - img [ref=e17]
+          - button [ref=e184] [cursor=pointer]:
+            - img [ref=e20]
+      - separator [ref=e22]
+      - list [ref=e23]:
+        - button [ref=e185] [cursor=pointer]:
+          - generic [ref=e156]:
+            - generic [ref=e157]: Prefab
+            - paragraph [ref=e158]: 3/13/2026
+        - button [ref=e186] [cursor=pointer]:
+          - generic [ref=e160]:
+            - generic [ref=e161]: 320001TUR - MDX RESIDENTIAL TOWER
+            - paragraph [ref=e162]: 3/13/2026
+        - button [ref=e187] [cursor=pointer]:
+          - generic [ref=e164]:
+            - generic [ref=e165]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+            - paragraph [ref=e166]: 3/13/2026
+        - button [ref=e188] [cursor=pointer]:
+          - generic [ref=e168]:
+            - generic [ref=e169]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+            - paragraph [ref=e170]: 3/13/2026
+        - button [ref=e189] [cursor=pointer]:
+          - generic [ref=e172]:
+            - generic [ref=e173]: test
+            - paragraph [ref=e174]: 3/13/2026
+        - button [ref=e190] [cursor=pointer]:
+          - generic [ref=e176]:
+            - generic [ref=e177]: Office Building Renovation
+            - paragraph [ref=e178]: 3/13/2026
+    - generic [ref=e25]:
+      - banner [ref=e26]:
+        - tablist [ref=e30]:
+          - tab [selected] [ref=e191] [cursor=pointer]: Task
+          - tab [ref=e192] [cursor=pointer]: Resource
+          - tab [ref=e193] [cursor=pointer]: Project
+          - tab [ref=e194] [cursor=pointer]: View
+          - tab [ref=e195] [cursor=pointer]: Format
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - generic [ref=e196]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e197]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e198]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e199]:
+                - button [disabled]:
+                  - img
+            - generic [ref=e45]: Insert
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - generic [ref=e200]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e201]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e202]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e203]:
+                - button [disabled]:
+                  - img
+            - generic [ref=e52]: Schedule
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - generic [ref=e204]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e205]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e206]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e207]:
+                - button [disabled]:
+                  - img
+            - generic [ref=e59]: Editing
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - generic [ref=e208]:
+                - button [disabled]:
+                  - img
+              - generic [ref=e209]:
+                - button [disabled]:
+                  - img
+            - generic [ref=e64]: Properties
+          - generic [ref=e65]:
+            - button [ref=e211] [cursor=pointer]:
+              - img [ref=e68]
+            - button [ref=e213] [cursor=pointer]:
+              - img [ref=e72]
+      - generic [ref=e76]:
+        - grid [ref=e78]:
+          - row [ref=e214]:
+            - columnheader [ref=e215]: "#"
+            - columnheader [ref=e216]: Task Name
+            - columnheader [ref=e217]: Duration
+            - columnheader [ref=e218]: Start
+            - columnheader [ref=e219]: Finish
+            - columnheader [ref=e220]: "% Done"
+          - generic [ref=e89]:
+            - row [ref=e90]:
+              - gridcell [ref=e91]
+              - gridcell [ref=e92]:
+                - textbox [ref=e221]:
+                  - /placeholder: Type a new task name...
+              - gridcell [ref=e96]
+              - gridcell [ref=e97]
+              - gridcell [ref=e98]
+              - gridcell [ref=e99]
+            - generic:
+              - paragraph: No tasks yet. Add a task to begin.
+        - generic [ref=e102]:
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - generic [ref=e108]: Mar 2026
+              - generic [ref=e109]: Apr 2026
+              - generic [ref=e110]: May 2026
+              - generic [ref=e111]: Jun 2026
+              - generic [ref=e112]: Jul 2026
+            - generic [ref=e113]:
+              - generic [ref=e114]: "1"
+              - generic [ref=e115]: "8"
+              - generic [ref=e116]: "15"
+              - generic [ref=e117]: "22"
+              - generic [ref=e118]: "29"
+              - generic [ref=e119]: "5"
+              - generic [ref=e120]: "12"
+              - generic [ref=e121]: "19"
+              - generic [ref=e122]: "26"
+              - generic [ref=e123]: "3"
+              - generic [ref=e124]: "10"
+              - generic [ref=e125]: "17"
+              - generic [ref=e126]: "24"
+              - generic [ref=e127]: "31"
+              - generic [ref=e128]: "7"
+              - generic [ref=e129]: "14"
+              - generic [ref=e130]: "21"
+              - generic [ref=e131]: "28"
+              - generic [ref=e132]: "5"
+              - generic [ref=e133]: "12"
+          - generic [ref=e135]:
+            - img
+      - generic [ref=e138]:
+        - paragraph [ref=e139]: Gantt Chart
+        - paragraph [ref=e141]: 0 tasks
+        - generic [ref=e142]:
+          - paragraph [ref=e143]: "-"
+          - slider [ref=e153]: "3"
+          - paragraph [ref=e154]: +
+  - dialog "Import Active Stratus Projects" [ref=e224]:
+    - heading "Import Active Stratus Projects" [level=2] [ref=e225]
+    - generic [ref=e227]:
+      - alert [ref=e228]:
+        - img [ref=e230]
+        - generic [ref=e232]: Quick Import runs immediately in the background using the Stratus API. Preview remains available when you want to review the import set first.
+      - alert [ref=e233]:
+        - img [ref=e235]
+        - generic [ref=e237]:
+          - text: Use
+          - strong [ref=e238]: Exclude
+          - text: to keep a Stratus project out of this import and future imports. Use
+          - strong [ref=e239]: Include
+          - text: later to restore it.
+      - alert [ref=e240]:
+        - img [ref=e242]
+        - generic [ref=e244]:
+          - text: Choose
+          - strong [ref=e245]: Quick Import
+          - text: to start immediately, or
+          - strong [ref=e246]: Preview
+          - text: to review the active Stratus projects first.
+    - generic [ref=e247]:
+      - button "Stratus Settings" [ref=e249] [cursor=pointer]
+      - button "Close" [ref=e250] [cursor=pointer]
+      - button "Preview" [ref=e251] [cursor=pointer]
+      - button "Quick Import" [ref=e252] [cursor=pointer]

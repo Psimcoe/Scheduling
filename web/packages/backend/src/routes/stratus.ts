@@ -15,6 +15,7 @@ import {
   getStratusJob,
 } from "../services/stratusJobService.js";
 import { saveStratusSettingsForProject } from "../services/stratusStatusMappingService.js";
+import { notifyCurrentProjectRevision } from "../services/scheduleJobService.js";
 import {
   applyStratusProjectImport,
   applyStratusPull,
@@ -165,6 +166,8 @@ export default async function stratusRoutes(app: FastifyInstance) {
         forceApiRead: true,
         progress: reportProgress,
       });
+    }, {
+      projectId: null,
     });
   });
 
@@ -214,6 +217,7 @@ export default async function stratusRoutes(app: FastifyInstance) {
             progress: reportProgress,
           });
           await finalizePullApplyLogging(projectId, result);
+          await notifyCurrentProjectRevision(projectId);
           return result;
         }
 
@@ -223,6 +227,7 @@ export default async function stratusRoutes(app: FastifyInstance) {
           progress: reportProgress,
         });
       }, {
+        projectId,
         singleFlightKey:
           body.mode === "apply"
             ? buildPullSingleFlightKey(projectId, refreshMode)
@@ -238,6 +243,7 @@ export default async function stratusRoutes(app: FastifyInstance) {
       await captureUndo(projectId, "Stratus pull");
       const result = await applyStratusPull(projectId, getStratusConfig());
       await finalizePullApplyLogging(projectId, result);
+      await notifyCurrentProjectRevision(projectId);
       return result;
     },
   );
@@ -263,6 +269,10 @@ export default async function stratusRoutes(app: FastifyInstance) {
         projectPatch: body.project,
       });
 
+      if (result.snapshot) {
+        await notifyCurrentProjectRevision(projectId);
+      }
+
       if (result.mode !== "seedRequired") {
         return result;
       }
@@ -284,9 +294,11 @@ export default async function stratusRoutes(app: FastifyInstance) {
               }),
           });
           await finalizePullApplyLogging(projectId, pullResult);
+          await notifyCurrentProjectRevision(projectId);
           return pullResult;
         },
         {
+          projectId,
           singleFlightKey: buildPullSingleFlightKey(projectId, "full"),
         },
       );
@@ -333,6 +345,7 @@ export default async function stratusRoutes(app: FastifyInstance) {
         );
         markProjectKnowledgeDirty(result.sourceProjectId);
       }
+      await notifyCurrentProjectRevision(result.sourceProjectId);
       return result;
     },
   );
@@ -366,6 +379,7 @@ export default async function stratusRoutes(app: FastifyInstance) {
         });
         markProjectKnowledgeDirty(result.prefabProjectId);
       }
+      await notifyCurrentProjectRevision(result.prefabProjectId);
       return result;
     },
   );
@@ -388,6 +402,7 @@ export default async function stratusRoutes(app: FastifyInstance) {
           skipped: result.summary.skipped,
           failed: result.summary.failed,
         });
+        await notifyCurrentProjectRevision(projectId);
       }
       return result;
     },

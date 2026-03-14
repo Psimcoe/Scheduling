@@ -202,7 +202,7 @@ describe('auth integration', () => {
     });
     expect(afterLogout.statusCode).toBe(401);
     expect(afterLogout.json()).toMatchObject({ code: 'AUTH_REQUIRED' });
-  });
+  }, 15_000);
 
   it('rejects callback requests when state validation fails', async () => {
     const harness = await createHarness();

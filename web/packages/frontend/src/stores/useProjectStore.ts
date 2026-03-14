@@ -16,6 +16,7 @@ import {
   type DependencyBatchResponse,
   type DependencyMutationResponse,
   type DependencyResponse,
+  type MutationRecalculationResponse,
   type ProjectDetailResponse,
   type ProjectSnapshotResponse,
   type ProjectSummaryResponse,
@@ -25,6 +26,7 @@ import {
   type TaskMutationResponse,
   type TaskRecalculateResponse,
   type TaskResponse,
+  type TaskUpdateResponse,
 } from '../api/client';
 import {
   getCachedProjectSnapshot,
@@ -41,6 +43,7 @@ export type ResourceRow = ResourceResponse;
 export type AssignmentRow = AssignmentResponse;
 
 type SnapshotMutationResult =
+  | TaskUpdateResponse
   | TaskMutationResponse
   | TaskBatchUpdateResponse
   | TaskDeleteResponse
@@ -72,6 +75,16 @@ interface ProjectQueueState {
   processing: boolean;
 }
 
+export interface ScheduleJobState {
+  id: string;
+  status: 'queued' | 'running' | 'succeeded' | 'failed';
+  startedAt: string | null;
+  finishedAt: string | null;
+  error: string | null;
+  revision: number | null;
+  calculationTimeMs: number | null;
+}
+
 interface ProjectState {
   projects: ProjectSummary[];
   loadingProjects: boolean;
@@ -89,6 +102,7 @@ interface ProjectState {
 
   selectedTaskIds: Set<string>;
   pendingActions: Record<string, number>;
+  scheduleJobs: Record<string, ScheduleJobState | undefined>;
 
   syncProjects: (
     projects: ProjectSummary[],
@@ -101,6 +115,7 @@ interface ProjectState {
   setProjectError: (error: string | null) => void;
   startPendingAction: (actionKey: string) => void;
   finishPendingAction: (actionKey: string) => void;
+  syncScheduleJob: (projectId: string, job: ScheduleJobState) => void;
 
   fetchProjects: () => Promise<void>;
   createProject: (name: string, startDate: string) => Promise<string>;
@@ -232,6 +247,7 @@ function buildOptimisticTask(
     deadline: (data.deadline as string | null | undefined) ?? null,
     notes: typeof data.notes === 'string' ? data.notes : null,
     externalKey: typeof data.externalKey === 'string' ? data.externalKey : null,
+    isNameManagedByStratus: false,
     sortOrder:
       typeof data.sortOrder === 'number' ? data.sortOrder : maxSortOrder + 1,
     stratusSync: null,
@@ -343,6 +359,134 @@ function applySnapshotMutation(
   return applyPatch(snapshot);
 }
 
+function hasSnapshotResult(
+  result: SnapshotMutationResult,
+): result is Exclude<SnapshotMutationResult, TaskUpdateResponse> {
+  return 'snapshot' in result;
+}
+
+function isCompactTaskUpdateResult(
+  result: SnapshotMutationResult,
+): result is TaskUpdateResponse {
+  return 'task' in result && !('snapshot' in result);
+}
+
+function syncRecalculationState(
+  projectId: string,
+  recalculation: MutationRecalculationResponse | undefined,
+): void {
+  if (!recalculation || recalculation.status === 'notNeeded') {
+    return;
+  }
+
+  useProjectStore.setState((state) => {
+    const existingJob = state.scheduleJobs[projectId];
+    const status: ScheduleJobState['status'] =
+      recalculation.status === 'completed'
+        ? 'succeeded'
+        : recalculation.status === 'queued'
+          ? 'queued'
+          : 'running';
+    const scheduleJobs = {
+      ...state.scheduleJobs,
+      [projectId]: {
+        id: recalculation.jobId ?? existingJob?.id ?? `schedule:${projectId}`,
+        status,
+        startedAt: existingJob?.startedAt ?? null,
+        finishedAt: existingJob?.finishedAt ?? null,
+        error: existingJob?.error ?? null,
+        revision: existingJob?.revision ?? null,
+        calculationTimeMs: existingJob?.calculationTimeMs ?? null,
+      },
+    };
+
+    return { scheduleJobs };
+  });
+}
+
+function mergeTaskForSnapshot(
+  existingTask: TaskRow,
+  updatedTask: TaskRow,
+  detailLevel: ProjectSnapshotResponse['detailLevel'],
+): TaskRow {
+  const mergedTask: TaskRow = {
+    ...existingTask,
+    ...updatedTask,
+    detailLevel,
+  };
+
+  if (detailLevel === 'full') {
+    return mergedTask;
+  }
+
+  return {
+    ...mergedTask,
+    detailLevel,
+    notes: existingTask.notes,
+    fixedCost: existingTask.fixedCost,
+    fixedCostAccrual: existingTask.fixedCostAccrual,
+    cost: existingTask.cost,
+    actualCost: existingTask.actualCost,
+    remainingCost: existingTask.remainingCost,
+    work: existingTask.work,
+    actualWork: existingTask.actualWork,
+    remainingWork: existingTask.remainingWork,
+    actualStart: existingTask.actualStart,
+    actualFinish: existingTask.actualFinish,
+    actualDurationMinutes: existingTask.actualDurationMinutes,
+    remainingDuration: existingTask.remainingDuration,
+    bcws: existingTask.bcws,
+    bcwp: existingTask.bcwp,
+    acwp: existingTask.acwp,
+  };
+}
+
+function computeTaskBounds(
+  tasks: TaskRow[],
+): ProjectSnapshotResponse['taskBounds'] {
+  let start: string | null = null;
+  let finish: string | null = null;
+
+  for (const task of tasks) {
+    if (!start || task.start < start) {
+      start = task.start;
+    }
+
+    if (!finish || task.finish > finish) {
+      finish = task.finish;
+    }
+  }
+
+  return { start, finish };
+}
+
+function mergeCompactTaskUpdateIntoSnapshot(
+  snapshot: ProjectSnapshotResponse,
+  updatedTask: TaskRow,
+  revision: number,
+): ProjectSnapshotResponse {
+  let taskFound = false;
+  const tasks = snapshot.tasks.map((task) => {
+    if (task.id !== updatedTask.id) {
+      return task;
+    }
+
+    taskFound = true;
+    return mergeTaskForSnapshot(task, updatedTask, snapshot.detailLevel);
+  });
+
+  return {
+    ...snapshot,
+    revision,
+    project: {
+      ...snapshot.project,
+      revision,
+    },
+    taskBounds: computeTaskBounds(taskFound ? tasks : snapshot.tasks),
+    tasks: taskFound ? tasks : snapshot.tasks,
+  };
+}
+
 function recomputeOptimisticSnapshot(projectId: string): void {
   const queue = getOrCreateQueue(projectId);
   let snapshot = queue.authoritativeSnapshot ?? getProjectSnapshot(projectId);
@@ -356,7 +500,7 @@ function recomputeOptimisticSnapshot(projectId: string): void {
     return;
   }
 
-  if (queue.inFlight) {
+  if (queue.inFlight && queue.inFlight.baseRevision >= snapshot.revision) {
     snapshot = applySnapshotMutation(snapshot, queue.inFlight.applyPatch);
   }
 
@@ -481,13 +625,35 @@ async function processProjectQueue(projectId: string): Promise<void> {
 
       try {
         const result = await current.execute();
-        if (
-          result.snapshot.project.id === projectId &&
-          (!queue.authoritativeSnapshot ||
-            result.revision >= queue.authoritativeSnapshot.revision)
+        syncRecalculationState(projectId, result.recalculation);
+        if (hasSnapshotResult(result)) {
+          if (
+            result.snapshot.project.id === projectId &&
+            (!queue.authoritativeSnapshot ||
+              result.revision >= queue.authoritativeSnapshot.revision)
+          ) {
+            queue.authoritativeSnapshot = result.snapshot;
+            setProjectSnapshot(projectId, result.snapshot);
+          }
+        } else if (
+          isCompactTaskUpdateResult(result) &&
+          queue.authoritativeSnapshot &&
+          result.revision >= queue.authoritativeSnapshot.revision
         ) {
-          queue.authoritativeSnapshot = result.snapshot;
-          setProjectSnapshot(projectId, result.snapshot);
+          const mergedSnapshot = mergeCompactTaskUpdateIntoSnapshot(
+            queue.authoritativeSnapshot,
+            result.task,
+            result.revision,
+          );
+          queue.authoritativeSnapshot = mergedSnapshot;
+          setProjectSnapshot(projectId, mergedSnapshot);
+          queryClient.setQueryData(
+            projectQueryKeys.taskDetail(projectId, result.task.id),
+            result.task,
+          );
+          void queryClient.invalidateQueries({
+            queryKey: projectQueryKeys.snapshotBase(projectId),
+          });
         }
 
         for (const observer of current.observers) {
@@ -539,6 +705,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   error: null,
   selectedTaskIds: new Set(),
   pendingActions: {},
+  scheduleJobs: {},
 
   syncProjects: (projects, loadingProjects, error) =>
     set({
@@ -549,8 +716,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   syncSnapshot: (snapshot) => {
     const queue = getOrCreateQueue(snapshot.project.id);
-    if (!queue.inFlight && queue.queued.length === 0) {
+    const hasPendingMutations = Boolean(queue.inFlight) || queue.queued.length > 0;
+    const authoritativeSnapshot = queue.authoritativeSnapshot;
+
+    if (authoritativeSnapshot && snapshot.revision < authoritativeSnapshot.revision) {
+      return;
+    }
+
+    if (!hasPendingMutations) {
       queue.authoritativeSnapshot = snapshot;
+    } else if (
+      authoritativeSnapshot &&
+      (snapshot.revision > authoritativeSnapshot.revision ||
+        (snapshot.revision === authoritativeSnapshot.revision &&
+          snapshot.detailLevel === 'full' &&
+          authoritativeSnapshot.detailLevel !== 'full'))
+    ) {
+      queue.authoritativeSnapshot = snapshot;
+      recomputeOptimisticSnapshot(snapshot.project.id);
+      return;
     }
 
     if (get().activeProjectId !== snapshot.project.id) {
@@ -582,8 +766,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       selectedTaskIds: new Set(),
     }),
 
-  setProjectLoading: (loading) => set({ loading }),
-  setProjectError: (error) => set({ error, loading: false }),
+  setProjectLoading: (loading) =>
+    set((state) => (state.loading === loading ? state : { loading })),
+  setProjectError: (error) =>
+    set((state) =>
+      state.error === error && state.loading === false
+        ? state
+        : { error, loading: false },
+    ),
 
   startPendingAction: (actionKey) =>
     set((state) => ({
@@ -605,6 +795,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return { pendingActions };
     }),
 
+  syncScheduleJob: (projectId, job) =>
+    set((state) => ({
+      scheduleJobs: {
+        ...state.scheduleJobs,
+        [projectId]: job,
+      },
+    })),
+
   fetchProjects: async () => {
     set({ loadingProjects: true });
     try {
@@ -624,8 +822,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   setActiveProject: async (id) => {
+    const cachedSnapshot = getProjectSnapshot(id);
     set({
       activeProjectId: id,
+      activeProject: cachedSnapshot?.project ?? null,
+      taskBounds: cachedSnapshot?.taskBounds ?? null,
+      tasks: cachedSnapshot?.tasks ?? [],
+      dependencies: cachedSnapshot?.dependencies ?? [],
+      resources: cachedSnapshot?.resources ?? [],
+      assignments: cachedSnapshot?.assignments ?? [],
       loading: true,
       error: null,
       selectedTaskIds: new Set(),
@@ -706,7 +911,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       throw new Error('Project snapshot is not loaded');
     }
 
-    await createSnapshotQueueMutation<TaskMutationResponse>(projectId, {
+    await createSnapshotQueueMutation<TaskUpdateResponse>(projectId, {
       actionKey: 'task:update',
       clientMutationId: crypto.randomUUID(),
       baseRevision: snapshot.revision,
@@ -848,7 +1053,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const projectId = get().activeProjectId;
     if (!projectId) return;
     const response = await dependenciesApi.update(projectId, depId, data);
+    syncRecalculationState(projectId, response.recalculation);
     setProjectSnapshot(projectId, response.snapshot);
+    get().syncSnapshot(response.snapshot);
   },
 
   deleteDependency: async (depId) => {

@@ -1,204 +1,68 @@
-import { useDeferredValue, useMemo } from 'react';
-import { useProjectStore, useUIStore, type DependencyRow, type FilterCriteria, type GroupByOption, type SortCriteria, type TaskRow } from '../stores';
+import {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  useProjectStore,
+  useUIStore,
+  type DependencyRow,
+  type FilterCriteria,
+  type GroupByOption,
+  type SortCriteria,
+  type TaskRow,
+} from '../stores';
+import {
+  buildDependencyShells,
+  buildTaskShells,
+  buildVisibleTaskRows,
+  materializeVisibleTaskRows,
+  type RowModelDependencyShell,
+  type RowModelTaskShell,
+  type VisibleTaskListRow,
+  type VisibleTaskRowsModel,
+  type VisibleTaskRowsResult,
+} from './visibleTaskRowsModel';
 
-export type VisibleTaskListRow =
-  | {
-      kind: 'group';
-      key: string;
-      label: string;
-      count: number;
-    }
-  | {
-      kind: 'task';
-      key: string;
-      task: TaskRow;
-      index: number;
-      isSelected: boolean;
-      isExpanded: boolean;
-      hasChildren: boolean;
-    }
-  | {
-      kind: 'newTask';
-      key: string;
-    };
+const LARGE_PROJECT_TASK_THRESHOLD = 3_000;
 
-export interface VisibleTaskRowsResult {
-  rows: VisibleTaskListRow[];
-  visibleTasks: TaskRow[];
-  visibleDependencies: DependencyRow[];
+interface WorkerMessage {
+  projectId: string | null;
+  revision: number;
+  requestId: number;
+  model: VisibleTaskRowsModel;
 }
 
-function matchesCriterion(task: TaskRow, criterion: FilterCriteria): boolean {
-  const rawValue = (task as unknown as Record<string, unknown>)[criterion.field];
-  const stringValue = String(rawValue ?? '').toLowerCase();
-  const compareValue = String(criterion.value ?? '').toLowerCase();
+const EMPTY_VISIBLE_TASK_ROWS: VisibleTaskRowsResult = {
+  rows: [{ kind: 'newTask', key: 'new-task' }],
+  visibleTasks: [],
+  visibleDependencies: [],
+};
 
-  switch (criterion.operator) {
-    case 'contains':
-      return stringValue.includes(compareValue);
-    case 'eq':
-      return stringValue === compareValue;
-    case 'ne':
-      return stringValue !== compareValue;
-    case 'gt':
-      return Number(rawValue) > Number(criterion.value);
-    case 'lt':
-      return Number(rawValue) < Number(criterion.value);
-    case 'between':
-      return (
-        criterion.value2 != null &&
-        Number(rawValue) >= Number(criterion.value) &&
-        Number(rawValue) <= Number(criterion.value2)
-      );
-    default:
-      return true;
-  }
+function shouldUseWorker(tasks: TaskRow[]): boolean {
+  return tasks.length >= LARGE_PROJECT_TASK_THRESHOLD;
 }
 
-function sortTasks(tasks: TaskRow[], sortCriteria: SortCriteria[]): TaskRow[] {
-  if (sortCriteria.length === 0) {
-    return tasks;
-  }
-
-  return [...tasks].sort((leftTask, rightTask) => {
-    for (const criterion of sortCriteria) {
-      const leftValue = (leftTask as unknown as Record<string, unknown>)[criterion.field];
-      const rightValue = (rightTask as unknown as Record<string, unknown>)[criterion.field];
-      const leftNumber = Number(leftValue);
-      const rightNumber = Number(rightValue);
-      const comparison =
-        !Number.isNaN(leftNumber) && !Number.isNaN(rightNumber)
-          ? leftNumber - rightNumber
-          : String(leftValue ?? '').localeCompare(String(rightValue ?? ''));
-
-      if (comparison !== 0) {
-        return criterion.direction === 'desc' ? -comparison : comparison;
-      }
-    }
-
-    return 0;
-  });
+function getProjectId(rows: TaskRow[] | DependencyRow[]): string | null {
+  return rows[0]?.projectId ?? null;
 }
 
-export function buildVisibleTaskRows(args: {
-  tasks: TaskRow[];
-  dependencies: DependencyRow[];
-  selectedTaskIds: Set<string>;
-  collapsedIds: Set<string>;
-  filters: FilterCriteria[];
-  sortCriteria: SortCriteria[];
-  groupBy: GroupByOption | null;
-}): VisibleTaskRowsResult {
-  const { tasks, dependencies, selectedTaskIds, collapsedIds, filters, sortCriteria, groupBy } = args;
-  const childMap = new Set<string>();
-  const childrenByParentId = new Map<string, string[]>();
-  for (const task of tasks) {
-    if (task.parentId) {
-      childMap.add(task.parentId);
-      const children = childrenByParentId.get(task.parentId) ?? [];
-      children.push(task.id);
-      childrenByParentId.set(task.parentId, children);
-    }
-  }
-
-  const hiddenIds = new Set<string>();
-  if (collapsedIds.size > 0) {
-    const stack = [...collapsedIds];
-    while (stack.length > 0) {
-      const parentId = stack.pop();
-      if (!parentId) {
-        continue;
-      }
-
-      for (const childId of childrenByParentId.get(parentId) ?? []) {
-        if (hiddenIds.has(childId)) {
-          continue;
-        }
-
-        hiddenIds.add(childId);
-        stack.push(childId);
-      }
-    }
-  }
-
-  const filteredTasks = sortTasks(
-    tasks
-      .filter((task) => !hiddenIds.has(task.id))
-      .filter((task) => filters.every((criterion) => matchesCriterion(task, criterion))),
-    sortCriteria,
-  );
-
-  const rows: VisibleTaskListRow[] = [];
-  let taskIndex = 0;
-
-  if (groupBy) {
-    const groups = new Map<string, TaskRow[]>();
-    for (const task of filteredTasks) {
-      const rawValue = (task as unknown as Record<string, unknown>)[groupBy.field];
-      const key = String(rawValue ?? '(blank)');
-      const groupTasks = groups.get(key) ?? [];
-      groupTasks.push(task);
-      groups.set(key, groupTasks);
-    }
-
-    const sortedKeys = [...groups.keys()].sort((left, right) =>
-      groupBy.direction === 'desc'
-        ? right.localeCompare(left)
-        : left.localeCompare(right),
-    );
-
-    for (const key of sortedKeys) {
-      const groupTasks = groups.get(key) ?? [];
-      rows.push({
-        kind: 'group',
-        key: `group:${key}`,
-        label: `${groupBy.field}: ${key}`,
-        count: groupTasks.length,
-      });
-
-      for (const task of groupTasks) {
-        rows.push({
-          kind: 'task',
-          key: task.id,
-          task,
-          index: taskIndex++,
-          isSelected: selectedTaskIds.has(task.id),
-          isExpanded: !collapsedIds.has(task.id),
-          hasChildren: childMap.has(task.id),
-        });
-      }
-    }
-  } else {
-    for (const task of filteredTasks) {
-      rows.push({
-        kind: 'task',
-        key: task.id,
-        task,
-        index: taskIndex++,
-        isSelected: selectedTaskIds.has(task.id),
-        isExpanded: !collapsedIds.has(task.id),
-        hasChildren: childMap.has(task.id),
-      });
-    }
-  }
-
-  rows.push({ kind: 'newTask', key: 'new-task' });
-
-  const visibleTaskIds = new Set(filteredTasks.map((task) => task.id));
-  return {
-    rows,
-    visibleTasks: filteredTasks,
-    visibleDependencies: dependencies.filter(
-      (dependency) =>
-        visibleTaskIds.has(dependency.fromTaskId) &&
-        visibleTaskIds.has(dependency.toTaskId),
-    ),
-  };
-}
+export {
+  buildVisibleTaskRows,
+  type VisibleTaskListRow,
+  type VisibleTaskRowsResult,
+};
 
 export function useVisibleTaskRows(): VisibleTaskRowsResult {
+  const activeProjectId = useProjectStore((state) => state.activeProjectId);
   const tasks = useProjectStore((state) => state.tasks);
   const dependencies = useProjectStore((state) => state.dependencies);
+  const assignments = useProjectStore((state) => state.assignments);
+  const resources = useProjectStore((state) => state.resources);
+  const activeProject = useProjectStore((state) => state.activeProject);
   const selectedTaskIds = useProjectStore((state) => state.selectedTaskIds);
   const collapsedIds = useUIStore((state) => state.collapsedIds);
   const filters = useUIStore((state) => state.filters);
@@ -206,18 +70,202 @@ export function useVisibleTaskRows(): VisibleTaskRowsResult {
   const groupBy = useUIStore((state) => state.groupBy);
   const deferredTasks = useDeferredValue(tasks);
   const deferredDependencies = useDeferredValue(dependencies);
-
-  return useMemo(
-    () =>
-      buildVisibleTaskRows({
-        tasks: deferredTasks,
-        dependencies: deferredDependencies,
-        selectedTaskIds,
-        collapsedIds,
-        filters,
-        sortCriteria,
-        groupBy,
-      }),
-    [collapsedIds, deferredDependencies, deferredTasks, filters, groupBy, selectedTaskIds, sortCriteria],
+  const currentTaskProjectId = getProjectId(tasks);
+  const deferredTaskProjectId = getProjectId(deferredTasks);
+  const currentDependencyProjectId = getProjectId(dependencies);
+  const deferredDependencyProjectId = getProjectId(deferredDependencies);
+  const taskSource =
+    activeProjectId && currentTaskProjectId === activeProjectId && deferredTaskProjectId !== activeProjectId
+      ? tasks
+      : activeProjectId && currentTaskProjectId !== activeProjectId
+        ? []
+        : deferredTasks;
+  const dependencySource =
+    activeProjectId &&
+    currentDependencyProjectId === activeProjectId &&
+    deferredDependencyProjectId !== activeProjectId
+      ? dependencies
+      : activeProjectId && currentDependencyProjectId !== activeProjectId
+        ? []
+        : deferredDependencies;
+  const useWorker = shouldUseWorker(taskSource);
+  const currentProjectId = activeProjectId ?? getProjectId(taskSource);
+  const currentRevision = activeProject?.revision ?? 0;
+  const [workerUnavailable, setWorkerUnavailable] = useState(false);
+  const workerEnabled = useWorker && !workerUnavailable;
+  const resourceNameById = useMemo(
+    () => new Map(resources.map((resource) => [resource.id, resource.name])),
+    [resources],
   );
+  const resourceNamesByTaskId = useMemo(() => {
+    const namesByTaskId = new Map<string, string[]>();
+    for (const assignment of assignments) {
+      const resourceName = resourceNameById.get(assignment.resourceId);
+      if (!resourceName) {
+        continue;
+      }
+
+      const names = namesByTaskId.get(assignment.taskId) ?? [];
+      names.push(resourceName);
+      namesByTaskId.set(assignment.taskId, names);
+    }
+
+    return new Map(
+      [...namesByTaskId.entries()].map(([taskId, names]) => [taskId, names.join(', ')]),
+    );
+  }, [assignments, resourceNameById]);
+  const taskShells = useMemo<RowModelTaskShell[]>(
+    () => buildTaskShells(taskSource, resourceNamesByTaskId),
+    [resourceNamesByTaskId, taskSource],
+  );
+  const dependencyShells = useMemo<RowModelDependencyShell[]>(
+    () => buildDependencyShells(dependencySource),
+    [dependencySource],
+  );
+
+  const syncResult = useMemo(
+    () =>
+      workerEnabled
+        ? null
+        : buildVisibleTaskRows({
+            tasks: taskSource,
+            dependencies: dependencySource,
+            taskShells,
+            dependencyShells,
+            selectedTaskIds,
+            collapsedIds,
+            filters,
+            sortCriteria,
+            groupBy,
+          }),
+    [
+      collapsedIds,
+      dependencySource,
+      dependencyShells,
+      filters,
+      groupBy,
+      selectedTaskIds,
+      sortCriteria,
+      taskShells,
+      taskSource,
+      workerEnabled,
+    ],
+  );
+
+  const workerRef = useRef<Worker | null>(null);
+  const requestIdRef = useRef(0);
+  const [workerState, setWorkerState] = useState<{
+    projectId: string | null;
+    revision: number;
+    requestId: number;
+    model: VisibleTaskRowsModel;
+  } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof Worker === 'undefined') {
+      setWorkerUnavailable(true);
+      return;
+    }
+
+    const worker = new Worker(
+      new URL('../workers/visibleTaskRowsWorker.ts', import.meta.url),
+      { type: 'module' },
+    );
+    workerRef.current = worker;
+
+    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+      const { projectId, revision, requestId, model } = event.data;
+      startTransition(() => {
+        setWorkerState((current) => {
+          if (requestId < requestIdRef.current) {
+            return current;
+          }
+
+          return {
+            projectId,
+            revision,
+            requestId,
+            model,
+          };
+        });
+      });
+    };
+
+    worker.onerror = () => {
+      setWorkerUnavailable(true);
+      worker.terminate();
+      workerRef.current = null;
+    };
+
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!workerEnabled || !workerRef.current) {
+      return;
+    }
+
+    requestIdRef.current += 1;
+    workerRef.current.postMessage({
+      projectId: currentProjectId,
+      revision: currentRevision,
+      requestId: requestIdRef.current,
+      tasks: taskShells,
+      dependencies: dependencyShells,
+      selectedTaskIds: [...selectedTaskIds],
+      collapsedIds: [...collapsedIds],
+      filters,
+      sortCriteria,
+      groupBy,
+    });
+  }, [
+      collapsedIds,
+      currentRevision,
+      currentProjectId,
+      dependencyShells,
+      filters,
+      groupBy,
+      selectedTaskIds,
+      sortCriteria,
+      taskShells,
+      workerEnabled,
+    ]);
+
+  useEffect(() => {
+    setWorkerState((current) =>
+      current &&
+      (current.projectId !== currentProjectId || current.revision !== currentRevision)
+        ? null
+        : current,
+    );
+  }, [currentProjectId, currentRevision]);
+
+  const workerResult = useMemo(() => {
+    if (
+      !workerEnabled ||
+      !workerState ||
+      workerState.projectId !== currentProjectId ||
+      workerState.revision !== currentRevision
+    ) {
+      return null;
+    }
+
+    return materializeVisibleTaskRows(
+      workerState.model,
+      taskSource,
+      dependencySource,
+    );
+  }, [
+    currentProjectId,
+    currentRevision,
+    dependencySource,
+    taskSource,
+    workerEnabled,
+    workerState,
+  ]);
+
+  return syncResult ?? workerResult ?? EMPTY_VISIBLE_TASK_ROWS;
 }

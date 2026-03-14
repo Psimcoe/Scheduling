@@ -65,6 +65,7 @@ function createSnapshot(): ProjectSnapshotResponse {
         deadline: null,
         notes: null,
         externalKey: null,
+        isNameManagedByStratus: false,
         sortOrder: 0,
         stratusSync: null,
         stratusStatus: {
@@ -115,6 +116,7 @@ function createSnapshot(): ProjectSnapshotResponse {
         deadline: null,
         notes: null,
         externalKey: null,
+        isNameManagedByStratus: false,
         sortOrder: 1,
         stratusSync: null,
         stratusStatus: {
@@ -165,6 +167,7 @@ function createSnapshot(): ProjectSnapshotResponse {
         deadline: null,
         notes: null,
         externalKey: null,
+        isNameManagedByStratus: false,
         sortOrder: 2,
         stratusSync: null,
         stratusStatus: null,

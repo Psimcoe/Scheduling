@@ -1,0 +1,239 @@
+- generic [ref=e1]:
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img [ref=e343]
+        - generic [ref=e13]:
+          - heading [level=6] [ref=e344]: ScheduleSync
+          - text: Desktop + web planning
+      - separator [ref=e15]
+      - generic [ref=e16]:
+        - heading [level=6] [ref=e345]: Projects
+        - generic [ref=e18]:
+          - button [ref=e346] [cursor=pointer]:
+            - img [ref=e20]
+          - button [ref=e347] [cursor=pointer]:
+            - img [ref=e23]
+          - button [ref=e348] [cursor=pointer]:
+            - img [ref=e26]
+      - separator [ref=e28]
+      - list [ref=e29]:
+        - button [ref=e349] [cursor=pointer]:
+          - generic [ref=e31]:
+            - generic [ref=e32]: Prefab
+            - paragraph [ref=e33]: 3/13/2026
+        - button [ref=e350] [cursor=pointer]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: test
+            - paragraph [ref=e37]: 3/13/2026
+        - button [ref=e351] [cursor=pointer]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: 320001TUR - MDX RESIDENTIAL TOWER
+            - paragraph [ref=e41]: 3/13/2026
+        - button [ref=e352] [cursor=pointer]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: Office Building Renovation
+            - paragraph [ref=e45]: 3/13/2026
+        - button [ref=e353] [cursor=pointer]:
+          - generic [ref=e47]:
+            - generic [ref=e48]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+            - paragraph [ref=e49]: 3/13/2026
+        - button [ref=e354] [cursor=pointer]:
+          - generic [ref=e51]:
+            - generic [ref=e52]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+            - paragraph [ref=e53]: 3/13/2026
+    - generic [ref=e54]:
+      - banner [ref=e55]:
+        - tablist [ref=e59]:
+          - tab [selected] [ref=e355] [cursor=pointer]: Task
+          - tab [ref=e356] [cursor=pointer]: Resource
+          - tab [ref=e357] [cursor=pointer]: Project
+          - tab [ref=e358] [cursor=pointer]: View
+          - tab [ref=e359] [cursor=pointer]: Format
+        - generic [ref=e67]:
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - button [ref=e361] [cursor=pointer]:
+                - img [ref=e306]
+              - button [ref=e363] [cursor=pointer]:
+                - img [ref=e308]
+              - button [ref=e365] [cursor=pointer]:
+                - img [ref=e325]
+              - button [ref=e367] [cursor=pointer]:
+                - img [ref=e191]
+            - generic [ref=e74]: Insert
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - button [ref=e369] [cursor=pointer]:
+                - img [ref=e328]
+              - button [ref=e371] [cursor=pointer]:
+                - img [ref=e331]
+              - generic [ref=e372]:
+                - button [disabled]:
+                  - img
+              - button [ref=e374] [cursor=pointer]:
+                - img [ref=e334]
+            - generic [ref=e81]: Schedule
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - button [ref=e376] [cursor=pointer]:
+                - img [ref=e194]
+              - button [ref=e378] [cursor=pointer]:
+                - img [ref=e197]
+              - button [ref=e380] [cursor=pointer]:
+                - img [ref=e200]
+              - button [ref=e382] [cursor=pointer]:
+                - img [ref=e203]
+            - generic [ref=e88]: Editing
+          - generic [ref=e89]:
+            - generic [ref=e90]:
+              - button [ref=e384] [cursor=pointer]:
+                - img [ref=e337]
+              - button [ref=e386] [cursor=pointer]:
+                - img [ref=e340]
+            - generic [ref=e93]: Properties
+          - generic [ref=e94]:
+            - button [ref=e388] [cursor=pointer]:
+              - img [ref=e97]
+            - button [ref=e390] [cursor=pointer]:
+              - img [ref=e101]
+      - generic [ref=e105]:
+        - grid [ref=e107]:
+          - row [ref=e391]:
+            - columnheader [ref=e392]: "#"
+            - columnheader [ref=e393]: Task Name
+            - columnheader [ref=e394]: Duration
+            - columnheader [ref=e395]: Start
+            - columnheader [ref=e396]: Finish
+            - columnheader [ref=e397]: "% Done"
+          - generic [ref=e118]:
+            - row [ref=e398] [cursor=pointer]:
+              - gridcell [ref=e399]: "1"
+              - gridcell [ref=e400]:
+                - generic [ref=e209]: Test Task QA Fixed QA0313 LIVE
+              - gridcell [ref=e401]: 1d
+              - gridcell [ref=e402]: Mar 12 '26
+              - gridcell [ref=e403]: Mar 12 '26
+              - gridcell [ref=e404]: 0%
+            - row [ref=e405] [cursor=pointer]:
+              - gridcell [ref=e406]: "2"
+              - gridcell [ref=e407]:
+                - generic [ref=e218]: New Task QA0313 A
+              - gridcell [ref=e408]: 1d
+              - gridcell [ref=e409]: Mar 12 '26
+              - gridcell [ref=e410]: Mar 12 '26
+              - gridcell [ref=e411]: 0%
+            - row [ref=e412] [cursor=pointer]:
+              - gridcell [ref=e413]: "3"
+              - gridcell [ref=e414]:
+                - generic [ref=e227]: New Task
+              - gridcell [ref=e415]: 1d
+              - gridcell [ref=e416]: Mar 12 '26
+              - gridcell [ref=e417]: Mar 12 '26
+              - gridcell [ref=e418]: 0%
+            - row [ref=e419] [cursor=pointer]:
+              - gridcell [ref=e420]: "4"
+              - gridcell [ref=e421]:
+                - generic [ref=e236]: New Task
+              - gridcell [ref=e422]: 1d
+              - gridcell [ref=e423]: Mar 12 '26
+              - gridcell [ref=e424]: Mar 12 '26
+              - gridcell [ref=e425]: 0%
+            - row [ref=e426] [cursor=pointer]:
+              - gridcell [ref=e427]: "5"
+              - gridcell [ref=e428]:
+                - generic [ref=e245]: New Task
+              - gridcell [ref=e429]: 1d
+              - gridcell [ref=e430]: Mar 12 '26
+              - gridcell [ref=e431]: Mar 12 '26
+              - gridcell [ref=e432]: 0%
+            - row [ref=e433] [cursor=pointer]:
+              - gridcell [ref=e434]: "6"
+              - gridcell [ref=e435]:
+                - generic [ref=e254]: QA Live Add Task 1
+              - gridcell [ref=e436]: 1d
+              - gridcell [ref=e437]: Mar 12 '26
+              - gridcell [ref=e438]: Mar 12 '26
+              - gridcell [ref=e439]: 0%
+            - row [ref=e440] [cursor=pointer]:
+              - gridcell [ref=e441]: "7"
+              - gridcell [ref=e442]:
+                - generic [ref=e263]: New Task
+              - gridcell [ref=e443]: 1d
+              - gridcell [ref=e444]: Mar 12 '26
+              - gridcell [ref=e445]: Mar 12 '26
+              - gridcell [ref=e446]: 0%
+            - row [selected] [ref=e447] [cursor=pointer]:
+              - gridcell [ref=e448]: "8"
+              - gridcell [ref=e449]:
+                - generic [ref=e314]: QA Fix Add 0131
+              - gridcell [ref=e450]: 1d
+              - gridcell [ref=e451]: Mar 12 '26
+              - gridcell [ref=e452]: Mar 12 '26
+              - gridcell [ref=e453]: 0%
+            - row [ref=e119]:
+              - gridcell [ref=e120]
+              - gridcell [ref=e121]:
+                - textbox [ref=e454]:
+                  - /placeholder: Type a new task name...
+              - gridcell [ref=e125]
+              - gridcell [ref=e126]
+              - gridcell [ref=e127]
+              - gridcell [ref=e128]
+        - generic [ref=e131]:
+          - generic [ref=e135]:
+            - generic [ref=e137]: Mar 2026
+            - generic [ref=e142]:
+              - generic [ref=e143]: "1"
+              - generic [ref=e144]: "8"
+              - generic [ref=e145]: "15"
+              - generic [ref=e146]: "22"
+          - generic [ref=e164]:
+            - generic [ref=e276]:
+              - generic:
+                - generic: Test Task QA Fixed QA0313 LIVE
+            - generic [ref=e280]:
+              - generic:
+                - generic: New Task QA0313 A
+            - generic [ref=e284]:
+              - generic:
+                - generic: New Task
+            - generic [ref=e288]:
+              - generic:
+                - generic: New Task
+            - generic [ref=e292]:
+              - generic:
+                - generic: New Task
+            - generic [ref=e296]:
+              - generic:
+                - generic: QA Live Add Task 1
+            - generic [ref=e300]:
+              - generic:
+                - generic: New Task
+            - generic [ref=e321]:
+              - generic:
+                - generic: QA Fix Add 0131
+            - img
+      - generic [ref=e167]:
+        - paragraph [ref=e168]: Gantt Chart
+        - paragraph [ref=e170]: 8 tasks
+        - paragraph [ref=e342]: 1 selected
+        - paragraph [ref=e304]: "Start: Mar 12 '26"
+        - paragraph [ref=e305]: "Finish: Mar 12 '26"
+        - generic [ref=e171]:
+          - paragraph [ref=e172]: "-"
+          - slider [ref=e182]: "3"
+          - paragraph [ref=e183]: +
+  - dialog "Delete Task" [ref=e457]:
+    - heading "Delete Task" [level=2] [ref=e458]
+    - generic [ref=e459]:
+      - alert [ref=e460]:
+        - img [ref=e462]
+        - generic [ref=e464]: This only deletes the selected tasks locally in ScheduleSync. Nothing is deleted in Stratus.
+      - paragraph [ref=e465]: The selected task will be removed from the local app only.
+      - list [ref=e466]:
+        - listitem [ref=e467]:
+          - paragraph [ref=e468]: QA Fix Add 0131
+    - generic [ref=e469]:
+      - button "Cancel" [ref=e470] [cursor=pointer]
+      - button "Delete Task" [ref=e471] [cursor=pointer]

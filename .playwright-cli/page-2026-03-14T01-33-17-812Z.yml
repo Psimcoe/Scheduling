@@ -1,0 +1,567 @@
+- generic [ref=e9]:
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - img "ScheduleSync logo" [ref=e472]
+      - generic [ref=e13]:
+        - heading "ScheduleSync" [level=6] [ref=e473]
+        - text: Desktop + web planning
+    - separator [ref=e15]
+    - generic [ref=e16]:
+      - heading "Projects" [level=6] [ref=e474]
+      - generic [ref=e18]:
+        - button "Stratus Settings" [ref=e475] [cursor=pointer]:
+          - img [ref=e20]
+        - button "Import Active Stratus Projects" [ref=e476] [cursor=pointer]:
+          - img [ref=e23]
+        - button "New Project" [ref=e477] [cursor=pointer]:
+          - img [ref=e26]
+    - separator [ref=e28]
+    - list [ref=e29]:
+      - button "Prefab 3/13/2026" [active] [ref=e478] [cursor=pointer]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: Prefab
+          - paragraph [ref=e33]: 3/13/2026
+      - button "test 3/13/2026" [ref=e479] [cursor=pointer]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: test
+          - paragraph [ref=e37]: 3/13/2026
+      - button "320001TUR - MDX RESIDENTIAL TOWER 3/13/2026" [ref=e480] [cursor=pointer]:
+        - generic [ref=e39]:
+          - generic [ref=e40]: 320001TUR - MDX RESIDENTIAL TOWER
+          - paragraph [ref=e41]: 3/13/2026
+      - button "Office Building Renovation 3/13/2026" [ref=e481] [cursor=pointer]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: Office Building Renovation
+          - paragraph [ref=e45]: 3/13/2026
+      - button "280011GGC - *PREFAB ONLY - TMC - FLOATING FA 3/13/2026" [ref=e482] [cursor=pointer]:
+        - generic [ref=e47]:
+          - generic [ref=e48]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+          - paragraph [ref=e49]: 3/13/2026
+      - button "210468WAL - 210468WAL - MGH WEST SPD ORs (R26) 3/13/2026" [ref=e483] [cursor=pointer]:
+        - generic [ref=e51]:
+          - generic [ref=e52]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+          - paragraph [ref=e53]: 3/13/2026
+  - generic [ref=e54]:
+    - banner [ref=e55]:
+      - tablist [ref=e59]:
+        - tab "Task" [selected] [ref=e484] [cursor=pointer]
+        - tab "Resource" [ref=e485] [cursor=pointer]
+        - tab "Project" [ref=e486] [cursor=pointer]
+        - tab "View" [ref=e487] [cursor=pointer]
+        - tab "Format" [ref=e488] [cursor=pointer]
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic "Add Task" [ref=e489]:
+              - button "Add Task" [ref=e490] [cursor=pointer]:
+                - img [ref=e306]
+            - generic "Add Milestone" [ref=e491]:
+              - button "Add Milestone" [ref=e492] [cursor=pointer]:
+                - img [ref=e308]
+            - generic "Delete Task" [ref=e493]:
+              - button "Delete Task" [disabled]:
+                - img
+            - generic "Recurring Task" [ref=e494]:
+              - button "Recurring Task" [ref=e495] [cursor=pointer]:
+                - img [ref=e191]
+          - generic [ref=e74]: Insert
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - generic "Indent" [ref=e496]:
+              - button "Indent" [disabled]:
+                - img
+            - generic "Outdent" [ref=e497]:
+              - button "Outdent" [disabled]:
+                - img
+            - generic "Link Tasks" [ref=e498]:
+              - button "Link Tasks" [disabled]:
+                - img
+            - generic "Unlink Tasks" [ref=e499]:
+              - button "Unlink Tasks" [disabled]:
+                - img
+          - generic [ref=e81]: Schedule
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic "Undo" [ref=e500]:
+              - button "Undo" [ref=e501] [cursor=pointer]:
+                - img [ref=e194]
+            - generic "Redo" [ref=e502]:
+              - button "Redo" [ref=e503] [cursor=pointer]:
+                - img [ref=e197]
+            - generic "Undo History" [ref=e504]:
+              - button "Undo History" [ref=e505] [cursor=pointer]:
+                - img [ref=e200]
+            - generic "Find & Replace" [ref=e506]:
+              - button "Find & Replace" [ref=e507] [cursor=pointer]:
+                - img [ref=e203]
+          - generic [ref=e88]: Editing
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - generic "Task Information" [ref=e508]:
+              - button "Task Information" [disabled]:
+                - img
+            - generic "Mark on Track" [ref=e509]:
+              - button "Mark on Track" [disabled]:
+                - img
+          - generic [ref=e93]: Properties
+        - generic [ref=e94]:
+          - generic "AI Assistant" [ref=e510]:
+            - button "AI Assistant" [ref=e511] [cursor=pointer]:
+              - img [ref=e97]
+          - generic "AI Settings" [ref=e512]:
+            - button "AI Settings" [ref=e513] [cursor=pointer]:
+              - img [ref=e101]
+    - generic [ref=e105]:
+      - grid [ref=e107]:
+        - row "# Task Name Duration Start Finish % Done" [ref=e514]:
+          - columnheader "#" [ref=e515]
+          - columnheader "Task Name" [ref=e516]
+          - columnheader "Duration" [ref=e517]
+          - columnheader "Start" [ref=e518]
+          - columnheader "Finish" [ref=e519]
+          - columnheader "% Done" [ref=e520]
+        - generic [ref=e118]:
+          - row "1 FAB-0001-LEVEL 3-DE-Level 3-Load Centers 125A 6.9d Sep 15 '25 Sep 18 '25 100%" [ref=e944] [cursor=pointer]:
+            - gridcell "1" [ref=e945]
+            - gridcell "FAB-0001-LEVEL 3-DE-Level 3-Load Centers 125A" [ref=e946]:
+              - generic [ref=e948]: FAB-0001-LEVEL 3-DE-Level 3-Load Centers 125A
+            - gridcell "6.9d" [ref=e949]
+            - gridcell "Sep 15 '25" [ref=e950]
+            - gridcell "Sep 18 '25" [ref=e951]
+            - gridcell "100%" [ref=e952]
+          - row "2 LOAD CENTER-C3(2A)-L3 1d Sep 17 '25 Sep 19 '25 100%" [ref=e953] [cursor=pointer]:
+            - gridcell "2" [ref=e954]
+            - gridcell "LOAD CENTER-C3(2A)-L3" [ref=e955]:
+              - generic [ref=e956]:
+                - button [ref=e957]:
+                  - img [ref=e958]
+                - generic [ref=e960]: LOAD CENTER-C3(2A)-L3
+            - gridcell "1d" [ref=e961]
+            - gridcell "Sep 17 '25" [ref=e962]
+            - gridcell "Sep 19 '25" [ref=e963]
+            - gridcell "100%" [ref=e964]
+          - row "3 LOAD CENTER-S2-L3 1d Sep 17 '25 Sep 19 '25 100%" [ref=e965] [cursor=pointer]:
+            - gridcell "3" [ref=e966]
+            - gridcell "LOAD CENTER-S2-L3" [ref=e967]:
+              - generic [ref=e969]: LOAD CENTER-S2-L3
+            - gridcell "1d" [ref=e970]
+            - gridcell "Sep 17 '25" [ref=e971]
+            - gridcell "Sep 19 '25" [ref=e972]
+            - gridcell "100%" [ref=e973]
+          - row "4 FAB-0003-LEVEL 4-DE-Level 4-Load Centers 125A 6.9d Sep 21 '25 Sep 24 '25 100%" [ref=e974] [cursor=pointer]:
+            - gridcell "4" [ref=e975]
+            - gridcell "FAB-0003-LEVEL 4-DE-Level 4-Load Centers 125A" [ref=e976]:
+              - generic [ref=e978]: FAB-0003-LEVEL 4-DE-Level 4-Load Centers 125A
+            - gridcell "6.9d" [ref=e979]
+            - gridcell "Sep 21 '25" [ref=e980]
+            - gridcell "Sep 24 '25" [ref=e981]
+            - gridcell "100%" [ref=e982]
+          - row "5 LOAD CENTER-C3(2A)-L4 1d Sep 23 '25 Sep 25 '25 100%" [ref=e983] [cursor=pointer]:
+            - gridcell "5" [ref=e984]
+            - gridcell "LOAD CENTER-C3(2A)-L4" [ref=e985]:
+              - generic [ref=e986]:
+                - button [ref=e987]:
+                  - img [ref=e988]
+                - generic [ref=e990]: LOAD CENTER-C3(2A)-L4
+            - gridcell "1d" [ref=e991]
+            - gridcell "Sep 23 '25" [ref=e992]
+            - gridcell "Sep 25 '25" [ref=e993]
+            - gridcell "100%" [ref=e994]
+          - row "6 FAB-0005-LEVEL 5-DE-Level 5-Load Centers 125A 6.9d Sep 28 '25 Oct 1 '25 100%" [ref=e995] [cursor=pointer]:
+            - gridcell "6" [ref=e996]
+            - gridcell "FAB-0005-LEVEL 5-DE-Level 5-Load Centers 125A" [ref=e997]:
+              - generic [ref=e999]: FAB-0005-LEVEL 5-DE-Level 5-Load Centers 125A
+            - gridcell "6.9d" [ref=e1000]
+            - gridcell "Sep 28 '25" [ref=e1001]
+            - gridcell "Oct 1 '25" [ref=e1002]
+            - gridcell "100%" [ref=e1003]
+          - row "7 LOAD CENTER-C3(2A)-L5 1d Sep 29 '25 Oct 1 '25 100%" [ref=e1004] [cursor=pointer]:
+            - gridcell "7" [ref=e1005]
+            - gridcell "LOAD CENTER-C3(2A)-L5" [ref=e1006]:
+              - generic [ref=e1007]:
+                - button [ref=e1008]:
+                  - img [ref=e1009]
+                - generic [ref=e1011]: LOAD CENTER-C3(2A)-L5
+            - gridcell "1d" [ref=e1012]
+            - gridcell "Sep 29 '25" [ref=e1013]
+            - gridcell "Oct 1 '25" [ref=e1014]
+            - gridcell "100%" [ref=e1015]
+          - row "8 FAB-0007-LEVEL 7-DE-Level 7-Load Centers 125A 6.9d Oct 4 '25 Oct 7 '25 100%" [ref=e1016] [cursor=pointer]:
+            - gridcell "8" [ref=e1017]
+            - gridcell "FAB-0007-LEVEL 7-DE-Level 7-Load Centers 125A" [ref=e1018]:
+              - generic [ref=e1020]: FAB-0007-LEVEL 7-DE-Level 7-Load Centers 125A
+            - gridcell "6.9d" [ref=e1021]
+            - gridcell "Oct 4 '25" [ref=e1022]
+            - gridcell "Oct 7 '25" [ref=e1023]
+            - gridcell "100%" [ref=e1024]
+          - row "9 FAB-0008-LEVEL 7-DE-Level 7-Load Centers 150A 4.0d Oct 5 '25 Oct 7 '25 100%" [ref=e1025] [cursor=pointer]:
+            - gridcell "9" [ref=e1026]
+            - gridcell "FAB-0008-LEVEL 7-DE-Level 7-Load Centers 150A" [ref=e1027]:
+              - generic [ref=e1029]: FAB-0008-LEVEL 7-DE-Level 7-Load Centers 150A
+            - gridcell "4.0d" [ref=e1030]
+            - gridcell "Oct 5 '25" [ref=e1031]
+            - gridcell "Oct 7 '25" [ref=e1032]
+            - gridcell "100%" [ref=e1033]
+          - row "10 FAB-0009-LEVEL 8-DE-Level 8-Load Centers 125A 6.0d Oct 7 '25 Oct 9 '25 100%" [ref=e1034] [cursor=pointer]:
+            - gridcell "10" [ref=e1035]
+            - gridcell "FAB-0009-LEVEL 8-DE-Level 8-Load Centers 125A" [ref=e1036]:
+              - generic [ref=e1038]: FAB-0009-LEVEL 8-DE-Level 8-Load Centers 125A
+            - gridcell "6.0d" [ref=e1039]
+            - gridcell "Oct 7 '25" [ref=e1040]
+            - gridcell "Oct 9 '25" [ref=e1041]
+            - gridcell "100%" [ref=e1042]
+          - row "11 FAB-0010-LEVEL 8-DE-Level 8-Load Centers 150A 5.0d Oct 12 '25 Oct 14 '25 100%" [ref=e1043] [cursor=pointer]:
+            - gridcell "11" [ref=e1044]
+            - gridcell "FAB-0010-LEVEL 8-DE-Level 8-Load Centers 150A" [ref=e1045]:
+              - generic [ref=e1047]: FAB-0010-LEVEL 8-DE-Level 8-Load Centers 150A
+            - gridcell "5.0d" [ref=e1048]
+            - gridcell "Oct 12 '25" [ref=e1049]
+            - gridcell "Oct 14 '25" [ref=e1050]
+            - gridcell "100%" [ref=e1051]
+          - row "12 FAB-0011-LEVEL 9-DE-Level 9-Load Centers 125A 6.0d Oct 14 '25 Oct 16 '25 100%" [ref=e1052] [cursor=pointer]:
+            - gridcell "12" [ref=e1053]
+            - gridcell "FAB-0011-LEVEL 9-DE-Level 9-Load Centers 125A" [ref=e1054]:
+              - generic [ref=e1056]: FAB-0011-LEVEL 9-DE-Level 9-Load Centers 125A
+            - gridcell "6.0d" [ref=e1057]
+            - gridcell "Oct 14 '25" [ref=e1058]
+            - gridcell "Oct 16 '25" [ref=e1059]
+            - gridcell "100%" [ref=e1060]
+          - row "13 FAB-0012-LEVEL 9-DE-Level 9-Load Centers 150A 5.0d Oct 15 '25 Oct 17 '25 100%" [ref=e1061] [cursor=pointer]:
+            - gridcell "13" [ref=e1062]
+            - gridcell "FAB-0012-LEVEL 9-DE-Level 9-Load Centers 150A" [ref=e1063]:
+              - generic [ref=e1065]: FAB-0012-LEVEL 9-DE-Level 9-Load Centers 150A
+            - gridcell "5.0d" [ref=e1066]
+            - gridcell "Oct 15 '25" [ref=e1067]
+            - gridcell "Oct 17 '25" [ref=e1068]
+            - gridcell "100%" [ref=e1069]
+          - row "14 FAB-0013-LEVEL 10-DE-Level 10-Load Centers 125A 7.8d Oct 19 '25 Oct 22 '25 100%" [ref=e1070] [cursor=pointer]:
+            - gridcell "14" [ref=e1071]
+            - gridcell "FAB-0013-LEVEL 10-DE-Level 10-Load Centers 125A" [ref=e1072]:
+              - generic [ref=e1074]: FAB-0013-LEVEL 10-DE-Level 10-Load Centers 125A
+            - gridcell "7.8d" [ref=e1075]
+            - gridcell "Oct 19 '25" [ref=e1076]
+            - gridcell "Oct 22 '25" [ref=e1077]
+            - gridcell "100%" [ref=e1078]
+          - row "15 FAB-0014-LEVEL 10-DE-Level 10-Load Centers 150A 1d Oct 23 '25 Oct 24 '25 100%" [ref=e1079] [cursor=pointer]:
+            - gridcell "15" [ref=e1080]
+            - gridcell "FAB-0014-LEVEL 10-DE-Level 10-Load Centers 150A" [ref=e1081]:
+              - generic [ref=e1083]: FAB-0014-LEVEL 10-DE-Level 10-Load Centers 150A
+            - gridcell "1d" [ref=e1084]
+            - gridcell "Oct 23 '25" [ref=e1085]
+            - gridcell "Oct 24 '25" [ref=e1086]
+            - gridcell "100%" [ref=e1087]
+          - row "16 FAB-0015-LEVEL 11-DE-Level 11-Load Centers 125A 7.8d Oct 25 '25 Oct 28 '25 100%" [ref=e1088] [cursor=pointer]:
+            - gridcell "16" [ref=e1089]
+            - gridcell "FAB-0015-LEVEL 11-DE-Level 11-Load Centers 125A" [ref=e1090]:
+              - generic [ref=e1092]: FAB-0015-LEVEL 11-DE-Level 11-Load Centers 125A
+            - gridcell "7.8d" [ref=e1093]
+            - gridcell "Oct 25 '25" [ref=e1094]
+            - gridcell "Oct 28 '25" [ref=e1095]
+            - gridcell "100%" [ref=e1096]
+          - row "17 FAB-0016-LEVEL 11-DE-Level 11-Load Centers 150A 5.0d Oct 28 '25 Oct 30 '25 100%" [ref=e1097] [cursor=pointer]:
+            - gridcell "17" [ref=e1098]
+            - gridcell "FAB-0016-LEVEL 11-DE-Level 11-Load Centers 150A" [ref=e1099]:
+              - generic [ref=e1101]: FAB-0016-LEVEL 11-DE-Level 11-Load Centers 150A
+            - gridcell "5.0d" [ref=e1102]
+            - gridcell "Oct 28 '25" [ref=e1103]
+            - gridcell "Oct 30 '25" [ref=e1104]
+            - gridcell "100%" [ref=e1105]
+          - row "18 FAB-0017-LEVEL 12-DE-Level 12-Load Centers 125A 7.8d Nov 17 '25 Nov 20 '25 100%" [ref=e1106] [cursor=pointer]:
+            - gridcell "18" [ref=e1107]
+            - gridcell "FAB-0017-LEVEL 12-DE-Level 12-Load Centers 125A" [ref=e1108]:
+              - generic [ref=e1110]: FAB-0017-LEVEL 12-DE-Level 12-Load Centers 125A
+            - gridcell "7.8d" [ref=e1111]
+            - gridcell "Nov 17 '25" [ref=e1112]
+            - gridcell "Nov 20 '25" [ref=e1113]
+            - gridcell "100%" [ref=e1114]
+          - row "19 FAB-0018-LEVEL 12-DE-Level 12-Load Centers 150A 7.8d Nov 17 '25 Nov 20 '25 100%" [ref=e1115] [cursor=pointer]:
+            - gridcell "19" [ref=e1116]
+            - gridcell "FAB-0018-LEVEL 12-DE-Level 12-Load Centers 150A" [ref=e1117]:
+              - generic [ref=e1119]: FAB-0018-LEVEL 12-DE-Level 12-Load Centers 150A
+            - gridcell "7.8d" [ref=e1120]
+            - gridcell "Nov 17 '25" [ref=e1121]
+            - gridcell "Nov 20 '25" [ref=e1122]
+            - gridcell "100%" [ref=e1123]
+          - row "20 FAB-0019-LEVEL 13-DE-Level 13-Load Centers 125A 7.8d Nov 25 '25 Nov 28 '25 100%" [ref=e1124] [cursor=pointer]:
+            - gridcell "20" [ref=e1125]
+            - gridcell "FAB-0019-LEVEL 13-DE-Level 13-Load Centers 125A" [ref=e1126]:
+              - generic [ref=e1128]: FAB-0019-LEVEL 13-DE-Level 13-Load Centers 125A
+            - gridcell "7.8d" [ref=e1129]
+            - gridcell "Nov 25 '25" [ref=e1130]
+            - gridcell "Nov 28 '25" [ref=e1131]
+            - gridcell "100%" [ref=e1132]
+          - row "21 FAB-0020-LEVEL 13-DE-Level 13-Load Centers 150A 5.0d Nov 26 '25 Nov 28 '25 100%" [ref=e1133] [cursor=pointer]:
+            - gridcell "21" [ref=e1134]
+            - gridcell "FAB-0020-LEVEL 13-DE-Level 13-Load Centers 150A" [ref=e1135]:
+              - generic [ref=e1137]: FAB-0020-LEVEL 13-DE-Level 13-Load Centers 150A
+            - gridcell "5.0d" [ref=e1138]
+            - gridcell "Nov 26 '25" [ref=e1139]
+            - gridcell "Nov 28 '25" [ref=e1140]
+            - gridcell "100%" [ref=e1141]
+          - row "22 LOAD CENTER-A1-L14 1d Dec 2 '25 Dec 5 '25 100%" [ref=e1142] [cursor=pointer]:
+            - gridcell "22" [ref=e1143]
+            - gridcell "LOAD CENTER-A1-L14" [ref=e1144]:
+              - generic [ref=e1145]:
+                - button [ref=e1146]:
+                  - img [ref=e1147]
+                - generic [ref=e1149]: LOAD CENTER-A1-L14
+            - gridcell "1d" [ref=e1150]
+            - gridcell "Dec 2 '25" [ref=e1151]
+            - gridcell "Dec 5 '25" [ref=e1152]
+            - gridcell "100%" [ref=e1153]
+          - row "23 LOAD CENTER-A2.1-L14 1d Dec 2 '25 Dec 5 '25 100%" [ref=e1154] [cursor=pointer]:
+            - gridcell "23" [ref=e1155]
+            - gridcell "LOAD CENTER-A2.1-L14" [ref=e1156]:
+              - generic [ref=e1158]: LOAD CENTER-A2.1-L14
+            - gridcell "1d" [ref=e1159]
+            - gridcell "Dec 2 '25" [ref=e1160]
+            - gridcell "Dec 5 '25" [ref=e1161]
+            - gridcell "100%" [ref=e1162]
+          - row "24 LOAD CENTER-A2.1a-L14 1d Dec 2 '25 Dec 5 '25 100%" [ref=e1163] [cursor=pointer]:
+            - gridcell "24" [ref=e1164]
+            - gridcell "LOAD CENTER-A2.1a-L14" [ref=e1165]:
+              - generic [ref=e1167]: LOAD CENTER-A2.1a-L14
+            - gridcell "1d" [ref=e1168]
+            - gridcell "Dec 2 '25" [ref=e1169]
+            - gridcell "Dec 5 '25" [ref=e1170]
+            - gridcell "100%" [ref=e1171]
+      - generic [ref=e131]:
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - generic [ref=e137]: Jul 2023
+            - generic [ref=e800]: Aug 2023
+            - generic [ref=e801]: Sep 2023
+            - generic [ref=e802]: Oct 2023
+            - generic [ref=e1172]: Nov 2023
+            - generic [ref=e1173]: Dec 2023
+            - generic [ref=e1174]: Jan 2024
+            - generic [ref=e1175]: Feb 2024
+            - generic [ref=e1176]: Mar 2024
+            - generic [ref=e1177]: Apr 2024
+            - generic [ref=e1178]: May 2024
+            - generic [ref=e1179]: Jun 2024
+            - generic [ref=e1180]: Jul 2024
+            - generic [ref=e1181]: Aug 2024
+            - generic [ref=e1182]: Sep 2024
+            - generic [ref=e1183]: Oct 2024
+            - generic [ref=e1184]: Nov 2024
+            - generic [ref=e1185]: Dec 2024
+            - generic [ref=e1186]: Jan 2025
+            - generic [ref=e1187]: Feb 2025
+            - generic [ref=e1188]: Mar 2025
+            - generic [ref=e1189]: Apr 2025
+            - generic [ref=e1190]: May 2025
+            - generic [ref=e1191]: Jun 2025
+            - generic [ref=e1192]: Jul 2025
+            - generic [ref=e1193]: Aug 2025
+            - generic [ref=e1194]: Sep 2025
+            - generic [ref=e1195]: Oct 2025
+            - generic [ref=e1196]: Nov 2025
+            - generic [ref=e1197]: Dec 2025
+            - generic [ref=e1198]: Jan 2026
+            - generic [ref=e1199]: Feb 2026
+            - generic [ref=e1200]: Mar 2026
+            - generic [ref=e1201]: Apr 2026
+            - generic [ref=e1202]: May 2026
+            - generic [ref=e1203]: Jun 2026
+            - generic [ref=e1204]: Jul 2026
+            - generic [ref=e1205]: Aug 2026
+            - generic [ref=e1206]: Sep 2026
+          - generic [ref=e142]:
+            - generic [ref=e143]: "23"
+            - generic [ref=e144]: "30"
+            - generic [ref=e145]: "6"
+            - generic [ref=e146]: "13"
+            - generic [ref=e803]: "20"
+            - generic [ref=e804]: "27"
+            - generic [ref=e805]: "3"
+            - generic [ref=e806]: "10"
+            - generic [ref=e807]: "17"
+            - generic [ref=e808]: "24"
+            - generic [ref=e809]: "1"
+            - generic [ref=e810]: "8"
+            - generic [ref=e811]: "15"
+            - generic [ref=e812]: "22"
+            - generic [ref=e1207]: "29"
+            - generic [ref=e1208]: "5"
+            - generic [ref=e1209]: "12"
+            - generic [ref=e1210]: "19"
+            - generic [ref=e1211]: "26"
+            - generic [ref=e1212]: "3"
+            - generic [ref=e1213]: "10"
+            - generic [ref=e1214]: "17"
+            - generic [ref=e1215]: "24"
+            - generic [ref=e1216]: "31"
+            - generic [ref=e1217]: "7"
+            - generic [ref=e1218]: "14"
+            - generic [ref=e1219]: "21"
+            - generic [ref=e1220]: "28"
+            - generic [ref=e1221]: "4"
+            - generic [ref=e1222]: "11"
+            - generic [ref=e1223]: "18"
+            - generic [ref=e1224]: "25"
+            - generic [ref=e1225]: "3"
+            - generic [ref=e1226]: "10"
+            - generic [ref=e1227]: "17"
+            - generic [ref=e1228]: "24"
+            - generic [ref=e1229]: "31"
+            - generic [ref=e1230]: "7"
+            - generic [ref=e1231]: "14"
+            - generic [ref=e1232]: "21"
+            - generic [ref=e1233]: "28"
+            - generic [ref=e1234]: "5"
+            - generic [ref=e1235]: "12"
+            - generic [ref=e1236]: "19"
+            - generic [ref=e1237]: "26"
+            - generic [ref=e1238]: "2"
+            - generic [ref=e1239]: "9"
+            - generic [ref=e1240]: "16"
+            - generic [ref=e1241]: "23"
+            - generic [ref=e1242]: "30"
+            - generic [ref=e1243]: "7"
+            - generic [ref=e1244]: "14"
+            - generic [ref=e1245]: "21"
+            - generic [ref=e1246]: "28"
+            - generic [ref=e1247]: "4"
+            - generic [ref=e1248]: "11"
+            - generic [ref=e1249]: "18"
+            - generic [ref=e1250]: "25"
+            - generic [ref=e1251]: "1"
+            - generic [ref=e1252]: "8"
+            - generic [ref=e1253]: "15"
+            - generic [ref=e1254]: "22"
+            - generic [ref=e1255]: "29"
+            - generic [ref=e1256]: "6"
+            - generic [ref=e1257]: "13"
+            - generic [ref=e1258]: "20"
+            - generic [ref=e1259]: "27"
+            - generic [ref=e1260]: "3"
+            - generic [ref=e1261]: "10"
+            - generic [ref=e1262]: "17"
+            - generic [ref=e1263]: "24"
+            - generic [ref=e1264]: "1"
+            - generic [ref=e1265]: "8"
+            - generic [ref=e1266]: "15"
+            - generic [ref=e1267]: "22"
+            - generic [ref=e1268]: "29"
+            - generic [ref=e1269]: "5"
+            - generic [ref=e1270]: "12"
+            - generic [ref=e1271]: "19"
+            - generic [ref=e1272]: "26"
+            - generic [ref=e1273]: "2"
+            - generic [ref=e1274]: "9"
+            - generic [ref=e1275]: "16"
+            - generic [ref=e1276]: "23"
+            - generic [ref=e1277]: "2"
+            - generic [ref=e1278]: "9"
+            - generic [ref=e1279]: "16"
+            - generic [ref=e1280]: "23"
+            - generic [ref=e1281]: "30"
+            - generic [ref=e1282]: "6"
+            - generic [ref=e1283]: "13"
+            - generic [ref=e1284]: "20"
+            - generic [ref=e1285]: "27"
+            - generic [ref=e1286]: "4"
+            - generic [ref=e1287]: "11"
+            - generic [ref=e1288]: "18"
+            - generic [ref=e1289]: "25"
+            - generic [ref=e1290]: "1"
+            - generic [ref=e1291]: "8"
+            - generic [ref=e1292]: "15"
+            - generic [ref=e1293]: "22"
+            - generic [ref=e1294]: "29"
+            - generic [ref=e1295]: "6"
+            - generic [ref=e1296]: "13"
+            - generic [ref=e1297]: "20"
+            - generic [ref=e1298]: "27"
+            - generic [ref=e1299]: "3"
+            - generic [ref=e1300]: "10"
+            - generic [ref=e1301]: "17"
+            - generic [ref=e1302]: "24"
+            - generic [ref=e1303]: "31"
+            - generic [ref=e1304]: "7"
+            - generic [ref=e1305]: "14"
+            - generic [ref=e1306]: "21"
+            - generic [ref=e1307]: "28"
+            - generic [ref=e1308]: "5"
+            - generic [ref=e1309]: "12"
+            - generic [ref=e1310]: "19"
+            - generic [ref=e1311]: "26"
+            - generic [ref=e1312]: "2"
+            - generic [ref=e1313]: "9"
+            - generic [ref=e1314]: "16"
+            - generic [ref=e1315]: "23"
+            - generic [ref=e1316]: "30"
+            - generic [ref=e1317]: "7"
+            - generic [ref=e1318]: "14"
+            - generic [ref=e1319]: "21"
+            - generic [ref=e1320]: "28"
+            - generic [ref=e1321]: "4"
+            - generic [ref=e1322]: "11"
+            - generic [ref=e1323]: "18"
+            - generic [ref=e1324]: "25"
+            - generic [ref=e1325]: "1"
+            - generic [ref=e1326]: "8"
+            - generic [ref=e1327]: "15"
+            - generic [ref=e1328]: "22"
+            - generic [ref=e1329]: "1"
+            - generic [ref=e1330]: "8"
+            - generic [ref=e1331]: "15"
+            - generic [ref=e1332]: "22"
+            - generic [ref=e1333]: "29"
+            - generic [ref=e1334]: "5"
+            - generic [ref=e1335]: "12"
+            - generic [ref=e1336]: "19"
+            - generic [ref=e1337]: "26"
+            - generic [ref=e1338]: "3"
+            - generic [ref=e1339]: "10"
+            - generic [ref=e1340]: "17"
+            - generic [ref=e1341]: "24"
+            - generic [ref=e1342]: "31"
+            - generic [ref=e1343]: "7"
+            - generic [ref=e1344]: "14"
+            - generic [ref=e1345]: "21"
+            - generic [ref=e1346]: "28"
+            - generic [ref=e1347]: "5"
+            - generic [ref=e1348]: "12"
+            - generic [ref=e1349]: "19"
+            - generic [ref=e1350]: "26"
+            - generic [ref=e1351]: "2"
+            - generic [ref=e1352]: "9"
+            - generic [ref=e1353]: "16"
+            - generic [ref=e1354]: "23"
+            - generic [ref=e1355]: "30"
+            - generic [ref=e1356]: "6"
+            - generic [ref=e1357]: "13"
+        - generic [ref=e164]:
+          - generic [ref=e1387]:
+            - generic:
+              - generic: LOAD CENTER-C3(2A)-L3
+          - generic [ref=e1393]:
+            - generic:
+              - generic: LOAD CENTER-S2-L3
+          - generic [ref=e1403]:
+            - generic:
+              - generic: LOAD CENTER-C3(2A)-L4
+          - generic [ref=e1413]:
+            - generic:
+              - generic: LOAD CENTER-C3(2A)-L5
+          - generic [ref=e1475]:
+            - generic:
+              - generic: LOAD CENTER-A1-L14
+          - generic [ref=e1481]:
+            - generic:
+              - generic: LOAD CENTER-A2.1-L14
+          - generic [ref=e1487]:
+            - generic:
+              - generic: LOAD CENTER-A2.1a-L14
+          - img
+    - generic [ref=e167]:
+      - paragraph [ref=e168]: Gantt Chart
+      - paragraph [ref=e170]: 10736 tasks
+      - paragraph [ref=e1493]: "Start: Jul 1 '26"
+      - paragraph [ref=e1494]: "Finish: Jul 3 '26"
+      - generic [ref=e171]:
+        - paragraph [ref=e172]: "-"
+        - slider [ref=e182]: "3"
+        - paragraph [ref=e183]: +

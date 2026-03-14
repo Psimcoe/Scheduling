@@ -24,8 +24,8 @@
   "startDateFieldIdOverride": "",
   "finishDateFieldIdOverride": "",
   "deadlineFieldIdOverride": "",
-  "cachedStartDateFieldId": "",
-  "cachedFinishDateFieldId": "",
+  "cachedStartDateFieldId": "a6643f12-0c15-4661-94b0-b521a9e45a76",
+  "cachedFinishDateFieldId": "03cae90e-50fc-4ecf-be7e-458f358aa8df",
   "cachedDeadlineFieldId": "",
   "statusProgressMappings": [
     {
@@ -200,21 +200,12 @@
     }
   ],
   "excludedProjectIds": [
-    "09dd197f-af51-4cec-9bb2-c02c273bbafd",
-    "164fb083-2545-49c0-86b3-0890b6d7c268",
-    "9fb052db-8363-4060-91e0-101ac9a8d8b6",
-    "5c6c8ff1-0304-40fa-aeb3-ddc151d8d674",
-    "4abf0869-8042-4881-91fc-b98c83efba3b",
-    "33231928-0df6-4908-acbf-725e2b3ab196",
-    "662b9ce7-2fac-4f7e-883d-bcbedf511e37",
-    "df0b0629-50f1-4155-9415-637f9e78bdea",
-    "53d11826-9ba0-401a-93d6-a867ce00db85",
-    "5588d99b-de40-4882-9584-af99fe8d7abc",
     "59e697b3-a47a-46a3-90a8-cec44fe44510",
     "3e409e46-d92f-410d-9e7c-ac4c81955572",
     "27cf4748-1163-4fc9-8bb7-e135342d3d3b",
     "18c45cca-7210-4b11-b7d0-77fe3e1eabc8",
     "b8b1c9a7-0c84-4ce7-9eee-0ef6cbf3e8b3",
+    "eb8df122-5159-4329-86a4-8b63ccce1c12",
     "e82a2c65-a18c-4027-b356-9c38fda03caa",
     "e9c7cf10-f23e-474b-b777-06379d75ad97",
     "b00b0aec-77f1-485d-b18f-ea6359c33f2e",
@@ -225,7 +216,6 @@
     "dbe98059-c689-4381-af23-a61450ca8513",
     "4c3dcc1e-3d7e-459b-aa10-49ff5c42768d",
     "8eddfca2-cee8-4dbf-8c53-dd5ec34b30b9",
-    "b76d6bbf-21a3-4fee-9895-38a743c74a8c",
-    "eb8df122-5159-4329-86a4-8b63ccce1c12"
+    "b76d6bbf-21a3-4fee-9895-38a743c74a8c"
   ]
 }

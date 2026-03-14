@@ -1,0 +1,829 @@
+- generic [ref=e1]:
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - img [ref=e1894]
+        - generic [ref=e13]:
+          - heading [level=6] [ref=e1895]: ScheduleSync
+          - text: Desktop + web planning
+      - separator [ref=e15]
+      - generic [ref=e16]:
+        - heading [level=6] [ref=e1896]: Projects
+        - generic [ref=e18]:
+          - button [ref=e1897] [cursor=pointer]:
+            - img [ref=e20]
+          - button [ref=e1898] [cursor=pointer]:
+            - img [ref=e23]
+          - button [ref=e1899] [cursor=pointer]:
+            - img [ref=e26]
+      - separator [ref=e28]
+      - list [ref=e29]:
+        - button [ref=e1900] [cursor=pointer]:
+          - generic [ref=e31]:
+            - generic [ref=e32]: 320001TUR - MDX RESIDENTIAL TOWER
+            - paragraph [ref=e33]: 3/13/2026
+        - button [ref=e1901] [cursor=pointer]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: 280011GGC - *PREFAB ONLY - TMC - FLOATING FA
+            - paragraph [ref=e37]: 3/13/2026
+        - button [ref=e1902] [cursor=pointer]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: 210468WAL - 210468WAL - MGH WEST SPD ORs (R26)
+            - paragraph [ref=e41]: 3/13/2026
+        - button [ref=e1903] [cursor=pointer]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: 200019SKA - 200019SKA - SIMMONS UNV (R21)
+            - paragraph [ref=e45]: 3/13/2026
+        - button [ref=e1904] [cursor=pointer]:
+          - generic [ref=e47]:
+            - generic [ref=e48]: 180035PGG - 6232025SMC - PROJECT 1 P&G/Gillette
+            - paragraph [ref=e49]: 3/13/2026
+        - button [ref=e1905] [cursor=pointer]:
+          - generic [ref=e51]:
+            - generic [ref=e52]: 150294TUR - MGH BURR
+            - paragraph [ref=e53]: 3/13/2026
+        - button [ref=e1906] [cursor=pointer]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: 150294TUR - MGH - BURR PROTON
+            - paragraph [ref=e57]: 3/13/2026
+        - button [ref=e1907] [cursor=pointer]:
+          - generic [ref=e59]:
+            - generic [ref=e60]: 140032COB - 140032COB - ALNYLAM MANUF. EXPANSION (R25)
+            - paragraph [ref=e61]: 3/13/2026
+        - button [ref=e1908] [cursor=pointer]:
+          - generic [ref=e63]:
+            - generic [ref=e64]: 120048TUR - MGH - 4B CS/P CAMBRIDGE
+            - paragraph [ref=e65]: 3/13/2026
+        - button [ref=e1909] [cursor=pointer]:
+          - generic [ref=e67]:
+            - generic [ref=e68]: 10 CAMPCN - 10CAMPCN - 10 CAMPANELLI CIRCLE FITUP
+            - paragraph [ref=e69]: 3/13/2026
+        - button [ref=e1910] [cursor=pointer]:
+          - generic [ref=e71]:
+            - generic [ref=e72]: 00001SMC - PILOT TEST(R23)
+            - paragraph [ref=e73]: 3/13/2026
+        - button [ref=e1911] [cursor=pointer]:
+          - generic [ref=e75]:
+            - generic [ref=e76]: 000000XXX - CSD Projects (No Model)
+            - paragraph [ref=e77]: 3/13/2026
+        - button [ref=e1912] [cursor=pointer]:
+          - generic [ref=e79]:
+            - generic [ref=e80]: Field Orderz
+            - paragraph [ref=e81]: 3/13/2026
+        - button [ref=e1913] [cursor=pointer]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: Prefab
+            - paragraph [ref=e85]: 3/13/2026
+        - button [ref=e1914] [cursor=pointer]:
+          - generic [ref=e87]:
+            - generic [ref=e88]: test
+            - paragraph [ref=e89]: 3/13/2026
+        - button [ref=e1915] [cursor=pointer]:
+          - generic [ref=e91]:
+            - generic [ref=e92]: Office Building Renovation
+            - paragraph [ref=e93]: 3/13/2026
+    - generic [ref=e94]:
+      - banner [ref=e95]:
+        - tablist [ref=e99]:
+          - tab [selected] [ref=e1916] [cursor=pointer]: Task
+          - tab [ref=e1917] [cursor=pointer]: Resource
+          - tab [ref=e1918] [cursor=pointer]: Project
+          - tab [ref=e1919] [cursor=pointer]: View
+          - tab [ref=e1920] [cursor=pointer]: Format
+        - generic [ref=e107]:
+          - generic [ref=e108]:
+            - generic [ref=e109]:
+              - button [ref=e1922] [cursor=pointer]:
+                - img [ref=e367]
+              - button [ref=e1924] [cursor=pointer]:
+                - img [ref=e369]
+              - button [ref=e1926] [cursor=pointer]:
+                - img [ref=e347]
+              - button [ref=e1928] [cursor=pointer]:
+                - img [ref=e231]
+            - generic [ref=e114]: Insert
+          - generic [ref=e115]:
+            - generic [ref=e116]:
+              - button [ref=e1930] [cursor=pointer]:
+                - img [ref=e350]
+              - button [ref=e1932] [cursor=pointer]:
+                - img [ref=e353]
+              - generic [ref=e1933]:
+                - button [disabled]:
+                  - img
+              - button [ref=e1935] [cursor=pointer]:
+                - img [ref=e356]
+            - generic [ref=e121]: Schedule
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - button [ref=e1937] [cursor=pointer]:
+                - img [ref=e234]
+              - button [ref=e1939] [cursor=pointer]:
+                - img [ref=e237]
+              - button [ref=e1941] [cursor=pointer]:
+                - img [ref=e240]
+              - button [ref=e1943] [cursor=pointer]:
+                - img [ref=e243]
+            - generic [ref=e128]: Editing
+          - generic [ref=e129]:
+            - generic [ref=e130]:
+              - button [ref=e1945] [cursor=pointer]:
+                - img [ref=e359]
+              - button [ref=e1947] [cursor=pointer]:
+                - img [ref=e362]
+            - generic [ref=e133]: Properties
+          - generic [ref=e134]:
+            - button [ref=e1949] [cursor=pointer]:
+              - img [ref=e137]
+            - button [ref=e1951] [cursor=pointer]:
+              - img [ref=e141]
+      - generic [ref=e145]:
+        - grid [ref=e147]:
+          - row [ref=e1952]:
+            - columnheader [ref=e1953]: "#"
+            - columnheader [ref=e1954]: Task Name
+            - columnheader [ref=e1955]: Duration
+            - columnheader [ref=e1956]: Start
+            - columnheader [ref=e1957]: Finish
+            - columnheader [ref=e1958]: "% Done"
+          - generic [ref=e158]:
+            - row [ref=e1959] [cursor=pointer]:
+              - gridcell [ref=e1960]: "1"
+              - gridcell [ref=e1961]:
+                - generic [ref=e1095]: Site Assessment QA0313
+              - gridcell [ref=e1962]: 5d
+              - gridcell [ref=e1963]: Mar 9 '26
+              - gridcell [ref=e1964]: Mar 13 '26
+              - gridcell [ref=e1965]: 100%
+            - row [ref=e1966] [cursor=pointer]:
+              - gridcell [ref=e1967]: "2"
+              - gridcell [ref=e1968]:
+                - generic [ref=e1104]: Demolition QA0313
+              - gridcell [ref=e1969]: 10d
+              - gridcell [ref=e1970]: Mar 13 '26
+              - gridcell [ref=e1971]: Mar 27 '26
+              - gridcell [ref=e1972]: 60%
+            - row [ref=e1973] [cursor=pointer]:
+              - gridcell [ref=e1974]: "3"
+              - gridcell [ref=e1975]:
+                - generic [ref=e1113]: Framing
+              - gridcell [ref=e1976]: 15d
+              - gridcell [ref=e1977]: Mar 27 '26
+              - gridcell [ref=e1978]: Apr 17 '26
+              - gridcell [ref=e1979]: 0%
+            - row [ref=e1980] [cursor=pointer]:
+              - gridcell [ref=e1981]: "4"
+              - gridcell [ref=e1982]:
+                - generic [ref=e1122]: Electrical Rough-In
+              - gridcell [ref=e1983]: 10d
+              - gridcell [ref=e1984]: Apr 20 '26
+              - gridcell [ref=e1985]: May 4 '26
+              - gridcell [ref=e1986]: 0%
+            - row [ref=e1987] [cursor=pointer]:
+              - gridcell [ref=e1988]: "5"
+              - gridcell [ref=e1989]:
+                - generic [ref=e1131]: Plumbing Rough-In
+              - gridcell [ref=e1990]: 10d
+              - gridcell [ref=e1991]: Apr 17 '26
+              - gridcell [ref=e1992]: May 1 '26
+              - gridcell [ref=e1993]: 0%
+            - row [ref=e1994] [cursor=pointer]:
+              - gridcell [ref=e1995]: "6"
+              - gridcell [ref=e1996]:
+                - generic [ref=e1140]: Drywall Installation
+              - gridcell [ref=e1997]: 8d
+              - gridcell [ref=e1998]: May 4 '26
+              - gridcell [ref=e1999]: May 14 '26
+              - gridcell [ref=e2000]: 0%
+            - row [ref=e2001] [cursor=pointer]:
+              - gridcell [ref=e2002]: "7"
+              - gridcell [ref=e2003]:
+                - generic [ref=e1149]: Painting
+              - gridcell [ref=e2004]: 5d
+              - gridcell [ref=e2005]: May 14 '26
+              - gridcell [ref=e2006]: May 21 '26
+              - gridcell [ref=e2007]: 0%
+            - row [ref=e2008] [cursor=pointer]:
+              - gridcell [ref=e2009]: "8"
+              - gridcell [ref=e2010]:
+                - generic [ref=e1157]:
+                  - img [ref=e1158]
+                  - generic [ref=e1160]: Final Inspection
+              - gridcell [ref=e2011]: 0d
+              - gridcell [ref=e2012]: May 21 '26
+              - gridcell [ref=e2013]: May 22 '26
+              - gridcell [ref=e2014]: 0%
+            - row [ref=e2015] [cursor=pointer]:
+              - gridcell [ref=e2016]: "9"
+              - gridcell [ref=e2017]:
+                - generic [ref=e1168]:
+                  - img [ref=e1169]
+                  - generic [ref=e1171]: New Milestone
+              - gridcell [ref=e2018]: 0d
+              - gridcell [ref=e2019]: Mar 9 '26
+              - gridcell [ref=e2020]: Mar 9 '26
+              - gridcell [ref=e2021]: 0%
+            - row [ref=e2022] [cursor=pointer]:
+              - gridcell [ref=e2023]: "10"
+              - gridcell [ref=e2024]:
+                - generic [ref=e1180]: New Task
+              - gridcell [ref=e2025]: 1d
+              - gridcell [ref=e2026]: Mar 9 '26
+              - gridcell [ref=e2027]: Mar 9 '26
+              - gridcell [ref=e2028]: 0%
+            - row [ref=e2029] [cursor=pointer]:
+              - gridcell [ref=e2030]: "11"
+              - gridcell [ref=e2031]:
+                - generic [ref=e1189]: FAB-936-LEVEL 10 FITOUT WIREMOLD NORTH
+              - gridcell [ref=e2032]: 5d
+              - gridcell [ref=e2033]: Mar 9 '26
+              - gridcell [ref=e2034]: Mar 13 '26
+              - gridcell [ref=e2035]: 80%
+            - row [ref=e2036] [cursor=pointer]:
+              - gridcell [ref=e2037]: "12"
+              - gridcell [ref=e2038]:
+                - generic [ref=e1198]: FAB-938-LEVEL 12 FITOUT WIREMOLD NORTH
+              - gridcell [ref=e2039]: 5d
+              - gridcell [ref=e2040]: Mar 9 '26
+              - gridcell [ref=e2041]: Mar 13 '26
+              - gridcell [ref=e2042]: 0%
+            - row [ref=e2043] [cursor=pointer]:
+              - gridcell [ref=e2044]: "13"
+              - gridcell [ref=e2045]:
+                - generic [ref=e1207]: FAB-937-LEVEL 11 FITOUT WIREMOLD NORTH
+              - gridcell [ref=e2046]: 5d
+              - gridcell [ref=e2047]: Mar 9 '26
+              - gridcell [ref=e2048]: Mar 13 '26
+              - gridcell [ref=e2049]: 0%
+            - row [ref=e2050] [cursor=pointer]:
+              - gridcell [ref=e2051]: "14"
+              - gridcell [ref=e2052]:
+                - generic [ref=e1216]: FAB-939-LEVEL 13 FITOUT WIREMOLD NORTH
+              - gridcell [ref=e2053]: 5d
+              - gridcell [ref=e2054]: Mar 9 '26
+              - gridcell [ref=e2055]: Mar 13 '26
+              - gridcell [ref=e2056]: 0%
+            - row [ref=e2057] [cursor=pointer]:
+              - gridcell [ref=e2058]: "15"
+              - gridcell [ref=e2059]:
+                - generic [ref=e1225]: FAB-0656-LOWER LEVEL IDF ROOMS
+              - gridcell [ref=e2060]: 7d
+              - gridcell [ref=e2061]: Mar 9 '26
+              - gridcell [ref=e2062]: Mar 17 '26
+              - gridcell [ref=e2063]: 0%
+            - row [ref=e2064] [cursor=pointer]:
+              - gridcell [ref=e2065]: "16"
+              - gridcell [ref=e2066]:
+                - generic [ref=e1234]: FAB-940-LEVEL 14 FITOUT WIREMOLD NORTH
+              - gridcell [ref=e2067]: 5d
+              - gridcell [ref=e2068]: Mar 9 '26
+              - gridcell [ref=e2069]: Mar 13 '26
+              - gridcell [ref=e2070]: 0%
+            - row [ref=e2071] [cursor=pointer]:
+              - gridcell [ref=e2072]: "17"
+              - gridcell [ref=e2073]:
+                - generic [ref=e1243]: FAB-008-Level 10-HOME RUN J-BOX
+              - gridcell [ref=e2074]: 4d
+              - gridcell [ref=e2075]: Mar 9 '26
+              - gridcell [ref=e2076]: Mar 12 '26
+              - gridcell [ref=e2077]: 100%
+            - row [ref=e2078] [cursor=pointer]:
+              - gridcell [ref=e2079]: "18"
+              - gridcell [ref=e2080]:
+                - generic [ref=e1252]: FAB-0025-LEVEL-10-BRS-
+              - gridcell [ref=e2081]: 2d
+              - gridcell [ref=e2082]: Mar 9 '26
+              - gridcell [ref=e2083]: Mar 10 '26
+              - gridcell [ref=e2084]: 100%
+            - row [ref=e2085] [cursor=pointer]:
+              - gridcell [ref=e2086]: "19"
+              - gridcell [ref=e2087]:
+                - generic [ref=e1261]: FAB-0241-L37-CND PKG-D
+              - gridcell [ref=e2088]: 4d
+              - gridcell [ref=e2089]: Mar 9 '26
+              - gridcell [ref=e2090]: Mar 12 '26
+              - gridcell [ref=e2091]: 80%
+            - row [selected] [ref=e2092] [cursor=pointer]:
+              - gridcell [ref=e2093]: "20"
+              - gridcell [ref=e2094]:
+                - generic [ref=e1270]: FAB-0085--CND-
+              - gridcell [ref=e2095]: 1d
+              - gridcell [ref=e2096]: Mar 9 '26
+              - gridcell [ref=e2097]: Mar 9 '26
+              - gridcell [ref=e2098]: 100%
+            - row [ref=e2099] [cursor=pointer]:
+              - gridcell [ref=e2100]: "21"
+              - gridcell [ref=e2101]:
+                - generic [ref=e1279]: FAB-652-P5-SPOOL-H
+              - gridcell [ref=e2102]: 2d
+              - gridcell [ref=e2103]: Mar 9 '26
+              - gridcell [ref=e2104]: Mar 10 '26
+              - gridcell [ref=e2105]: 100%
+            - row [ref=e2106] [cursor=pointer]:
+              - gridcell [ref=e2107]: "22"
+              - gridcell [ref=e2108]:
+                - generic [ref=e1288]: FAB-0959--CND-
+              - gridcell [ref=e2109]: 3d
+              - gridcell [ref=e2110]: Mar 9 '26
+              - gridcell [ref=e2111]: Mar 11 '26
+              - gridcell [ref=e2112]: 100%
+            - row [ref=e2113] [cursor=pointer]:
+              - gridcell [ref=e2114]: "23"
+              - gridcell [ref=e2115]:
+                - generic [ref=e1297]: FAB-0217-LEVEL 14-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+              - gridcell [ref=e2116]: 3d
+              - gridcell [ref=e2117]: Mar 9 '26
+              - gridcell [ref=e2118]: Mar 11 '26
+              - gridcell [ref=e2119]: 100%
+            - row [ref=e2120] [cursor=pointer]:
+              - gridcell [ref=e2121]: "24"
+              - gridcell [ref=e2122]:
+                - generic [ref=e1306]: FAB-0218-LEVEL 14-CND-PIPE BENDS (3_4in -1in PIPE) A_V
+              - gridcell [ref=e2123]: 3d
+              - gridcell [ref=e2124]: Mar 9 '26
+              - gridcell [ref=e2125]: Mar 11 '26
+              - gridcell [ref=e2126]: 100%
+            - row [ref=e2127] [cursor=pointer]:
+              - gridcell [ref=e2128]: "25"
+              - gridcell [ref=e2129]:
+                - generic [ref=e1315]: FAB-0092--CND-
+              - gridcell [ref=e2130]: 1d
+              - gridcell [ref=e2131]: Mar 9 '26
+              - gridcell [ref=e2132]: Mar 9 '26
+              - gridcell [ref=e2133]: 0%
+            - row [ref=e2134] [cursor=pointer]:
+              - gridcell [ref=e2135]: "26"
+              - gridcell [ref=e2136]:
+                - generic [ref=e1324]: FAB-0093--CND-
+              - gridcell [ref=e2137]: 1d
+              - gridcell [ref=e2138]: Mar 9 '26
+              - gridcell [ref=e2139]: Mar 9 '26
+              - gridcell [ref=e2140]: 0%
+            - row [ref=e2141] [cursor=pointer]:
+              - gridcell [ref=e2142]: "27"
+              - gridcell [ref=e2143]:
+                - generic [ref=e1333]: FAB-655-P5-SPOOL-K
+              - gridcell [ref=e2144]: 4d
+              - gridcell [ref=e2145]: Mar 9 '26
+              - gridcell [ref=e2146]: Mar 12 '26
+              - gridcell [ref=e2147]: 51%
+            - row [ref=e2148] [cursor=pointer]:
+              - gridcell [ref=e2149]: "28"
+              - gridcell [ref=e2150]:
+                - generic [ref=e1342]: FAB0487-L19-CND-PKG-RMC-A
+              - gridcell [ref=e2151]: 3d
+              - gridcell [ref=e2152]: Mar 9 '26
+              - gridcell [ref=e2153]: Mar 11 '26
+              - gridcell [ref=e2154]: 100%
+            - row [ref=e2155] [cursor=pointer]:
+              - gridcell [ref=e2156]: "29"
+              - gridcell [ref=e2157]:
+                - generic [ref=e1351]: FAB-0095--CND-
+              - gridcell [ref=e2158]: 1d
+              - gridcell [ref=e2159]: Mar 9 '26
+              - gridcell [ref=e2160]: Mar 9 '26
+              - gridcell [ref=e2161]: 0%
+            - row [ref=e2162] [cursor=pointer]:
+              - gridcell [ref=e2163]: "30"
+              - gridcell [ref=e2164]:
+                - generic [ref=e1360]: FAB-0094--CND-
+              - gridcell [ref=e2165]: 1d
+              - gridcell [ref=e2166]: Mar 9 '26
+              - gridcell [ref=e2167]: Mar 9 '26
+              - gridcell [ref=e2168]: 0%
+            - row [ref=e2169] [cursor=pointer]:
+              - gridcell [ref=e2170]: "31"
+              - gridcell [ref=e2171]:
+                - generic [ref=e1369]: FAB-0106-LEVEL 2-CND-PIPE BENDS-0.75in-1.25in PIPE TD
+              - gridcell [ref=e2172]: 3d
+              - gridcell [ref=e2173]: Mar 9 '26
+              - gridcell [ref=e2174]: Mar 11 '26
+              - gridcell [ref=e2175]: 0%
+            - row [ref=e2176] [cursor=pointer]:
+              - gridcell [ref=e2177]: "32"
+              - gridcell [ref=e2178]:
+                - generic [ref=e1378]: FAB-0235-L37-CND PKG M
+              - gridcell [ref=e2179]: 4d
+              - gridcell [ref=e2180]: Mar 9 '26
+              - gridcell [ref=e2181]: Mar 12 '26
+              - gridcell [ref=e2182]: 0%
+            - row [ref=e2183] [cursor=pointer]:
+              - gridcell [ref=e2184]: "33"
+              - gridcell [ref=e2185]:
+                - generic [ref=e1387]: FAB-0242-L38-CND-PKG D
+              - gridcell [ref=e2186]: 3d
+              - gridcell [ref=e2187]: Mar 9 '26
+              - gridcell [ref=e2188]: Mar 11 '26
+              - gridcell [ref=e2189]: 100%
+            - row [ref=e2190] [cursor=pointer]:
+              - gridcell [ref=e2191]: "34"
+              - gridcell [ref=e2192]:
+                - generic [ref=e1396]: FAB-217-LEVEL P6-CND
+              - gridcell [ref=e2193]: 4d
+              - gridcell [ref=e2194]: Mar 9 '26
+              - gridcell [ref=e2195]: Mar 12 '26
+              - gridcell [ref=e2196]: 0%
+            - row [ref=e2197] [cursor=pointer]:
+              - gridcell [ref=e2198]: "35"
+              - gridcell [ref=e2199]:
+                - generic [ref=e1405]: FAB-0231-LEVEL 15-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+              - gridcell [ref=e2200]: 3d
+              - gridcell [ref=e2201]: Mar 9 '26
+              - gridcell [ref=e2202]: Mar 11 '26
+              - gridcell [ref=e2203]: 100%
+            - row [ref=e2204] [cursor=pointer]:
+              - gridcell [ref=e2205]: "36"
+              - gridcell [ref=e2206]:
+                - generic [ref=e1414]: FAB-0232-LEVEL 15-CND-PIPE BENDS (3_4in -1in PIPE) A_V
+              - gridcell [ref=e2207]: 3d
+              - gridcell [ref=e2208]: Mar 9 '26
+              - gridcell [ref=e2209]: Mar 11 '26
+              - gridcell [ref=e2210]: 100%
+            - row [ref=e2211] [cursor=pointer]:
+              - gridcell [ref=e2212]: "37"
+              - gridcell [ref=e2213]:
+                - generic [ref=e1423]: FAB-139-LEVEL P6-CND
+              - gridcell [ref=e2214]: 7d
+              - gridcell [ref=e2215]: Mar 9 '26
+              - gridcell [ref=e2216]: Mar 17 '26
+              - gridcell [ref=e2217]: 0%
+            - row [ref=e2218] [cursor=pointer]:
+              - gridcell [ref=e2219]: "38"
+              - gridcell [ref=e2220]:
+                - generic [ref=e1432]: FAB-1238-L37-CND PKG-G
+              - gridcell [ref=e2221]: 5d
+              - gridcell [ref=e2222]: Mar 9 '26
+              - gridcell [ref=e2223]: Mar 13 '26
+              - gridcell [ref=e2224]: 0%
+            - row [ref=e2225] [cursor=pointer]:
+              - gridcell [ref=e2226]: "39"
+              - gridcell [ref=e2227]:
+                - generic [ref=e1441]: FAB-0129-LEVEL 25-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+              - gridcell [ref=e2228]: 3d
+              - gridcell [ref=e2229]: Mar 9 '26
+              - gridcell [ref=e2230]: Mar 11 '26
+              - gridcell [ref=e2231]: 0%
+            - row [ref=e2232] [cursor=pointer]:
+              - gridcell [ref=e2233]: "40"
+              - gridcell [ref=e2234]:
+                - generic [ref=e1450]: FAB-0021-LEVEL 1-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+              - gridcell [ref=e2235]: 3d
+              - gridcell [ref=e2236]: Mar 9 '26
+              - gridcell [ref=e2237]: Mar 11 '26
+              - gridcell [ref=e2238]: 100%
+            - row [ref=e2239] [cursor=pointer]:
+              - gridcell [ref=e2240]: "41"
+              - gridcell [ref=e2241]:
+                - generic [ref=e1459]: FAB-0022-LEVEL 1-CND-PIPE BENDS (3_4in -1in PIPE) A_V
+              - gridcell [ref=e2242]: 2d
+              - gridcell [ref=e2243]: Mar 9 '26
+              - gridcell [ref=e2244]: Mar 10 '26
+              - gridcell [ref=e2245]: 100%
+            - row [ref=e2246] [cursor=pointer]:
+              - gridcell [ref=e2247]: "42"
+              - gridcell [ref=e2248]:
+                - generic [ref=e1468]: FAB-1245-L36-CND-PKG A
+              - gridcell [ref=e2249]: 3d
+              - gridcell [ref=e2250]: Mar 9 '26
+              - gridcell [ref=e2251]: Mar 11 '26
+              - gridcell [ref=e2252]: 0%
+            - row [ref=e2253] [cursor=pointer]:
+              - gridcell [ref=e2254]: "43"
+              - gridcell [ref=e2255]:
+                - generic [ref=e1477]: FAB-0130-LEVEL 26-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+              - gridcell [ref=e2256]: 3d
+              - gridcell [ref=e2257]: Mar 9 '26
+              - gridcell [ref=e2258]: Mar 11 '26
+              - gridcell [ref=e2259]: 80%
+            - row [ref=e2260] [cursor=pointer]:
+              - gridcell [ref=e2261]: "44"
+              - gridcell [ref=e2262]:
+                - generic [ref=e1486]: FAB-1244-L36-CND-PKG B
+              - gridcell [ref=e2263]: 3d
+              - gridcell [ref=e2264]: Mar 9 '26
+              - gridcell [ref=e2265]: Mar 11 '26
+              - gridcell [ref=e2266]: 0%
+            - row [ref=e2267] [cursor=pointer]:
+              - gridcell [ref=e2268]: "45"
+              - gridcell [ref=e2269]:
+                - generic [ref=e1495]: FAB-1243-L36-CND-PKG C
+              - gridcell [ref=e2270]: 4d
+              - gridcell [ref=e2271]: Mar 9 '26
+              - gridcell [ref=e2272]: Mar 12 '26
+              - gridcell [ref=e2273]: 0%
+            - row [ref=e2274] [cursor=pointer]:
+              - gridcell [ref=e2275]: "46"
+              - gridcell [ref=e2276]:
+                - generic [ref=e1504]: FAB-0245-LEVEL 16-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+              - gridcell [ref=e2277]: 3d
+              - gridcell [ref=e2278]: Mar 9 '26
+              - gridcell [ref=e2279]: Mar 11 '26
+              - gridcell [ref=e2280]: 100%
+            - row [ref=e2281] [cursor=pointer]:
+              - gridcell [ref=e2282]: "47"
+              - gridcell [ref=e2283]:
+                - generic [ref=e1513]: FAB-0131-LEVEL 27-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+              - gridcell [ref=e2284]: 3d
+              - gridcell [ref=e2285]: Mar 9 '26
+              - gridcell [ref=e2286]: Mar 11 '26
+              - gridcell [ref=e2287]: 0%
+            - row [ref=e2288] [cursor=pointer]:
+              - gridcell [ref=e2289]: "48"
+              - gridcell [ref=e2290]:
+                - generic [ref=e1522]: FAB-0132-LEVEL 28-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+              - gridcell [ref=e2291]: 3d
+              - gridcell [ref=e2292]: Mar 9 '26
+              - gridcell [ref=e2293]: Mar 11 '26
+              - gridcell [ref=e2294]: 80%
+            - row [ref=e2295] [cursor=pointer]:
+              - gridcell [ref=e2296]: "49"
+              - gridcell [ref=e2297]:
+                - generic [ref=e1531]: FAB-789-LEVEL 10-CND
+              - gridcell [ref=e2298]: 3d
+              - gridcell [ref=e2299]: Mar 9 '26
+              - gridcell [ref=e2300]: Mar 11 '26
+              - gridcell [ref=e2301]: 100%
+            - row [ref=e2302] [cursor=pointer]:
+              - gridcell [ref=e2303]: "50"
+              - gridcell [ref=e2304]:
+                - generic [ref=e1540]: FAB-0024-LEVEL-10-CND-
+              - gridcell [ref=e2305]: 3d
+              - gridcell [ref=e2306]: Mar 9 '26
+              - gridcell [ref=e2307]: Mar 11 '26
+              - gridcell [ref=e2308]: 100%
+            - row [ref=e2309] [cursor=pointer]:
+              - gridcell [ref=e2310]: "51"
+              - gridcell [ref=e2311]:
+                - generic [ref=e1549]: FAB-0133-LEVEL 29-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+              - gridcell [ref=e2312]: 3d
+              - gridcell [ref=e2313]: Mar 9 '26
+              - gridcell [ref=e2314]: Mar 11 '26
+              - gridcell [ref=e2315]: 0%
+            - row [ref=e2316] [cursor=pointer]:
+              - gridcell [ref=e2317]: "52"
+              - gridcell [ref=e2318]:
+                - generic [ref=e1558]: FAB-0234-L38-CND-PKG A
+              - gridcell [ref=e2319]: 3d
+              - gridcell [ref=e2320]: Mar 9 '26
+              - gridcell [ref=e2321]: Mar 11 '26
+              - gridcell [ref=e2322]: 100%
+            - row [ref=e2323] [cursor=pointer]:
+              - gridcell [ref=e2324]: "53"
+              - gridcell [ref=e2325]:
+                - generic [ref=e1567]: FAB-0259-LEVEL 17-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+              - gridcell [ref=e2326]: 2d
+              - gridcell [ref=e2327]: Mar 9 '26
+              - gridcell [ref=e2328]: Mar 10 '26
+              - gridcell [ref=e2329]: 100%
+            - row [ref=e2330] [cursor=pointer]:
+              - gridcell [ref=e2331]: "54"
+              - gridcell [ref=e2332]:
+                - generic [ref=e1576]: FAB-0260-LEVEL 17-CND-PIPE BENDS (3_4in -1in PIPE) A_V
+              - gridcell [ref=e2333]: 2d
+              - gridcell [ref=e2334]: Mar 9 '26
+              - gridcell [ref=e2335]: Mar 10 '26
+              - gridcell [ref=e2336]: 100%
+        - generic [ref=e171]:
+          - generic [ref=e175]:
+            - generic [ref=e176]:
+              - generic [ref=e177]: Mar 2026
+              - generic [ref=e1581]: Apr 2026
+              - generic [ref=e1582]: May 2026
+              - generic [ref=e1583]: Jun 2026
+            - generic [ref=e182]:
+              - generic [ref=e183]: "1"
+              - generic [ref=e184]: "8"
+              - generic [ref=e185]: "15"
+              - generic [ref=e186]: "22"
+              - generic [ref=e1584]: "29"
+              - generic [ref=e1585]: "5"
+              - generic [ref=e1586]: "12"
+              - generic [ref=e1587]: "19"
+              - generic [ref=e1588]: "26"
+              - generic [ref=e1589]: "3"
+              - generic [ref=e1590]: "10"
+              - generic [ref=e1591]: "17"
+              - generic [ref=e1592]: "24"
+              - generic [ref=e1593]: "31"
+          - generic [ref=e204]:
+            - generic [ref=e1649]:
+              - generic:
+                - generic: Site Assessment QA0313
+            - generic [ref=e1654]:
+              - generic:
+                - generic: Demolition QA0313
+            - generic [ref=e1660]:
+              - generic:
+                - generic: Framing
+            - generic [ref=e1664]:
+              - generic:
+                - generic: Electrical Rough-In
+            - generic [ref=e1668]:
+              - generic:
+                - generic: Plumbing Rough-In
+            - generic [ref=e1672]:
+              - generic:
+                - generic: Drywall Installation
+            - generic [ref=e1676]:
+              - generic:
+                - generic: Painting
+            - generic [ref=e1682]:
+              - generic:
+                - generic: New Task
+            - generic [ref=e1686]:
+              - generic:
+                - generic: FAB-936-LEVEL 10 FITOUT WIREMOLD NORTH
+            - generic [ref=e1692]:
+              - generic:
+                - generic: FAB-938-LEVEL 12 FITOUT WIREMOLD NORTH
+            - generic [ref=e1696]:
+              - generic:
+                - generic: FAB-937-LEVEL 11 FITOUT WIREMOLD NORTH
+            - generic [ref=e1700]:
+              - generic:
+                - generic: FAB-939-LEVEL 13 FITOUT WIREMOLD NORTH
+            - generic [ref=e1704]:
+              - generic:
+                - generic: FAB-0656-LOWER LEVEL IDF ROOMS
+            - generic [ref=e1708]:
+              - generic:
+                - generic: FAB-940-LEVEL 14 FITOUT WIREMOLD NORTH
+            - generic [ref=e1712]:
+              - generic:
+                - generic: FAB-008-Level 10-HOME RUN J-BOX
+            - generic [ref=e1717]:
+              - generic:
+                - generic: FAB-0025-LEVEL-10-BRS-
+            - generic [ref=e1722]:
+              - generic:
+                - generic: FAB-0241-L37-CND PKG-D
+            - generic [ref=e1728]:
+              - generic:
+                - generic: FAB-0085--CND-
+            - generic [ref=e1733]:
+              - generic:
+                - generic: FAB-652-P5-SPOOL-H
+            - generic [ref=e1738]:
+              - generic:
+                - generic: FAB-0959--CND-
+            - generic [ref=e1743]:
+              - generic:
+                - generic: FAB-0217-LEVEL 14-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+            - generic [ref=e1748]:
+              - generic:
+                - generic: FAB-0218-LEVEL 14-CND-PIPE BENDS (3_4in -1in PIPE) A_V
+            - generic [ref=e1753]:
+              - generic:
+                - generic: FAB-0092--CND-
+            - generic [ref=e1757]:
+              - generic:
+                - generic: FAB-0093--CND-
+            - generic [ref=e1761]:
+              - generic:
+                - generic: FAB-655-P5-SPOOL-K
+            - generic [ref=e1767]:
+              - generic:
+                - generic: FAB0487-L19-CND-PKG-RMC-A
+            - generic [ref=e1772]:
+              - generic:
+                - generic: FAB-0095--CND-
+            - generic [ref=e1776]:
+              - generic:
+                - generic: FAB-0094--CND-
+            - generic [ref=e1780]:
+              - generic:
+                - generic: FAB-0106-LEVEL 2-CND-PIPE BENDS-0.75in-1.25in PIPE TD
+            - generic [ref=e1784]:
+              - generic:
+                - generic: FAB-0235-L37-CND PKG M
+            - generic [ref=e1788]:
+              - generic:
+                - generic: FAB-0242-L38-CND-PKG D
+            - generic [ref=e1793]:
+              - generic:
+                - generic: FAB-217-LEVEL P6-CND
+            - generic [ref=e1797]:
+              - generic:
+                - generic: FAB-0231-LEVEL 15-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+            - generic [ref=e1802]:
+              - generic:
+                - generic: FAB-0232-LEVEL 15-CND-PIPE BENDS (3_4in -1in PIPE) A_V
+            - generic [ref=e1807]:
+              - generic:
+                - generic: FAB-139-LEVEL P6-CND
+            - generic [ref=e1811]:
+              - generic:
+                - generic: FAB-1238-L37-CND PKG-G
+            - generic [ref=e1815]:
+              - generic:
+                - generic: FAB-0129-LEVEL 25-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+            - generic [ref=e1819]:
+              - generic:
+                - generic: FAB-0021-LEVEL 1-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+            - generic [ref=e1824]:
+              - generic:
+                - generic: FAB-0022-LEVEL 1-CND-PIPE BENDS (3_4in -1in PIPE) A_V
+            - generic [ref=e1829]:
+              - generic:
+                - generic: FAB-1245-L36-CND-PKG A
+            - generic [ref=e1833]:
+              - generic:
+                - generic: FAB-0130-LEVEL 26-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+            - generic [ref=e1839]:
+              - generic:
+                - generic: FAB-1244-L36-CND-PKG B
+            - generic [ref=e1843]:
+              - generic:
+                - generic: FAB-1243-L36-CND-PKG C
+            - generic [ref=e1847]:
+              - generic:
+                - generic: FAB-0245-LEVEL 16-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+            - generic [ref=e1852]:
+              - generic:
+                - generic: FAB-0131-LEVEL 27-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+            - generic [ref=e1856]:
+              - generic:
+                - generic: FAB-0132-LEVEL 28-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+            - generic [ref=e1862]:
+              - generic:
+                - generic: FAB-789-LEVEL 10-CND
+            - generic [ref=e1867]:
+              - generic:
+                - generic: FAB-0024-LEVEL-10-CND-
+            - generic [ref=e1872]:
+              - generic:
+                - generic: FAB-0133-LEVEL 29-CND-TIER 2 PIPE BENDS-0.75in-1.25in PIPE TD
+            - generic [ref=e1876]:
+              - generic:
+                - generic: FAB-0234-L38-CND-PKG A
+            - generic [ref=e1881]:
+              - generic:
+                - generic: FAB-0259-LEVEL 17-CND-PIPE BENDS (3_4in -1 1_4in PIPE) T_D
+            - generic [ref=e1886]:
+              - generic:
+                - generic: FAB-0260-LEVEL 17-CND-PIPE BENDS (3_4in -1in PIPE) A_V
+            - img
+      - generic [ref=e207]:
+        - paragraph [ref=e208]: Gantt Chart
+        - paragraph [ref=e210]: 615 tasks
+        - paragraph [ref=e1893]: 1 selected
+        - paragraph [ref=e1891]: "Start: Mar 9 '26"
+        - paragraph [ref=e1892]: "Finish: May 22 '26"
+        - generic [ref=e211]:
+          - paragraph [ref=e212]: "-"
+          - slider [ref=e222]: "3"
+          - paragraph [ref=e223]: +
+  - dialog "Task Information — FAB-0085--CND-" [ref=e2339]:
+    - heading "Task Information — FAB-0085--CND-" [level=2] [ref=e2340]
+    - generic [ref=e2341]:
+      - tablist [ref=e2344]:
+        - tab "General" [selected] [ref=e2345] [cursor=pointer]
+        - tab "Predecessors" [ref=e2346] [cursor=pointer]
+        - tab "Resources" [ref=e2347] [cursor=pointer]
+        - tab "Advanced" [ref=e2348] [cursor=pointer]
+        - tab "Notes" [ref=e2349] [cursor=pointer]
+      - tabpanel [ref=e2351]:
+        - generic [ref=e2352]:
+          - generic [ref=e2355]:
+            - generic [ref=e2356]: Task Name
+            - generic [ref=e2357]:
+              - textbox "Task Name" [ref=e2358]: FAB-0085--CND-
+              - group:
+                - generic: Task Name
+          - generic [ref=e2361]:
+            - generic [ref=e2362]: Duration
+            - generic [ref=e2363]:
+              - textbox "Duration" [ref=e2364]: 1d
+              - group:
+                - generic: Duration
+            - paragraph [ref=e2365]: e.g. 5d, 2w, 4h
+          - generic [ref=e2367]:
+            - generic [ref=e2368]: Start
+            - generic [ref=e2369]:
+              - textbox "Start" [ref=e2370]: 2026-03-09
+              - group:
+                - generic: Start
+          - generic [ref=e2372]:
+            - generic [ref=e2373]: Finish
+            - generic [ref=e2374]:
+              - textbox "Finish" [ref=e2375]: 2026-03-09
+              - group:
+                - generic: Finish
+          - generic [ref=e2377]:
+            - generic [ref=e2378]: "% Complete"
+            - generic [ref=e2379]:
+              - spinbutton "% Complete" [ref=e2380]: "100"
+              - group:
+                - generic: "% Complete"
+          - generic [ref=e2382] [cursor=pointer]:
+            - generic [ref=e2383]:
+              - checkbox "Manually Scheduled" [ref=e2384]
+              - img [ref=e2385]
+            - generic [ref=e2387]: Manually Scheduled
+          - paragraph [ref=e2389]: "WBS: —"
+          - generic [ref=e2391]:
+            - paragraph [ref=e2392]: "Total Slack: 53d"
+            - paragraph [ref=e2393]: "Free Slack: 53d"
+    - generic [ref=e2394]:
+      - button "Cancel" [ref=e2395] [cursor=pointer]
+      - button "Save" [ref=e2396] [cursor=pointer]

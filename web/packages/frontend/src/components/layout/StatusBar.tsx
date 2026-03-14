@@ -34,6 +34,9 @@ const StatusBar: React.FC = () => {
   const tasks = useProjectStore((s) => s.tasks);
   const selectedTaskIds = useProjectStore((s) => s.selectedTaskIds);
   const activeProject = useProjectStore((s) => s.activeProject);
+  const activeProjectId = useProjectStore((s) => s.activeProjectId);
+  const scheduleJobs = useProjectStore((s) => s.scheduleJobs);
+  const activeScheduleJob = activeProjectId ? scheduleJobs[activeProjectId] : undefined;
 
   const zoomIndex = ZOOM_LEVELS.indexOf(ganttZoom);
 
@@ -69,6 +72,13 @@ const StatusBar: React.FC = () => {
           {selectedTaskIds.size} selected
         </Typography>
       )}
+
+      {activeScheduleJob &&
+        (activeScheduleJob.status === 'queued' || activeScheduleJob.status === 'running') && (
+          <Typography sx={{ fontSize: '0.65rem' }}>
+            {activeScheduleJob.status === 'queued' ? 'Recalculation queued' : 'Recalculating...'}
+          </Typography>
+        )}
 
       {/* Project dates */}
       {activeProject && (

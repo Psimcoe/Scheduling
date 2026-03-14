@@ -12,12 +12,14 @@ import ChatPanel from './components/ai/ChatPanel';
 import DialogHost from './components/dialogs/DialogHost';
 import ProjectDataBridge from './data/ProjectDataBridge';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useServerEvents } from './realtime/useServerEvents';
 import { useUIStore } from './stores';
 
 const App: React.FC = () => {
   const snackbar = useUIStore((s) => s.snackbar);
   const clearSnackbar = useUIStore((s) => s.clearSnackbar);
   useKeyboardShortcuts();
+  useServerEvents();
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>

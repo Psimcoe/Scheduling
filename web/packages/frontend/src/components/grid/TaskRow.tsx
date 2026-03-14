@@ -20,6 +20,7 @@ import AddIcon from '@mui/icons-material/Add';
 import FormatIndentIncreaseIcon from '@mui/icons-material/FormatIndentIncrease';
 import FormatIndentDecreaseIcon from '@mui/icons-material/FormatIndentDecrease';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 import InlineEditor from './InlineEditor';
 import {
@@ -110,6 +111,7 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
 
   const isSummary = task.type === 'summary';
   const isMilestone = task.type === 'milestone' || task.durationMinutes === 0;
+  const isNameLocked = task.isNameManagedByStratus;
   const indentPx = task.outlineLevel * 20;
   const criticalColor = showCriticalPath && task.isCritical ? '#D32F2F' : undefined;
 
@@ -138,17 +140,23 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
 
   const handleDoubleClick = useCallback(
     (field: EditingField) => {
+      if (field === 'name' && isNameLocked) {
+        return;
+      }
       if (isSummary && field !== 'name') {
         return;
       }
       setEditing(field);
     },
-    [isSummary],
+    [isNameLocked, isSummary],
   );
 
   const commitEdit = useCallback(
     async (field: Exclude<EditingField, null>, rawValue: string) => {
       setEditing(null);
+      if (field === 'name' && isNameLocked) {
+        return;
+      }
       const data: Record<string, unknown> = {};
 
       switch (field) {
@@ -220,7 +228,7 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
         await updateTask(task.id, data);
       }
     },
-    [task, updateTask],
+    [isNameLocked, task, updateTask],
   );
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
@@ -249,6 +257,9 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
       }
 
       if (event.key === 'F2') {
+        if (isNameLocked) {
+          return;
+        }
         event.preventDefault();
         setEditing('name');
         return;
@@ -265,7 +276,7 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
         onToggleExpand(task.id);
       }
     },
-    [editing, hasChildren, isExpanded, onToggleExpand, openDialogWith, selectTask, task],
+    [editing, hasChildren, isExpanded, isNameLocked, onToggleExpand, openDialogWith, selectTask, task],
   );
 
   const handleInsertTaskAbove = useCallback(async () => {
@@ -352,6 +363,12 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
               )}
               {isMilestone && !isSummary && (
                 <DiamondIcon sx={{ fontSize: 14, mr: 0.5, color: '#333' }} />
+              )}
+              {isNameLocked && (
+                <LockOutlinedIcon
+                  sx={{ fontSize: 14, mr: 0.5, color: '#8A6D1D', flexShrink: 0 }}
+                  titleAccess="Task name is managed by Stratus"
+                />
               )}
               <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {task.name}

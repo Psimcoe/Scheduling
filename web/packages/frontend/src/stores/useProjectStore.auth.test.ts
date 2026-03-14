@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, tasksApi, type ProjectSnapshotResponse } from '../api/client';
+import { ApiError, projectsApi, tasksApi, type ProjectSnapshotResponse } from '../api/client';
+import { projectQueryKeys } from '../data/projectQueries';
 import { queryClient } from '../queryClient';
 import {
   resetProjectQueuesForTesting,
@@ -64,6 +65,7 @@ function createSnapshot(name: string, revision = 1): ProjectSnapshotResponse {
         deadline: null,
         notes: null,
         externalKey: null,
+        isNameManagedByStratus: false,
         sortOrder: 0,
         stratusSync: null,
         fixedCost: null,
@@ -113,6 +115,7 @@ function seedProjectState(snapshot: ProjectSnapshotResponse): void {
     error: null,
     selectedTaskIds: new Set(),
     pendingActions: {},
+    scheduleJobs: {},
   });
 }
 
@@ -137,7 +140,6 @@ describe('useProjectStore auth queue handling', () => {
       )
       .mockResolvedValueOnce({
         revision: 2,
-        snapshot: updatedSnapshot,
         task: updatedSnapshot.tasks[0],
       });
 
@@ -161,6 +163,94 @@ describe('useProjectStore auth queue handling', () => {
 
     expect(updateSpy).toHaveBeenCalledTimes(2);
     expect(useProjectStore.getState().tasks[0]?.name).toBe('Updated task');
+  });
+
+  it('applies compact task update responses without waiting for snapshot invalidation', async () => {
+    const invalidatePromise = new Promise<void>(() => {});
+    const invalidateSpy = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockReturnValue(invalidatePromise as ReturnType<typeof queryClient.invalidateQueries>);
+    const updatedTask = createSnapshot('Updated task', 2).tasks[0]!;
+
+    vi.spyOn(tasksApi, 'update').mockResolvedValueOnce({
+      revision: 2,
+      task: updatedTask,
+    });
+
+    await useProjectStore.getState().updateTask('task-1', { name: 'Updated task' });
+
+    expect(useProjectStore.getState().tasks[0]?.name).toBe('Updated task');
+    expect(
+      queryClient.getQueryData(projectQueryKeys.taskDetail('project-1', 'task-1')),
+    ).toEqual(updatedTask);
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: projectQueryKeys.snapshotBase('project-1'),
+    });
+  });
+
+  it('does not reapply optimistic create snapshots when the bridge syncs cached data', async () => {
+    const neverSettles = new Promise<never>(() => {});
+    vi.spyOn(tasksApi, 'create').mockReturnValueOnce(neverSettles);
+
+    void useProjectStore.getState().createTask({ name: 'Queued task' });
+
+    await vi.waitFor(() => {
+      expect(useProjectStore.getState().tasks).toHaveLength(2);
+    });
+
+    const optimisticSnapshot = queryClient.getQueryData<ProjectSnapshotResponse>(
+      projectQueryKeys.snapshot('project-1', 'full'),
+    );
+
+    expect(optimisticSnapshot?.tasks).toHaveLength(2);
+
+    useProjectStore.getState().syncSnapshot(optimisticSnapshot!);
+
+    expect(useProjectStore.getState().tasks).toHaveLength(2);
+    expect(
+      useProjectStore.getState().tasks.filter((task) => task.name === 'Queued task'),
+    ).toHaveLength(1);
+  });
+
+  it('hydrates the target project from cache immediately on project switch', async () => {
+    const nextSnapshotBase = createSnapshot('Project 2 task', 3);
+    const nextSnapshot = {
+      ...nextSnapshotBase,
+      project: {
+        ...nextSnapshotBase.project,
+        id: 'project-2',
+        name: 'Project 2',
+      },
+      tasks: [
+        {
+          ...nextSnapshotBase.tasks[0]!,
+          id: 'task-2',
+          projectId: 'project-2',
+          name: 'Project 2 task',
+        },
+      ],
+    } satisfies ProjectSnapshotResponse;
+
+    queryClient.setQueryData(projectQueryKeys.snapshot('project-2', 'shell'), nextSnapshot);
+    vi.spyOn(tasksApi, 'update').mockReset();
+    vi.spyOn(projectsApi, 'snapshot').mockResolvedValueOnce(nextSnapshot);
+
+    const switchPromise = useProjectStore.getState().setActiveProject('project-2');
+
+    expect(useProjectStore.getState().activeProjectId).toBe('project-2');
+    expect(useProjectStore.getState().activeProject?.id).toBe('project-2');
+    expect(useProjectStore.getState().tasks[0]?.projectId).toBe('project-2');
+    expect(useProjectStore.getState().tasks[0]?.name).toBe('Project 2 task');
+    await switchPromise;
+  });
+
+  it('ignores stale snapshots that would move the project backward', () => {
+    seedProjectState(createSnapshot('Current task', 2));
+
+    useProjectStore.getState().syncSnapshot(createSnapshot('Stale task', 1));
+
+    expect(useProjectStore.getState().tasks[0]?.name).toBe('Current task');
+    expect(useProjectStore.getState().activeProject?.revision).toBe(2);
   });
 
   it('rolls back optimistic changes and rejects on a 403 response', async () => {

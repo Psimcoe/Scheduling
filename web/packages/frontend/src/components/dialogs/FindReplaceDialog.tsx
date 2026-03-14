@@ -73,7 +73,15 @@ const FindReplaceDialog: React.FC = () => {
     setReplacing(true);
 
     const toUpdate = all ? matches : matches.slice(0, 1);
-    const updates = toUpdate.map((m) => {
+    const lockedNameTaskIds = new Set(
+      toUpdate
+        .filter((match) => match.field === 'name')
+        .map((match) => tasks.find((task) => task.id === match.taskId))
+        .filter((task): task is (typeof tasks)[number] => Boolean(task?.isNameManagedByStratus))
+        .map((task) => task.id),
+    );
+    const actionableMatches = toUpdate.filter((match) => !lockedNameTaskIds.has(match.taskId));
+    const updates = actionableMatches.map((m) => {
       const oldVal = String((tasks.find((t) => t.id === m.taskId) as unknown as Record<string, unknown>)?.[m.field] ?? '');
       let newVal: string;
       if (matchCase) {
@@ -86,8 +94,18 @@ const FindReplaceDialog: React.FC = () => {
     });
 
     try {
+      if (updates.length === 0) {
+        showSnackbar('Stratus-managed task names are read-only and were skipped', 'warning');
+        return;
+      }
       await batchUpdateTasks(updates);
-      showSnackbar(`Replaced ${updates.length} occurrence(s)`, 'success');
+      const skippedCount = toUpdate.length - updates.length;
+      showSnackbar(
+        skippedCount > 0
+          ? `Replaced ${updates.length} occurrence(s). Skipped ${skippedCount} Stratus-managed task name(s).`
+          : `Replaced ${updates.length} occurrence(s)`,
+        skippedCount > 0 ? 'warning' : 'success',
+      );
       doFind(); // refresh
     } catch (e: unknown) {
       showSnackbar(e instanceof Error ? e.message : 'Replace failed', 'error');

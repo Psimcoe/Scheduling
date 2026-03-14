@@ -4,6 +4,7 @@ import {
   toStratusStatusSummary,
   toStratusSyncSummary,
 } from "./stratusSyncService.js";
+import { isTaskNameManagedByStratus } from "./taskEditabilityService.js";
 
 export type ProjectSnapshotDetailLevel = "shell" | "full";
 
@@ -19,6 +20,59 @@ export interface ProjectSnapshotResponse {
   dependencies: Awaited<ReturnType<typeof loadDependencies>>;
   resources: Awaited<ReturnType<typeof loadResources>>;
   assignments: Awaited<ReturnType<typeof loadAssignments>>;
+}
+
+const PROJECT_SNAPSHOT_CACHE_MAX_ENTRIES = 24;
+const snapshotCache = new Map<string, ProjectSnapshotResponse>();
+
+function buildSnapshotCacheKey(
+  projectId: string,
+  revision: number,
+  detailLevel: ProjectSnapshotDetailLevel,
+): string {
+  return `${projectId}:${revision}:${detailLevel}`;
+}
+
+function getCachedSnapshot(
+  projectId: string,
+  revision: number,
+  detailLevel: ProjectSnapshotDetailLevel,
+): ProjectSnapshotResponse | null {
+  const key = buildSnapshotCacheKey(projectId, revision, detailLevel);
+  const cached = snapshotCache.get(key) ?? null;
+  if (!cached) {
+    return null;
+  }
+
+  snapshotCache.delete(key);
+  snapshotCache.set(key, cached);
+  return cached;
+}
+
+function setCachedSnapshot(snapshot: ProjectSnapshotResponse): void {
+  const key = buildSnapshotCacheKey(
+    snapshot.project.id,
+    snapshot.revision,
+    snapshot.detailLevel,
+  );
+  snapshotCache.delete(key);
+  snapshotCache.set(key, snapshot);
+
+  while (snapshotCache.size > PROJECT_SNAPSHOT_CACHE_MAX_ENTRIES) {
+    const oldestKey = snapshotCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    snapshotCache.delete(oldestKey);
+  }
+}
+
+export function invalidateProjectSnapshotCache(projectId: string): void {
+  for (const key of snapshotCache.keys()) {
+    if (key.startsWith(`${projectId}:`)) {
+      snapshotCache.delete(key);
+    }
+  }
 }
 
 const taskShellSelect = {
@@ -145,6 +199,7 @@ export type SerializedTask = Omit<
   "stratusSync" | "stratusAssemblySync"
 > & {
   detailLevel: ProjectSnapshotDetailLevel;
+  isNameManagedByStratus: boolean;
   stratusSync: ReturnType<typeof toStratusSyncSummary>;
   stratusStatus: ReturnType<typeof toStratusStatusSummary>;
 };
@@ -158,6 +213,7 @@ function serializeTasks(
   return tasks.map((task) => ({
     ...task,
     detailLevel,
+    isNameManagedByStratus: isTaskNameManagedByStratus(task),
     stratusSync: toStratusSyncSummary(
       task.stratusSync ?? null,
       includePulledSignatures,
@@ -173,12 +229,17 @@ export async function loadProjectSnapshot(
   projectId: string,
   detailLevel: ProjectSnapshotDetailLevel = "full",
 ): Promise<ProjectSnapshotResponse> {
+  const project = await loadProjectDetails(projectId);
+  const cached = getCachedSnapshot(projectId, project.revision, detailLevel);
+  if (cached) {
+    return cached;
+  }
+
   const tasksPromise =
     detailLevel === "shell" ? loadShellTasks(projectId) : loadFullTasks(projectId);
 
-  const [project, taskBounds, tasks, dependencies, resources, assignments] =
+  const [taskBounds, tasks, dependencies, resources, assignments] =
     await Promise.all([
-      loadProjectDetails(projectId),
       loadTaskBounds(projectId),
       tasksPromise,
       loadDependencies(projectId),
@@ -186,7 +247,7 @@ export async function loadProjectSnapshot(
       loadAssignments(projectId),
     ]);
 
-  return {
+  const snapshot = {
     detailLevel,
     revision: project.revision,
     project,
@@ -196,4 +257,7 @@ export async function loadProjectSnapshot(
     resources,
     assignments,
   };
+
+  setCachedSnapshot(snapshot);
+  return snapshot;
 }

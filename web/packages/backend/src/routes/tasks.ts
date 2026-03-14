@@ -6,12 +6,16 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { logTaskMutation } from '../services/aiLearningService.js';
-import { recalculateProject } from '../services/schedulingService.js';
 import { markProjectKnowledgeDirty } from '../services/scheduleKnowledgeService.js';
+import {
+  enqueueProjectRecalculation,
+  notifyProjectRevision,
+} from '../services/scheduleJobService.js';
 import {
   toStratusStatusSummary,
   toStratusSyncSummary,
 } from '../services/stratusSyncService.js';
+import { isTaskNameManagedByStratus } from '../services/taskEditabilityService.js';
 import { captureUndo } from '../services/undoService.js';
 import { loadProjectSnapshot } from '../services/projectSnapshotService.js';
 
@@ -74,8 +78,42 @@ const batchDeleteSchema = z.object({
 });
 
 async function finalizeTaskMutation(projectId: string) {
-  await recalculateProject(projectId);
-  return loadProjectSnapshot(projectId);
+  return loadProjectSnapshot(projectId, 'shell');
+}
+
+const METADATA_ONLY_TASK_FIELDS = new Set(['name', 'notes', 'externalKey']);
+
+function isMetadataOnlyTaskPatch(data: Record<string, unknown>): boolean {
+  const keys = Object.keys(data);
+  return keys.length > 0 && keys.every((key) => METADATA_ONLY_TASK_FIELDS.has(key));
+}
+
+function buildRecalculationResponse(projectId: string, requiresRecalculation: boolean) {
+  if (!requiresRecalculation) {
+    return {
+      status: 'notNeeded' as const,
+    };
+  }
+
+  return enqueueProjectRecalculation(projectId);
+}
+
+function sendStratusNameLocked(
+  reply: { code: (statusCode: number) => { send: (body: Record<string, unknown>) => unknown } },
+) {
+  return reply.code(409).send({
+    code: 'STRATUS_NAME_LOCKED',
+    error: 'Task name is managed by Stratus and cannot be edited here.',
+  });
+}
+
+async function loadSerializedTask(taskId: string) {
+  const task = await prisma.task.findUniqueOrThrow({
+    where: { id: taskId },
+    include: { stratusSync: true, stratusAssemblySync: true },
+  });
+
+  return serializeTask(task);
 }
 
 export default async function taskRoutes(app: FastifyInstance) {
@@ -134,36 +172,52 @@ export default async function taskRoutes(app: FastifyInstance) {
       });
       const sortOrder = body.sortOrder ?? (maxTask?.sortOrder ?? -1) + 1;
 
-      const task = await prisma.task.create({
-        data: {
-          projectId,
-          name: body.name,
-          wbsCode: '',
-          outlineLevel: body.outlineLevel ?? 0,
-          type: body.type,
-          durationMinutes: body.durationMinutes,
-          start,
-          finish,
-          constraintType: body.constraintType,
-          constraintDate: body.constraintDate ? new Date(body.constraintDate) : null,
-          isManuallyScheduled: body.isManuallyScheduled,
-          percentComplete: body.percentComplete,
-          calendarId: body.calendarId ?? null,
-          parentId: body.parentId ?? null,
-          sortOrder,
-          notes: body.notes ?? '',
-          externalKey: body.externalKey,
-        },
+      const { task, revision } = await prisma.$transaction(async (tx) => {
+        const createdTask = await tx.task.create({
+          data: {
+            projectId,
+            name: body.name,
+            wbsCode: '',
+            outlineLevel: body.outlineLevel ?? 0,
+            type: body.type,
+            durationMinutes: body.durationMinutes,
+            start,
+            finish,
+            constraintType: body.constraintType,
+            constraintDate: body.constraintDate ? new Date(body.constraintDate) : null,
+            isManuallyScheduled: body.isManuallyScheduled,
+            percentComplete: body.percentComplete,
+            calendarId: body.calendarId ?? null,
+            parentId: body.parentId ?? null,
+            sortOrder,
+            notes: body.notes ?? '',
+            externalKey: body.externalKey,
+          },
+          include: { stratusSync: true, stratusAssemblySync: true },
+        });
+        const updatedProject = await tx.project.update({
+          where: { id: projectId },
+          data: { revision: { increment: 1 } },
+          select: { revision: true },
+        });
+
+        return {
+          task: createdTask,
+          revision: updatedProject.revision,
+        };
       });
 
       await logTaskMutation(projectId, 'task_created', null, toTaskMutationSnapshot(task), 'user');
       markProjectKnowledgeDirty(projectId);
+      notifyProjectRevision(projectId, revision);
+      const recalculation = buildRecalculationResponse(projectId, true);
       const snapshot = await finalizeTaskMutation(projectId);
       const createdTask = snapshot.tasks.find((candidate) => candidate.id === task.id) ?? serializeTask(task);
       return reply.code(201).send({
         task: createdTask,
         revision: snapshot.revision,
         snapshot,
+        recalculation,
       });
     },
   );
@@ -171,10 +225,17 @@ export default async function taskRoutes(app: FastifyInstance) {
   // Update single task
   app.patch<{ Params: { projectId: string; taskId: string } }>(
     '/:taskId',
-    async (req) => {
+    async (req, reply) => {
       const { projectId, taskId } = req.params;
       const body = updateSchema.parse(req.body);
-      const before = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+      const before = await prisma.task.findUniqueOrThrow({
+        where: { id: taskId },
+        include: { stratusSync: true, stratusAssemblySync: true },
+      });
+
+      if (body.name !== undefined && isTaskNameManagedByStratus(before)) {
+        return sendStratusNameLocked(reply);
+      }
 
       await captureUndo(projectId, `Update task`);
 
@@ -208,7 +269,39 @@ export default async function taskRoutes(app: FastifyInstance) {
       if (body.remainingCost !== undefined) data.remainingCost = body.remainingCost;
       if (body.fixedCost !== undefined) data.fixedCost = body.fixedCost;
 
-      const task = await prisma.task.update({ where: { id: taskId }, data });
+      if (Object.keys(data).length === 0) {
+        const currentRevision = await prisma.project.findUniqueOrThrow({
+          where: { id: projectId },
+          select: { revision: true },
+        });
+        const currentTask = await loadSerializedTask(taskId);
+        return {
+          task: currentTask,
+          revision: currentRevision.revision,
+          recalculation: {
+            status: 'notNeeded' as const,
+          },
+        };
+      }
+
+      const requiresRecalculation = !isMetadataOnlyTaskPatch(data);
+      const { task, revision } = await prisma.$transaction(async (tx) => {
+        const updatedTask = await tx.task.update({
+          where: { id: taskId },
+          data,
+          include: { stratusSync: true, stratusAssemblySync: true },
+        });
+        const updatedProject = await tx.project.update({
+          where: { id: projectId },
+          data: { revision: { increment: 1 } },
+          select: { revision: true },
+        });
+
+        return {
+          task: updatedTask,
+          revision: updatedProject.revision,
+        };
+      });
 
       await logTaskMutation(
         projectId,
@@ -218,12 +311,13 @@ export default async function taskRoutes(app: FastifyInstance) {
         'user',
       );
       markProjectKnowledgeDirty(projectId);
-      const snapshot = await finalizeTaskMutation(projectId);
-      const updatedTask = snapshot.tasks.find((candidate) => candidate.id === task.id) ?? serializeTask(task);
+      notifyProjectRevision(projectId, revision);
+      const recalculation = buildRecalculationResponse(projectId, requiresRecalculation);
+      const updatedTask = serializeTask(task);
       return {
         task: updatedTask,
-        revision: snapshot.revision,
-        snapshot,
+        revision,
+        recalculation,
       };
     },
   );
@@ -231,18 +325,36 @@ export default async function taskRoutes(app: FastifyInstance) {
   // Batch update (for drag, indent/outdent, reorder)
   app.post<{ Params: { projectId: string } }>(
     '/batch',
-    async (req) => {
+    async (req, reply) => {
       const { projectId } = req.params;
       const body = batchUpdateSchema.parse(req.body);
+      const nameUpdateIds = body.updates
+        .filter((update) => update.data.name !== undefined)
+        .map((update) => update.id);
+      if (nameUpdateIds.length > 0) {
+        const renameTargets = await prisma.task.findMany({
+          where: { projectId, id: { in: nameUpdateIds } },
+          include: { stratusSync: true, stratusAssemblySync: true },
+        });
+        if (renameTargets.some((task) => isTaskNameManagedByStratus(task))) {
+          return sendStratusNameLocked(reply);
+        }
+      }
       const beforeTasks = await prisma.task.findMany({
         where: { id: { in: body.updates.map((update) => update.id) } },
+        include: { stratusSync: true, stratusAssemblySync: true },
       });
       const beforeTaskMap = new Map(beforeTasks.map((task) => [task.id, task]));
 
       await captureUndo(projectId, `Batch update ${body.updates.length} tasks`);
 
-      const results = await prisma.$transaction(
-        body.updates.map((u) => {
+      const requiresRecalculation =
+        body.recalculate &&
+        body.updates.some((update) => !isMetadataOnlyTaskPatch(update.data));
+
+      const { tasks: results, revision } = await prisma.$transaction(async (tx) => {
+        const updatedTasks = [];
+        for (const u of body.updates) {
           const data: Record<string, unknown> = {};
           const d = u.data;
           if (d.name !== undefined) data.name = d.name;
@@ -257,16 +369,36 @@ export default async function taskRoutes(app: FastifyInstance) {
           if (d.isManuallyScheduled !== undefined)
             data.isManuallyScheduled = d.isManuallyScheduled;
           if (d.percentComplete !== undefined) data.percentComplete = d.percentComplete;
+          if (d.calendarId !== undefined) data.calendarId = d.calendarId;
+          if (d.notes !== undefined) data.notes = d.notes ?? '';
+          if (d.externalKey !== undefined) data.externalKey = d.externalKey;
           if (d.sortOrder !== undefined) data.sortOrder = d.sortOrder;
           if (d.outlineLevel !== undefined) data.outlineLevel = d.outlineLevel;
+          if (d.deadline !== undefined)
+            data.deadline = d.deadline ? new Date(d.deadline) : null;
+          if (d.actualStart !== undefined)
+            data.actualStart = d.actualStart ? new Date(d.actualStart) : null;
+          if (d.actualFinish !== undefined)
+            data.actualFinish = d.actualFinish ? new Date(d.actualFinish) : null;
+          if (d.actualWork !== undefined) data.actualWork = d.actualWork;
+          if (d.actualCost !== undefined) data.actualCost = d.actualCost;
+          if (d.remainingWork !== undefined) data.remainingWork = d.remainingWork;
+          if (d.remainingCost !== undefined) data.remainingCost = d.remainingCost;
+          if (d.fixedCost !== undefined) data.fixedCost = d.fixedCost;
 
-          return prisma.task.update({ where: { id: u.id }, data });
-        }),
-      );
-
-      if (body.recalculate) {
-        await recalculateProject(projectId);
-      }
+          const updatedTask = await tx.task.update({ where: { id: u.id }, data });
+          updatedTasks.push(updatedTask);
+        }
+        const updatedProject = await tx.project.update({
+          where: { id: projectId },
+          data: { revision: { increment: 1 } },
+          select: { revision: true },
+        });
+        return {
+          tasks: updatedTasks,
+          revision: updatedProject.revision,
+        };
+      });
 
       for (const task of results) {
         const before = beforeTaskMap.get(task.id) ?? null;
@@ -279,13 +411,16 @@ export default async function taskRoutes(app: FastifyInstance) {
         );
       }
       markProjectKnowledgeDirty(projectId);
+      notifyProjectRevision(projectId, revision);
+      const recalculation = buildRecalculationResponse(projectId, requiresRecalculation);
 
-      const snapshot = await loadProjectSnapshot(projectId);
+      const snapshot = await loadProjectSnapshot(projectId, 'shell');
 
       return {
         updated: results.length,
         revision: snapshot.revision,
         snapshot,
+        recalculation,
       };
     },
   );
@@ -301,18 +436,21 @@ export default async function taskRoutes(app: FastifyInstance) {
       });
 
       if (beforeTasks.length === 0) {
-        const snapshot = await loadProjectSnapshot(projectId);
+        const snapshot = await loadProjectSnapshot(projectId, 'shell');
         return {
           deletedTaskIds: [],
           revision: snapshot.revision,
           snapshot,
+          recalculation: {
+            status: 'notNeeded' as const,
+          },
         };
       }
 
       await captureUndo(projectId, `Delete ${beforeTasks.length} task${beforeTasks.length === 1 ? '' : 's'}`);
 
-      await prisma.$transaction([
-        prisma.dependency.deleteMany({
+      const { revision } = await prisma.$transaction(async (tx) => {
+        await tx.dependency.deleteMany({
           where: {
             projectId,
             OR: [
@@ -320,22 +458,31 @@ export default async function taskRoutes(app: FastifyInstance) {
               { toTaskId: { in: taskIds } },
             ],
           },
-        }),
-        prisma.assignment.deleteMany({ where: { taskId: { in: taskIds } } }),
-        prisma.baseline.deleteMany({ where: { taskId: { in: taskIds } } }),
-        prisma.task.deleteMany({ where: { projectId, id: { in: taskIds } } }),
-      ]);
+        });
+        await tx.assignment.deleteMany({ where: { taskId: { in: taskIds } } });
+        await tx.baseline.deleteMany({ where: { taskId: { in: taskIds } } });
+        await tx.task.deleteMany({ where: { projectId, id: { in: taskIds } } });
+        const updatedProject = await tx.project.update({
+          where: { id: projectId },
+          data: { revision: { increment: 1 } },
+          select: { revision: true },
+        });
+        return { revision: updatedProject.revision };
+      });
 
       for (const before of beforeTasks) {
         await logTaskMutation(projectId, 'task_deleted', toTaskMutationSnapshot(before), null, 'user');
       }
       markProjectKnowledgeDirty(projectId);
+      notifyProjectRevision(projectId, revision);
+      const recalculation = buildRecalculationResponse(projectId, true);
 
       const snapshot = await finalizeTaskMutation(projectId);
       return {
         deletedTaskIds: beforeTasks.map((task) => task.id),
         revision: snapshot.revision,
         snapshot,
+        recalculation,
       };
     },
   );
@@ -350,24 +497,33 @@ export default async function taskRoutes(app: FastifyInstance) {
       await captureUndo(projectId, `Delete task`);
 
       // Remove dependencies, assignments, baselines, and the task atomically
-      await prisma.$transaction([
-        prisma.dependency.deleteMany({
+      const { revision } = await prisma.$transaction(async (tx) => {
+        await tx.dependency.deleteMany({
           where: {
             OR: [{ fromTaskId: taskId }, { toTaskId: taskId }],
           },
-        }),
-        prisma.assignment.deleteMany({ where: { taskId } }),
-        prisma.baseline.deleteMany({ where: { taskId } }),
-        prisma.task.delete({ where: { id: taskId } }),
-      ]);
+        });
+        await tx.assignment.deleteMany({ where: { taskId } });
+        await tx.baseline.deleteMany({ where: { taskId } });
+        await tx.task.delete({ where: { id: taskId } });
+        const updatedProject = await tx.project.update({
+          where: { id: projectId },
+          data: { revision: { increment: 1 } },
+          select: { revision: true },
+        });
+        return { revision: updatedProject.revision };
+      });
 
       await logTaskMutation(projectId, 'task_deleted', toTaskMutationSnapshot(before), null, 'user');
       markProjectKnowledgeDirty(projectId);
+      notifyProjectRevision(projectId, revision);
+      const recalculation = buildRecalculationResponse(projectId, true);
       const snapshot = await finalizeTaskMutation(projectId);
       return {
         deletedTaskIds: [taskId],
         revision: snapshot.revision,
         snapshot,
+        recalculation,
       };
     },
   );
@@ -377,11 +533,13 @@ export default async function taskRoutes(app: FastifyInstance) {
     '/recalculate',
     async (req) => {
       const { projectId } = req.params;
-      const snapshot = await finalizeTaskMutation(projectId);
+      const recalculation = buildRecalculationResponse(projectId, true);
+      const snapshot = await loadProjectSnapshot(projectId, 'shell');
       return {
         ok: true,
         revision: snapshot.revision,
         snapshot,
+        recalculation,
       };
     },
   );
@@ -416,6 +574,7 @@ function serializeTask(
   return {
     ...task,
     detailLevel: 'full' as const,
+    isNameManagedByStratus: isTaskNameManagedByStratus(task),
     stratusSync: toStratusSyncSummary(task.stratusSync ?? null),
     stratusStatus: toStratusStatusSummary(
       task.stratusSync ?? null,

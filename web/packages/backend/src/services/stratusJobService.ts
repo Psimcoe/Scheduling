@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { publishRealtimeEvent } from "./realtimeEvents.js";
 
 export type StratusJobStatus =
   | "queued"
@@ -55,6 +56,27 @@ const STRATUS_JOB_TTL_MS = 60 * 60 * 1_000;
 const jobs = new Map<string, StratusJobRecord>();
 const singleFlightJobs = new Map<string, string>();
 
+function publishJobUpdate(
+  projectId: string | null | undefined,
+  job: StratusJobRecord,
+): void {
+  publishRealtimeEvent({
+    type: "stratusJobUpdated",
+    projectId: projectId ?? null,
+    job: {
+      id: job.id,
+      kind: job.kind,
+      status: job.status,
+      progress: job.progress,
+      createdAt: job.createdAt,
+      startedAt: job.startedAt,
+      finishedAt: job.finishedAt,
+      error: job.error,
+      hasResult: job.result !== null,
+    },
+  });
+}
+
 function isJobActive(job: StratusJobRecord | null | undefined): boolean {
   return job?.status === "queued" || job?.status === "running";
 }
@@ -103,7 +125,7 @@ function cleanupJobs() {
 export function createStratusJob<TResult>(
   kind: StratusJobKind,
   runner: (reportProgress: StratusJobProgressReporter) => Promise<TResult>,
-  options: { singleFlightKey?: string } = {},
+  options: { singleFlightKey?: string; projectId?: string | null } = {},
 ): StratusJobRecord<TResult> {
   cleanupJobs();
 
@@ -134,6 +156,7 @@ export function createStratusJob<TResult>(
     result: null,
   };
   jobs.set(id, job as StratusJobRecord);
+  publishJobUpdate(options.projectId, job);
   if (options.singleFlightKey) {
     singleFlightJobs.set(options.singleFlightKey, id);
   }
@@ -148,6 +171,7 @@ export function createStratusJob<TResult>(
     runningJob.status = "running";
     runningJob.startedAt = startedAt;
     jobs.set(id, runningJob);
+    publishJobUpdate(options.projectId, runningJob);
 
     try {
       const result = await runner((update) => {
@@ -160,6 +184,7 @@ export function createStratusJob<TResult>(
           ...update,
         };
         jobs.set(id, current);
+        publishJobUpdate(options.projectId, current);
       });
 
       const completedJob = jobs.get(id);
@@ -171,6 +196,7 @@ export function createStratusJob<TResult>(
       completedJob.error = null;
       completedJob.result = result;
       jobs.set(id, completedJob);
+      publishJobUpdate(options.projectId, completedJob);
     } catch (error) {
       const failedJob = jobs.get(id);
       if (!failedJob) {
@@ -182,6 +208,7 @@ export function createStratusJob<TResult>(
         error instanceof Error ? error.message : "Stratus job failed.";
       failedJob.result = null;
       jobs.set(id, failedJob);
+      publishJobUpdate(options.projectId, failedJob);
     } finally {
       if (options.singleFlightKey && singleFlightJobs.get(options.singleFlightKey) === id) {
         singleFlightJobs.delete(options.singleFlightKey);

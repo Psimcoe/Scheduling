@@ -1,0 +1,83 @@
+[ 1630764ms] [ERROR] React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ SplitView 1. useCallback                useCallback
+2. useCallback                useCallback
+3. useSyncExternalStore       useSyncExternalStore
+4. useDebugValue              useDebugValue
+5. useCallback                useCallback
+6. useCallback                useCallback
+7. useSyncExternalStore       useSyncExternalStore
+8. useDebugValue              useDebugValue
+9. useCallback                useCallback
+10. useCallback               useCallback
+11. useSyncExternalStore      useSyncExternalStore
+12. useDebugValue             useDebugValue
+13. useCallback               useCallback
+14. useCallback               useCallback
+15. useSyncExternalStore      useSyncExternalStore
+16. useDebugValue             useDebugValue
+17. useCallback               useCallback
+18. useCallback               useCallback
+19. useSyncExternalStore      useSyncExternalStore
+20. useDebugValue             useDebugValue
+21. useCallback               useCallback
+22. useCallback               useCallback
+23. useSyncExternalStore      useSyncExternalStore
+24. useDebugValue             useDebugValue
+25. useCallback               useCallback
+26. useCallback               useCallback
+27. useSyncExternalStore      useSyncExternalStore
+28. useDebugValue             useDebugValue
+29. useCallback               useCallback
+30. useCallback               useCallback
+31. useSyncExternalStore      useSyncExternalStore
+32. useDebugValue             useDebugValue
+33. useCallback               useCallback
+34. useCallback               useCallback
+35. useSyncExternalStore      useSyncExternalStore
+36. useDebugValue             useDebugValue
+37. useCallback               useCallback
+38. useCallback               useCallback
+39. useSyncExternalStore      useSyncExternalStore
+40. useDebugValue             useDebugValue
+41. useDeferredValue          useCallback
+ @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:5593
+[ 1630776ms] TypeError: Cannot read properties of null (reading 'getSnapshot')
+    at updateSyncExternalStore (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:6055:18)
+    at Object.useSyncExternalStore (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:19018:18)
+    at exports.useSyncExternalStore (http://localhost:5173/node_modules/.vite/deps/chunk-LMOPMDLE.js?v=74c3fbb6:962:36)
+    at useStore (http://localhost:5173/node_modules/.vite/deps/zustand.js?v=74c3fbb6:36:38)
+    at useBoundStore (http://localhost:5173/node_modules/.vite/deps/zustand.js?v=74c3fbb6:46:39)
+    at useVisibleTaskRows (http://localhost:5173/src/hooks/useVisibleTaskRows.ts?t=1773451622713:40:19)
+    at SplitView (http://localhost:5173/src/components/layout/SplitView.tsx?t=1773451622713:46:41)
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:18509:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:5654:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:7475:21)
+[ 1630777ms] [WARNING] %s
+
+%s
+ An error occurred in the <SplitView> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:6965
+[ 1635535ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://localhost:5173/auth/csrf:0
+[ 1635582ms] ApiError: Rate limit exceeded.
+    at request (http://localhost:5173/src/api/client.ts?t=1773449441163:54:19)
+    at async primeCsrfToken (http://localhost:5173/src/auth/AuthGate.tsx?t=1773451578321:47:18)
+[ 1637801ms] ReferenceError: useRef is not defined
+    at useVisibleTaskRows (http://localhost:5173/src/hooks/useVisibleTaskRows.ts?t=1773451629756:73:21)
+    at SplitView (http://localhost:5173/src/components/layout/SplitView.tsx?t=1773451629756:46:41)
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:18509:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:5654:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:7475:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:8525:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:997:72)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:12561:98)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:12424:43)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:12408:13)
+[ 1637801ms] [WARNING] %s
+
+%s
+ An error occurred in the <SplitView> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=74c3fbb6:6965
