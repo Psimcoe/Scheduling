@@ -6,30 +6,36 @@ import type {
   TaskRow,
 } from '../stores';
 
+export type RowModelTaskField =
+  | 'name'
+  | 'type'
+  | 'outlineLevel'
+  | 'sortOrder'
+  | 'wbsCode'
+  | 'isManuallyScheduled'
+  | 'isCritical'
+  | 'percentComplete'
+  | 'constraintType'
+  | 'durationMinutes'
+  | 'startMs'
+  | 'finishMs'
+  | 'cost'
+  | 'actualCost'
+  | 'remainingCost'
+  | 'work'
+  | 'actualWork'
+  | 'remainingWork'
+  | 'totalSlackMinutes'
+  | 'freeSlackMinutes'
+  | 'resourceNames';
+
+type RowModelTaskFieldValue = string | number | boolean | null;
+type RowModelTaskFields = Partial<Record<RowModelTaskField, RowModelTaskFieldValue>>;
+
 export interface RowModelTaskShell {
   id: string;
   parentId: string | null;
-  name: string;
-  type: string;
-  outlineLevel: number;
-  sortOrder: number;
-  wbsCode: string;
-  isManuallyScheduled: boolean;
-  isCritical: boolean;
-  percentComplete: number;
-  constraintType: number;
-  durationMinutes: number;
-  startMs: number;
-  finishMs: number;
-  cost: number;
-  actualCost: number;
-  remainingCost: number;
-  work: number;
-  actualWork: number;
-  remainingWork: number;
-  totalSlackMinutes: number;
-  freeSlackMinutes: number;
-  resourceNames: string;
+  fields: RowModelTaskFields;
 }
 
 export interface RowModelDependencyShell {
@@ -102,7 +108,45 @@ export interface VisibleTaskRowsResult {
   visibleDependencies: DependencyRow[];
 }
 
-function normalizeFieldAlias(field: string): keyof RowModelTaskShell | string {
+interface BuildTaskShellOptions {
+  requiredFields?: Iterable<RowModelTaskField>;
+  resourceNamesByTaskId?: Map<string, string>;
+}
+
+const EMPTY_RESOURCE_NAMES_BY_TASK_ID = new Map<string, string>();
+
+const TASK_FIELD_PROJECTORS: Record<
+  RowModelTaskField,
+  (task: TaskRow, resourceNamesByTaskId: Map<string, string>) => RowModelTaskFieldValue
+> = {
+  name: (task) => task.name,
+  type: (task) => task.type,
+  outlineLevel: (task) => task.outlineLevel,
+  sortOrder: (task) => task.sortOrder,
+  wbsCode: (task) => task.wbsCode,
+  isManuallyScheduled: (task) => task.isManuallyScheduled,
+  isCritical: (task) => task.isCritical,
+  percentComplete: (task) => task.percentComplete,
+  constraintType: (task) => task.constraintType,
+  durationMinutes: (task) => task.durationMinutes,
+  startMs: (task) => new Date(task.start).getTime(),
+  finishMs: (task) => new Date(task.finish).getTime(),
+  cost: (task) => task.cost ?? 0,
+  actualCost: (task) => task.actualCost ?? 0,
+  remainingCost: (task) => task.remainingCost ?? 0,
+  work: (task) => task.work ?? 0,
+  actualWork: (task) => task.actualWork ?? 0,
+  remainingWork: (task) => task.remainingWork ?? 0,
+  totalSlackMinutes: (task) => task.totalSlackMinutes,
+  freeSlackMinutes: (task) => task.freeSlackMinutes,
+  resourceNames: (task, resourceNamesByTaskId) => resourceNamesByTaskId.get(task.id) ?? '',
+};
+
+const PROJECTABLE_TASK_FIELDS = new Set<RowModelTaskField>(
+  Object.keys(TASK_FIELD_PROJECTORS) as RowModelTaskField[],
+);
+
+function normalizeFieldAlias(field: string): RowModelTaskField | string {
   switch (field) {
     case 'duration':
       return 'durationMinutes';
@@ -119,9 +163,49 @@ function normalizeFieldAlias(field: string): keyof RowModelTaskShell | string {
   }
 }
 
+function isProjectableTaskField(field: string): field is RowModelTaskField {
+  return PROJECTABLE_TASK_FIELDS.has(field as RowModelTaskField);
+}
+
+export function getProjectedTaskFields(
+  filters: FilterCriteria[],
+  sortCriteria: SortCriteria[],
+  groupBy: GroupByOption | null,
+): RowModelTaskField[] {
+  const projectedFields = new Set<RowModelTaskField>();
+
+  const addProjectedField = (field: string) => {
+    const normalizedField = normalizeFieldAlias(field);
+    if (isProjectableTaskField(normalizedField)) {
+      projectedFields.add(normalizedField);
+    }
+  };
+
+  for (const filter of filters) {
+    addProjectedField(filter.field);
+  }
+
+  for (const sort of sortCriteria) {
+    addProjectedField(sort.field);
+  }
+
+  if (groupBy) {
+    addProjectedField(groupBy.field);
+  }
+
+  return [...projectedFields];
+}
+
 function getTaskFieldValue(task: RowModelTaskShell, field: string): unknown {
   const normalizedField = normalizeFieldAlias(field);
-  return (task as unknown as Record<string, unknown>)[normalizedField];
+
+  if (normalizedField === 'id' || normalizedField === 'parentId') {
+    return task[normalizedField];
+  }
+
+  return isProjectableTaskField(normalizedField)
+    ? task.fields[normalizedField]
+    : undefined;
 }
 
 function matchesCriterion(task: RowModelTaskShell, criterion: FilterCriteria): boolean {
@@ -181,33 +265,27 @@ function sortTasks(
 
 export function buildTaskShells(
   tasks: TaskRow[],
-  resourceNamesByTaskId: Map<string, string> = new Map(),
+  options: BuildTaskShellOptions = {},
 ): RowModelTaskShell[] {
-  return tasks.map((task) => ({
-    id: task.id,
-    parentId: task.parentId,
-    name: task.name,
-    type: task.type,
-    outlineLevel: task.outlineLevel,
-    sortOrder: task.sortOrder,
-    wbsCode: task.wbsCode,
-    isManuallyScheduled: task.isManuallyScheduled,
-    isCritical: task.isCritical,
-    percentComplete: task.percentComplete,
-    constraintType: task.constraintType,
-    durationMinutes: task.durationMinutes,
-    startMs: new Date(task.start).getTime(),
-    finishMs: new Date(task.finish).getTime(),
-    cost: task.cost ?? 0,
-    actualCost: task.actualCost ?? 0,
-    remainingCost: task.remainingCost ?? 0,
-    work: task.work ?? 0,
-    actualWork: task.actualWork ?? 0,
-    remainingWork: task.remainingWork ?? 0,
-    totalSlackMinutes: task.totalSlackMinutes,
-    freeSlackMinutes: task.freeSlackMinutes,
-    resourceNames: resourceNamesByTaskId.get(task.id) ?? '',
-  }));
+  const {
+    requiredFields = [],
+    resourceNamesByTaskId = EMPTY_RESOURCE_NAMES_BY_TASK_ID,
+  } = options;
+  const projectedFields = [...new Set(requiredFields)];
+
+  return tasks.map((task) => {
+    const fields: RowModelTaskFields = {};
+
+    for (const field of projectedFields) {
+      fields[field] = TASK_FIELD_PROJECTORS[field](task, resourceNamesByTaskId);
+    }
+
+    return {
+      id: task.id,
+      parentId: task.parentId,
+      fields,
+    };
+  });
 }
 
 export function buildDependencyShells(
@@ -391,7 +469,16 @@ export function buildVisibleTaskRows(args: {
   sortCriteria: SortCriteria[];
   groupBy: GroupByOption | null;
 }): VisibleTaskRowsResult {
-  const taskShells = args.taskShells ?? buildTaskShells(args.tasks);
+  const projectedFields = getProjectedTaskFields(
+    args.filters,
+    args.sortCriteria,
+    args.groupBy,
+  );
+  const taskShells =
+    args.taskShells ??
+    buildTaskShells(args.tasks, {
+      requiredFields: projectedFields,
+    });
   const dependencyShells = args.dependencyShells ?? buildDependencyShells(args.dependencies);
 
   return materializeVisibleTaskRows(

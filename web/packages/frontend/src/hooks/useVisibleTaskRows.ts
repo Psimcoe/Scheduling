@@ -1,5 +1,6 @@
 import {
   startTransition,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -10,15 +11,13 @@ import {
   useProjectStore,
   useUIStore,
   type DependencyRow,
-  type FilterCriteria,
-  type GroupByOption,
-  type SortCriteria,
   type TaskRow,
 } from '../stores';
 import {
   buildDependencyShells,
   buildTaskShells,
   buildVisibleTaskRows,
+  getProjectedTaskFields,
   materializeVisibleTaskRows,
   type RowModelDependencyShell,
   type RowModelTaskShell,
@@ -28,8 +27,10 @@ import {
 } from './visibleTaskRowsModel';
 
 const LARGE_PROJECT_TASK_THRESHOLD = 3_000;
+const EMPTY_RESOURCE_NAME_BY_ID = new Map<string, string>();
+const EMPTY_RESOURCE_NAMES_BY_TASK_ID = new Map<string, string>();
 
-interface WorkerMessage {
+interface VisibleTaskRowsWorkerResponse {
   projectId: string | null;
   revision: number;
   requestId: number;
@@ -48,6 +49,40 @@ function shouldUseWorker(tasks: TaskRow[]): boolean {
 
 function getProjectId(rows: TaskRow[] | DependencyRow[]): string | null {
   return rows[0]?.projectId ?? null;
+}
+
+function describeWorkerError(error: unknown): { name: string; message: string } {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+    };
+  }
+
+  if (error && typeof error === 'object') {
+    const candidate = error as { name?: unknown; message?: unknown };
+    return {
+      name: typeof candidate.name === 'string' ? candidate.name : 'UnknownError',
+      message:
+        typeof candidate.message === 'string'
+          ? candidate.message
+          : 'Unknown worker failure.',
+    };
+  }
+
+  return {
+    name: 'UnknownError',
+    message: String(error),
+  };
+}
+
+function buildWorkerRuntimeError(event: ErrorEvent): Error {
+  const error =
+    event.error instanceof Error
+      ? event.error
+      : new Error(event.message || 'Visible task row worker failed.');
+  error.name = error.name || 'WorkerRuntimeError';
+  return error;
 }
 
 export {
@@ -91,13 +126,32 @@ export function useVisibleTaskRows(): VisibleTaskRowsResult {
   const useWorker = shouldUseWorker(taskSource);
   const currentProjectId = activeProjectId ?? getProjectId(taskSource);
   const currentRevision = activeProject?.revision ?? 0;
-  const [workerUnavailable, setWorkerUnavailable] = useState(false);
-  const workerEnabled = useWorker && !workerUnavailable;
-  const resourceNameById = useMemo(
-    () => new Map(resources.map((resource) => [resource.id, resource.name])),
-    [resources],
+  const [workerBootstrapUnavailable, setWorkerBootstrapUnavailable] = useState(false);
+  const [workerCompatibilityProjectIds, setWorkerCompatibilityProjectIds] = useState<Set<string>>(
+    () => new Set(),
   );
+  const [workerSessionId, setWorkerSessionId] = useState(0);
+  const workerEnabled =
+    useWorker &&
+    !workerBootstrapUnavailable &&
+    !(currentProjectId !== null && workerCompatibilityProjectIds.has(currentProjectId));
+  const projectedTaskFields = useMemo(
+    () => getProjectedTaskFields(filters, sortCriteria, groupBy),
+    [filters, groupBy, sortCriteria],
+  );
+  const requiresResourceNames = projectedTaskFields.includes('resourceNames');
+  const resourceNameById = useMemo(() => {
+    if (!requiresResourceNames) {
+      return EMPTY_RESOURCE_NAME_BY_ID;
+    }
+
+    return new Map(resources.map((resource) => [resource.id, resource.name]));
+  }, [requiresResourceNames, resources]);
   const resourceNamesByTaskId = useMemo(() => {
+    if (!requiresResourceNames) {
+      return EMPTY_RESOURCE_NAMES_BY_TASK_ID;
+    }
+
     const namesByTaskId = new Map<string, string[]>();
     for (const assignment of assignments) {
       const resourceName = resourceNameById.get(assignment.resourceId);
@@ -113,10 +167,14 @@ export function useVisibleTaskRows(): VisibleTaskRowsResult {
     return new Map(
       [...namesByTaskId.entries()].map(([taskId, names]) => [taskId, names.join(', ')]),
     );
-  }, [assignments, resourceNameById]);
+  }, [assignments, requiresResourceNames, resourceNameById]);
   const taskShells = useMemo<RowModelTaskShell[]>(
-    () => buildTaskShells(taskSource, resourceNamesByTaskId),
-    [resourceNamesByTaskId, taskSource],
+    () =>
+      buildTaskShells(taskSource, {
+        requiredFields: projectedTaskFields,
+        resourceNamesByTaskId,
+      }),
+    [projectedTaskFields, resourceNamesByTaskId, taskSource],
   );
   const dependencyShells = useMemo<RowModelDependencyShell[]>(
     () => buildDependencyShells(dependencySource),
@@ -154,6 +212,9 @@ export function useVisibleTaskRows(): VisibleTaskRowsResult {
 
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
+  const activeWorkerProjectIdRef = useRef<string | null>(null);
+  const loggedWorkerBootstrapFailureRef = useRef(false);
+  const loggedCompatibilityProjectIdsRef = useRef(new Set<string>());
   const [workerState, setWorkerState] = useState<{
     projectId: string | null;
     revision: number;
@@ -161,19 +222,81 @@ export function useVisibleTaskRows(): VisibleTaskRowsResult {
     model: VisibleTaskRowsModel;
   } | null>(null);
 
+  const markWorkerBootstrapUnavailable = useCallback((error: unknown) => {
+    if (!loggedWorkerBootstrapFailureRef.current) {
+      loggedWorkerBootstrapFailureRef.current = true;
+      console.warn('ScheduleSync: visible task row worker is unavailable; using sync rendering.', {
+        error: describeWorkerError(error),
+      });
+    }
+
+    activeWorkerProjectIdRef.current = null;
+    setWorkerBootstrapUnavailable(true);
+  }, []);
+
+  const enableProjectCompatibilityMode = useCallback(
+    (projectId: string | null, error: unknown) => {
+      if (!projectId) {
+        markWorkerBootstrapUnavailable(error);
+        return;
+      }
+
+      activeWorkerProjectIdRef.current = null;
+      setWorkerState((current) =>
+        current?.projectId === projectId ? null : current,
+      );
+      setWorkerCompatibilityProjectIds((current) => {
+        if (current.has(projectId)) {
+          return current;
+        }
+
+        const next = new Set(current);
+        next.add(projectId);
+
+        if (!loggedCompatibilityProjectIdsRef.current.has(projectId)) {
+          loggedCompatibilityProjectIdsRef.current.add(projectId);
+          console.warn(
+            'ScheduleSync: visible task row worker failed for a large project; using compatibility mode.',
+            {
+              projectId,
+              error: describeWorkerError(error),
+            },
+          );
+        }
+
+        return next;
+      });
+    },
+    [markWorkerBootstrapUnavailable],
+  );
+
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof Worker === 'undefined') {
-      setWorkerUnavailable(true);
+    if (workerBootstrapUnavailable) {
       return;
     }
 
-    const worker = new Worker(
-      new URL('../workers/visibleTaskRowsWorker.ts', import.meta.url),
-      { type: 'module' },
-    );
+    if (typeof window === 'undefined' || typeof Worker === 'undefined') {
+      markWorkerBootstrapUnavailable(
+        new Error('Worker is not available in this environment.'),
+      );
+      return;
+    }
+
+    let worker: Worker;
+
+    try {
+      worker = new Worker(
+        new URL('../workers/visibleTaskRowsWorker.ts', import.meta.url),
+        { type: 'module' },
+      );
+    } catch (error: unknown) {
+      markWorkerBootstrapUnavailable(error);
+      return;
+    }
+
     workerRef.current = worker;
 
-    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+    worker.onmessage = (event: MessageEvent<VisibleTaskRowsWorkerResponse>) => {
       const { projectId, revision, requestId, model } = event.data;
       startTransition(() => {
         setWorkerState((current) => {
@@ -191,17 +314,31 @@ export function useVisibleTaskRows(): VisibleTaskRowsResult {
       });
     };
 
-    worker.onerror = () => {
-      setWorkerUnavailable(true);
+    worker.onerror = (event) => {
+      event.preventDefault?.();
+      enableProjectCompatibilityMode(
+        activeWorkerProjectIdRef.current,
+        buildWorkerRuntimeError(event),
+      );
       worker.terminate();
-      workerRef.current = null;
+      if (workerRef.current === worker) {
+        workerRef.current = null;
+      }
+      setWorkerSessionId((current) => current + 1);
     };
 
     return () => {
+      if (workerRef.current === worker) {
+        workerRef.current = null;
+      }
       worker.terminate();
-      workerRef.current = null;
     };
-  }, []);
+  }, [
+    enableProjectCompatibilityMode,
+    markWorkerBootstrapUnavailable,
+    workerBootstrapUnavailable,
+    workerSessionId,
+  ]);
 
   useEffect(() => {
     if (!workerEnabled || !workerRef.current) {
@@ -209,30 +346,37 @@ export function useVisibleTaskRows(): VisibleTaskRowsResult {
     }
 
     requestIdRef.current += 1;
-    workerRef.current.postMessage({
-      projectId: currentProjectId,
-      revision: currentRevision,
-      requestId: requestIdRef.current,
-      tasks: taskShells,
-      dependencies: dependencyShells,
-      selectedTaskIds: [...selectedTaskIds],
-      collapsedIds: [...collapsedIds],
-      filters,
-      sortCriteria,
-      groupBy,
-    });
+    activeWorkerProjectIdRef.current = currentProjectId;
+
+    try {
+      workerRef.current.postMessage({
+        projectId: currentProjectId,
+        revision: currentRevision,
+        requestId: requestIdRef.current,
+        tasks: taskShells,
+        dependencies: dependencyShells,
+        selectedTaskIds: [...selectedTaskIds],
+        collapsedIds: [...collapsedIds],
+        filters,
+        sortCriteria,
+        groupBy,
+      });
+    } catch (error: unknown) {
+      enableProjectCompatibilityMode(currentProjectId, error);
+    }
   }, [
-      collapsedIds,
-      currentRevision,
-      currentProjectId,
-      dependencyShells,
-      filters,
-      groupBy,
-      selectedTaskIds,
-      sortCriteria,
-      taskShells,
-      workerEnabled,
-    ]);
+    collapsedIds,
+    currentProjectId,
+    currentRevision,
+    dependencyShells,
+    enableProjectCompatibilityMode,
+    filters,
+    groupBy,
+    selectedTaskIds,
+    sortCriteria,
+    taskShells,
+    workerEnabled,
+  ]);
 
   useEffect(() => {
     setWorkerState((current) =>

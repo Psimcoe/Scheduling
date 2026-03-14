@@ -14,3 +14,90 @@
 %s
  An error occurred in the <SplitView> component. Consider adding an error boundary to your tree to customize error handling behavior.
 Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:6965
+[11754389ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5173/src/hooks/visibleTaskRowsModel.ts?t=1773504739952:0
+[11805330ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5173/src/hooks/useVisibleTaskRows.ts?t=1773504791679:0
+[11805331ms] [ERROR] [vite] Failed to reload /src/components/layout/SplitView.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:881
+[11805331ms] [ERROR] [vite] Failed to reload /src/components/views/TaskSheet.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:881
+[11805332ms] [ERROR] [vite] Failed to reload /src/components/views/TrackingGantt.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:881
+[11851399ms] [ERROR] React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ SplitView 1. useCallback                useCallback
+2. useCallback                useCallback
+3. useSyncExternalStore       useSyncExternalStore
+4. useDebugValue              useDebugValue
+5. useCallback                useCallback
+6. useCallback                useCallback
+7. useSyncExternalStore       useSyncExternalStore
+8. useDebugValue              useDebugValue
+9. useCallback                useCallback
+10. useCallback               useCallback
+11. useSyncExternalStore      useSyncExternalStore
+12. useDebugValue             useDebugValue
+13. useCallback               useCallback
+14. useCallback               useCallback
+15. useSyncExternalStore      useSyncExternalStore
+16. useDebugValue             useDebugValue
+17. useCallback               useCallback
+18. useCallback               useCallback
+19. useSyncExternalStore      useSyncExternalStore
+20. useDebugValue             useDebugValue
+21. useCallback               useCallback
+22. useCallback               useCallback
+23. useSyncExternalStore      useSyncExternalStore
+24. useDebugValue             useDebugValue
+25. useCallback               useCallback
+26. useCallback               useCallback
+27. useSyncExternalStore      useSyncExternalStore
+28. useDebugValue             useDebugValue
+29. useCallback               useCallback
+30. useCallback               useCallback
+31. useSyncExternalStore      useSyncExternalStore
+32. useDebugValue             useDebugValue
+33. useCallback               useCallback
+34. useCallback               useCallback
+35. useSyncExternalStore      useSyncExternalStore
+36. useDebugValue             useDebugValue
+37. useCallback               useCallback
+38. useCallback               useCallback
+39. useSyncExternalStore      useSyncExternalStore
+40. useDebugValue             useDebugValue
+41. useCallback               useCallback
+42. useCallback               useCallback
+43. useSyncExternalStore      useSyncExternalStore
+44. useDebugValue             useDebugValue
+45. useCallback               useCallback
+46. useCallback               useCallback
+47. useSyncExternalStore      useSyncExternalStore
+48. useDebugValue             useDebugValue
+49. useCallback               useCallback
+50. useCallback               useCallback
+51. useSyncExternalStore      useSyncExternalStore
+52. useDebugValue             useDebugValue
+53. useCallback               useCallback
+54. useCallback               useCallback
+55. useSyncExternalStore      useSyncExternalStore
+56. useDebugValue             useDebugValue
+57. useDeferredValue          useDeferredValue
+58. useDeferredValue          useDeferredValue
+59. useState                  useState
+60. useMemo                   useState
+ @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:5593
+[11851408ms] Error: Should have a queue. You are likely calling Hooks conditionally, which is not allowed. (https://react.dev/link/invalid-hook-call)
+    at updateReducerImpl (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:5892:17)
+    at updateReducer (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:5887:16)
+    at Object.useState (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:18996:20)
+    at exports.useState (http://localhost:5173/node_modules/.vite/deps/chunk-LMOPMDLE.js?v=4c20c23c:959:36)
+    at useVisibleTaskRows (http://localhost:5173/src/hooks/useVisibleTaskRows.ts?t=1773504837686:86:77)
+    at SplitView (http://localhost:5173/src/components/layout/SplitView.tsx?t=1773504837686:46:41)
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:18509:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:5654:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:7475:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:8525:20)
+[11851407ms] [WARNING] %s
+
+%s
+ An error occurred in the <SplitView> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=4c20c23c:6965
