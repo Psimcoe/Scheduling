@@ -134,4 +134,125 @@ describe('taskHierarchyService integration', () => {
       outlineLevel: 1,
     });
   }, 15_000);
+
+  it('adopts an existing legacy package row instead of keeping an undefined placeholder', async () => {
+    const harness = await createHarness();
+    cleanup = harness.cleanup;
+
+    const project = await harness.prisma.project.create({
+      data: {
+        id: 'project-hierarchy-legacy-package',
+        name: 'Legacy Package Project',
+        startDate: new Date('2026-03-01T08:00:00.000Z'),
+        defaultCalendarId: 'calendar-hierarchy-legacy-package',
+      },
+    });
+
+    await harness.prisma.calendar.create({
+      data: {
+        id: 'calendar-hierarchy-legacy-package',
+        projectId: project.id,
+        name: 'Standard',
+      },
+    });
+
+    const packageTask = await harness.prisma.task.create({
+      data: {
+        id: 'package-fab-0950',
+        projectId: project.id,
+        name: 'FAB-0950-BRACKET',
+        parentId: null,
+        outlineLevel: 0,
+        type: 'task',
+        start: new Date('2026-03-02T08:00:00.000Z'),
+        finish: new Date('2026-03-03T08:00:00.000Z'),
+        durationMinutes: 480,
+        sortOrder: 0,
+        calendarId: 'calendar-hierarchy-legacy-package',
+        externalKey: 'FAB-0950',
+      },
+    });
+
+    const placeholderTask = await harness.prisma.task.create({
+      data: {
+        id: 'placeholder-fab-0950',
+        projectId: project.id,
+        name: 'Undefined Package - FAB-0950',
+        parentId: null,
+        outlineLevel: 0,
+        type: 'summary',
+        start: new Date('2026-03-02T08:00:00.000Z'),
+        finish: new Date('2026-03-03T08:00:00.000Z'),
+        durationMinutes: 480,
+        sortOrder: 1,
+        calendarId: 'calendar-hierarchy-legacy-package',
+        externalKey: 'stratus-undefined-package:pkg-0950',
+        notes: 'Auto-created because no true Stratus package row exists yet (FAB-0950).',
+      },
+    });
+
+    const assemblyTask = await harness.prisma.task.create({
+      data: {
+        id: 'assembly-fab-0950-1',
+        projectId: project.id,
+        name: 'TEMP STAND 1',
+        parentId: placeholderTask.id,
+        outlineLevel: 1,
+        type: 'task',
+        start: new Date('2026-03-02T08:00:00.000Z'),
+        finish: new Date('2026-03-03T08:00:00.000Z'),
+        durationMinutes: 480,
+        sortOrder: 2,
+        calendarId: 'calendar-hierarchy-legacy-package',
+        externalKey: 'FAB-0950::assembly:asm-1',
+      },
+    });
+
+    await harness.prisma.stratusAssemblySync.create({
+      data: {
+        taskId: assemblyTask.id,
+        localProjectId: project.id,
+        packageId: 'pkg-0950',
+        assemblyId: 'asm-1',
+        externalKey: 'FAB-0950::assembly:asm-1',
+        lastPulledAt: new Date('2026-03-02T08:00:00.000Z'),
+      },
+    });
+
+    const snapshot = await harness.loadProjectSnapshot(project.id, 'full');
+    const repairedPackage = snapshot.tasks.find((task) => task.id === packageTask.id);
+    const repairedAssembly = snapshot.tasks.find((task) => task.id === assemblyTask.id);
+    const stalePlaceholder = snapshot.tasks.find((task) => task.id === placeholderTask.id);
+
+    expect(snapshot.revision).toBeGreaterThan(0);
+    expect(repairedPackage).toMatchObject({
+      id: packageTask.id,
+      type: 'summary',
+      parentId: null,
+      outlineLevel: 0,
+      externalKey: 'FAB-0950',
+    });
+    expect(repairedAssembly).toMatchObject({
+      id: assemblyTask.id,
+      parentId: packageTask.id,
+      outlineLevel: 1,
+      type: 'task',
+    });
+    expect(stalePlaceholder).toBeUndefined();
+
+    const storedTasks = await harness.prisma.task.findMany({
+      where: { projectId: project.id },
+      orderBy: { sortOrder: 'asc' },
+    });
+    expect(storedTasks).toHaveLength(2);
+    expect(storedTasks[0]).toMatchObject({
+      id: packageTask.id,
+      type: 'summary',
+    });
+    expect(storedTasks[1]).toMatchObject({
+      id: assemblyTask.id,
+      parentId: packageTask.id,
+      outlineLevel: 1,
+    });
+  }, 15_000);
 });

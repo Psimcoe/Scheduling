@@ -70,3 +70,7 @@
 [67944038ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://127.0.0.1:3001/api/projects/3b52aa63-e1cb-4252-b715-db6618d21010/snapshot?detailLevel=shell:0
 [67944460ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://127.0.0.1:3001/api/projects/3b52aa63-e1cb-4252-b715-db6618d21010/snapshot?detailLevel=shell:0
 [67944460ms] [ERROR] Failed to load resource: the server responded with a status of 429 (Too Many Requests) @ http://127.0.0.1:3001/api/projects:0
+[89461687ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://127.0.0.1:3001/api/events:0
+[89466732ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/api/events:0
+[89471786ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/api/events:0
+[89476853ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:3001/api/events:0

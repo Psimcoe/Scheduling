@@ -40,6 +40,11 @@ interface PlaceholderGroupInfo {
   finish: Date;
 }
 
+interface PlaceholderReconciliationResult {
+  tasks: HierarchyTaskRecord[];
+  changed: boolean;
+}
+
 interface NormalizeTaskHierarchyResult {
   changed: boolean;
   revision: number | null;
@@ -121,6 +126,94 @@ function resolvePlaceholderGroupInfo(
   }
 
   return groups;
+}
+
+function resolveLegacyPackageParents(
+  tasks: HierarchyTaskRecord[],
+): Map<string, HierarchyTaskRecord> {
+  const candidateTasksByExternalKey = new Map<string, HierarchyTaskRecord[]>();
+  const packageIdsByExternalKey = new Map<string, Set<string>>();
+
+  for (const task of tasks) {
+    const externalKey = task.externalKey?.trim();
+    if (
+      !externalKey ||
+      task.stratusAssemblySync !== null ||
+      isUndefinedPlaceholderTask(task)
+    ) {
+      continue;
+    }
+
+    const bucket = candidateTasksByExternalKey.get(externalKey) ?? [];
+    bucket.push(task);
+    candidateTasksByExternalKey.set(externalKey, bucket);
+  }
+
+  for (const task of tasks) {
+    const packageId = task.stratusAssemblySync?.packageId ?? null;
+    if (!packageId) {
+      continue;
+    }
+
+    const packageKey = getAssemblyPackageKey(task) ?? packageId;
+    const packageIds = packageIdsByExternalKey.get(packageKey) ?? new Set<string>();
+    packageIds.add(packageId);
+    packageIdsByExternalKey.set(packageKey, packageIds);
+  }
+
+  const legacyParents = new Map<string, HierarchyTaskRecord>();
+  for (const [packageKey, packageIds] of packageIdsByExternalKey.entries()) {
+    if (packageIds.size !== 1) {
+      continue;
+    }
+
+    const candidates = candidateTasksByExternalKey.get(packageKey) ?? [];
+    if (candidates.length !== 1) {
+      continue;
+    }
+
+    const packageId = [...packageIds][0] ?? null;
+    const candidate = candidates[0] ?? null;
+    if (!packageId || !candidate) {
+      continue;
+    }
+
+    legacyParents.set(packageId, candidate);
+  }
+
+  return legacyParents;
+}
+
+function buildPackageParentByPackageId(
+  tasks: HierarchyTaskRecord[],
+): Map<string, HierarchyTaskRecord> {
+  const packageParentByPackageId = new Map<string, HierarchyTaskRecord>();
+  const legacyParents = resolveLegacyPackageParents(tasks);
+
+  for (const task of tasks) {
+    if (task.stratusSync?.packageId) {
+      packageParentByPackageId.set(task.stratusSync.packageId, task);
+    }
+  }
+
+  for (const [packageId, task] of legacyParents.entries()) {
+    if (!packageParentByPackageId.has(packageId)) {
+      packageParentByPackageId.set(packageId, task);
+    }
+  }
+
+  for (const task of tasks) {
+    const placeholderPackageId = extractUndefinedPackageKey(task.externalKey);
+    if (
+      placeholderPackageId &&
+      isUndefinedPlaceholderTask(task) &&
+      !packageParentByPackageId.has(placeholderPackageId)
+    ) {
+      packageParentByPackageId.set(placeholderPackageId, task);
+    }
+  }
+
+  return packageParentByPackageId;
 }
 
 function resolveSafeParentId(
@@ -234,6 +327,45 @@ async function loadHierarchyTasks(
   });
 }
 
+async function reconcilePlaceholderTasks(
+  db: DbClient,
+  tasks: HierarchyTaskRecord[],
+): Promise<PlaceholderReconciliationResult> {
+  const placeholderInfoByPackageId = resolvePlaceholderGroupInfo(tasks);
+  const packageParentByPackageId = buildPackageParentByPackageId(tasks);
+  const placeholderTaskIdsToDelete: string[] = [];
+
+  for (const task of tasks) {
+    const placeholderPackageId = extractUndefinedPackageKey(task.externalKey);
+    if (!placeholderPackageId || !isUndefinedPlaceholderTask(task)) {
+      continue;
+    }
+
+    const packageGroupExists = placeholderInfoByPackageId.has(placeholderPackageId);
+    const preferredParent = packageParentByPackageId.get(placeholderPackageId) ?? null;
+    if (!packageGroupExists || (preferredParent && preferredParent.id !== task.id)) {
+      placeholderTaskIdsToDelete.push(task.id);
+    }
+  }
+
+  if (placeholderTaskIdsToDelete.length === 0) {
+    return { tasks, changed: false };
+  }
+
+  await db.task.deleteMany({
+    where: {
+      id: {
+        in: placeholderTaskIdsToDelete,
+      },
+    },
+  });
+
+  return {
+    tasks: tasks.filter((task) => !placeholderTaskIdsToDelete.includes(task.id)),
+    changed: true,
+  };
+}
+
 async function ensurePlaceholderTasks(
   db: DbClient,
   projectId: string,
@@ -241,19 +373,7 @@ async function ensurePlaceholderTasks(
 ): Promise<{ tasks: HierarchyTaskRecord[]; changed: boolean }> {
   const nextTasks = [...tasks];
   const placeholderGroups = resolvePlaceholderGroupInfo(tasks);
-  const packageParentByPackageId = new Map<string, HierarchyTaskRecord>();
-
-  for (const task of nextTasks) {
-    if (task.stratusSync?.packageId) {
-      packageParentByPackageId.set(task.stratusSync.packageId, task);
-      continue;
-    }
-
-    const placeholderPackageId = extractUndefinedPackageKey(task.externalKey);
-    if (placeholderPackageId && isUndefinedPlaceholderTask(task)) {
-      packageParentByPackageId.set(placeholderPackageId, task);
-    }
-  }
+  const packageParentByPackageId = buildPackageParentByPackageId(nextTasks);
 
   let changed = false;
 
@@ -325,10 +445,14 @@ async function normalizeTaskHierarchyWithDb(
 ): Promise<NormalizeTaskHierarchyResult> {
   const incrementRevision = options.incrementRevision ?? false;
   const loadedTasks = await loadHierarchyTasks(db, projectId);
+  const {
+    tasks: reconciledTasks,
+    changed: placeholderReconciled,
+  } = await reconcilePlaceholderTasks(db, loadedTasks);
   const { tasks, changed: placeholderCreated } = await ensurePlaceholderTasks(
     db,
     projectId,
-    loadedTasks,
+    reconciledTasks,
   );
 
   if (tasks.length === 0) {
@@ -338,19 +462,7 @@ async function normalizeTaskHierarchyWithDb(
   const orderedTasksByExistingOrder = [...tasks].sort(compareTasksBySortOrder);
   const taskMap = new Map(tasks.map((task) => [task.id, task]));
   const placeholderInfoByPackageId = resolvePlaceholderGroupInfo(tasks);
-  const packageParentByPackageId = new Map<string, HierarchyTaskRecord>();
-
-  for (const task of tasks) {
-    if (task.stratusSync?.packageId) {
-      packageParentByPackageId.set(task.stratusSync.packageId, task);
-      continue;
-    }
-
-    const placeholderPackageId = extractUndefinedPackageKey(task.externalKey);
-    if (placeholderPackageId && isUndefinedPlaceholderTask(task)) {
-      packageParentByPackageId.set(placeholderPackageId, task);
-    }
-  }
+  const packageParentByPackageId = buildPackageParentByPackageId(tasks);
 
   const proposedParentIds = new Map<string, string | null>();
   for (const task of orderedTasksByExistingOrder) {
@@ -495,7 +607,7 @@ async function normalizeTaskHierarchyWithDb(
     ];
   });
 
-  if (updates.length === 0 && !placeholderCreated) {
+  if (updates.length === 0 && !placeholderCreated && !placeholderReconciled) {
     return { changed: false, revision: null };
   }
 
