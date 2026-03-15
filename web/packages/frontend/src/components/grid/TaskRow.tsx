@@ -40,6 +40,7 @@ import {
   pctLabel,
   shortDate,
 } from '../../utils/format';
+import { isPackageTask } from '../../utils/taskClassification';
 import { buildIndentTaskUpdates, buildOutdentTaskUpdates } from '../../utils/taskHierarchy';
 
 interface TaskRowProps {
@@ -113,6 +114,7 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   const isSummary = task.type === 'summary';
+  const isPackage = isPackageTask(task);
   const isMilestone = task.type === 'milestone' || task.durationMinutes === 0;
   const isNameLocked = task.isNameManagedByStratus;
   const indentPx = task.outlineLevel * 20;
@@ -576,7 +578,7 @@ const TaskRowComponent: React.FC<TaskRowProps> = ({
               textOverflow: 'ellipsis',
               borderRight: '1px solid #F5F5F5',
               color: criticalColor,
-              fontWeight: isSummary ? 700 : 400,
+              fontWeight: isPackage ? 700 : 400,
             }}
           >
             {renderCellContent(column)}
